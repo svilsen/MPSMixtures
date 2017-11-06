@@ -1,0 +1,30 @@
+Package: MPSMixtures
+Type: Package
+Title: Functions for handling MPS DNA mixtures.
+Version: 0.1.2
+Author: Søren Vilsen
+Maintainer: Søren Vilsen <svilsen@math.aau.dk>
+Description: A package containing all necessary functions for DNA mixture
+    deconvolution and calculation of the weight-of-evidence. The package is intended
+    for DNA sequenced using MPS for functions regarding the analysis of MPS STR data
+    see the STRMPS-package.
+License: NA
+Encoding: UTF-8
+LazyData: TRUE
+Imports:
+    Rcpp (>= 0.12.1),
+    RcppEigen,
+    BH
+LinkingTo: Rcpp,
+    RcppEigen,
+    BH
+Depends:
+    Rcpp,
+    RcppEigen,
+    BH
+RoxygenNote: 6.0.1
+Suggests:
+    knitr,
+    rmarkdown
+VignetteBuilder:
+    knitr
