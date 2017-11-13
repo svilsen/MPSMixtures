@@ -1,0 +1,112 @@
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{amsmath} 
+\usepackage{amsthm}
+\usepackage{array}
+\usepackage{color}
+\usepackage{varioref}
+\usepackage{enumerate}
+\usepackage{geometry}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{fullwidth}
+\usepackage{xcolor}
+\usepackage{tikz}
+
+%%%%%% Commands and theorems
+\newcommand{\bs}[1]{\ensuremath{\boldsymbol{#1}}}
+\newcommand{\mc}[1]{\ensuremath{\mathcal{#1}}}
+\newcommand{\mcg}{\ensuremath{g}}
+
+\newcommand{\dst}{\ensuremath{\sim}}
+\newcommand{\where}{\ensuremath{ \ | \ }}
+\newcommand{\diag}[1]{\ensuremath{\text{diag}\left( #1 \right)}}
+
+\newcommand{\lpnorm}[2]{\ensuremath{||#1||_{#2}}}
+
+\newcommand{\cma}{\ensuremath{\varphi_{ma}}}
+\newcommand{\cobs}{\ensuremath{\boldsymbol{\mathcal{C}}_{\text{observed}}}}
+\newcommand{\cmis}{\ensuremath{\boldsymbol{\mathcal{C}}_{\text{missing}}}}
+
+\newcommand{\indep}{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-10mu\perp$}}}}
+
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\N}{\ensuremath{\mathbb{N}}}
+\newcommand{\Z}{\ensuremath{\mathbb{Z}}}
+
+\newcommand{\p}[1]{\ensuremath{\mathbb{P}\left(#1\right)}}
+\newcommand{\pHat}[1]{\ensuremath{\hat{\mathbb{P}}\left(#1\right)}}
+\newcommand{\pHatOne}[1]{\ensuremath{\hat{\mathbb{P}}_1\left(#1\right)}}
+\newcommand{\pHatTwo}[1]{\ensuremath{\hat{\mathbb{P}}_2\left(#1\right)}}
+\newcommand{\pHatK}[1]{\ensuremath{\hat{\mathbb{P}}_k\left(#1\right)}}
+
+\newcommand{\E}[1]{\ensuremath{\mathbb{E}\left[#1\right]}}
+\newcommand{\Ep}[2]{\ensuremath{\mathbb{E}_{#1}\left[#2\right]}}
+\newcommand{\Var}[1]{\ensuremath{\mathbb{V}\text{ar}\left(#1\right)}}
+\newcommand{\Cov}[2]{\ensuremath{\mathbb{C}\text{ov}\left(#1, #2\right)}}
+\newcommand{\indicator}[1]{\ensuremath{\mathbb{I}\left[#1\right]}}
+
+\renewcommand{\algorithmicrepeat}{\textbf{Repeat:}}
+\renewcommand{\algorithmicuntil}{\textbf{Until:}}
+\renewcommand{\algorithmicreturn}{\textbf{Return:}}
+
+\newcommand{\xdownarrow}[1]{%
+  {\left\downarrow\vbox to #1{}\right.\kern-\nulldelimiterspace}
+}
+
+%% ALG stuff
+\usepackage{algorithm}% http://ctan.org/pkg/algorithm
+\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+
+\makeatletter
+% This is the vertical rule that is inserted
+\def\therule{\makebox[\algorithmicindent][l]{\hspace*{.5em}\vrule height .75\baselineskip depth .25\baselineskip}}%
+
+\newtoks\therules% Contains rules
+\therules={}% Start with empty token list
+\def\appendto#1#2{\expandafter#1\expandafter{\the#1#2}}% Append to token list
+\def\gobblefirst#1{% Remove (first) from token list
+  #1\expandafter\expandafter\expandafter{\expandafter\@gobble\the#1}}%
+\def\LState{\State\unskip\the\therules}% New line-state
+\def\pushindent{\appendto\therules\therule}%
+\def\popindent{\gobblefirst\therules}%
+\def\printindent{\unskip\the\therules}%
+\def\printandpush{\printindent\pushindent}%
+\def\popandprint{\popindent\printindent}%
+
+%      ***      DECLARED LOOPS      ***
+% (from algpseudocode.sty)
+\algdef{SE}[WHILE]{While}{EndWhile}[1]
+  {\printandpush\algorithmicwhile\ #1\ \algorithmicdo}
+  {\popandprint\algorithmicend\ \algorithmicwhile}%
+\algdef{SE}[FOR]{For}{EndFor}[1]
+  {\printandpush\algorithmicfor\ #1\ \algorithmicdo}
+  {\popandprint\algorithmicend\ \algorithmicfor}%
+\algdef{S}[FOR]{ForAll}[1]
+  {\printindent\algorithmicforall\ #1\ \algorithmicdo}%
+\algdef{SE}[LOOP]{Loop}{EndLoop}
+  {\printandpush\algorithmicloop}
+  {\popandprint\algorithmicend\ \algorithmicloop}%
+\algdef{SE}[REPEAT]{Repeat}{Until}
+  {\printandpush\algorithmicrepeat}[1]
+  {\popandprint\algorithmicuntil\ #1}%
+\algdef{SE}[IF]{If}{EndIf}[1]
+  {\printandpush\algorithmicif\ #1\ \algorithmicthen}
+  {\popandprint\algorithmicend\ \algorithmicif}%
+\algdef{C}[IF]{IF}{ElsIf}[1]
+  {\popandprint\pushindent\algorithmicelse\ \algorithmicif\ #1\ \algorithmicthen}%
+\algdef{Ce}[ELSE]{IF}{Else}{EndIf}
+  {\popandprint\pushindent\algorithmicelse}%
+\algdef{SE}[PROCEDURE]{Procedure}{EndProcedure}[2]
+   {\printandpush\algorithmicprocedure\ \textproc{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}%
+   {\popandprint\algorithmicend\ \algorithmicprocedure}%
+\algdef{SE}[FUNCTION]{Function}{EndFunction}[2]
+   {\printandpush\algorithmicfunction\ \textproc{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}%
+   {\popandprint\algorithmicend\ \algorithmicfunction}%
+\makeatother
+
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}

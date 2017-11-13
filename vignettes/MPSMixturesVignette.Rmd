@@ -1,0 +1,354 @@
+---
+title: "Deconvolution of MPS STR DNA mixtures and approximation the likelihood ratio"
+author: "Søren B. Vilsen"
+date: "`r Sys.Date()`"
+bibliography: Literature.bib
+output: 
+    pdf_document:
+        number_sections: true
+        includes:
+            in_header: preamble.tex
+vignette: >
+  %\VignetteIndexEntry{Deconvolution of MPS STR DNA mixtures and approximation the likelihood ratio}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+The central question in forensic genetics is determination of the posterior odds of two competing hypotheses. Assume DNA evidence has been collected at a crime-scene and denote the evidence $\mc E$. Furthermore, denote the prosecutions hypothesis $\mc H_p$ and defences hypothesis $\mc H_d$, then the quantity of interest is:
+\begin{align}
+\frac{\p{\mc H_d|\mc E}}{\p{\mc H_p|\mc E}} = \frac{\p{\mc E|\mc H_d}}{\p{\mc E|\mc H_p}}\frac{\p{\mc H_d}}{\p{\mc H_p}}.
+\end{align}
+
+The prior probabilities of the two hypotheses are either assumed equal or supplied by the court, which leaves the likelihood ratio:
+\begin{align}
+\text{LR}(\mc H_d, \mc H_p) = \frac{\p{\mc E|\mc H_d}}{\p{\mc E|\mc H_p}}.
+\end{align}
+
+Assuming that the evidence $\mc E$ consists of some quantitative information $\mc Q$ (the coverage in MPS or peak height/area in CE) about some genetic information $\bs \mcg$, then we can factorise $\p{\mc E|\mc H_i}$ as: 
+\begin{align}
+\p{\mc E|\mc H_i} = \p{\mc Q, \bs \mcg|\mc H_i} = \p{\mc Q|\bs \mcg}\p{\bs \mcg|\mc H_i}.
+\end{align}
+
+Thus, the probability of the evidence, given a hypothesis, has two parts: (1) The probability of the quantitative information given allelic information, determinded by the likelihood under a model, and (2) The probability of the allelic information under the hypothesis in question, assuming either HWE or $\theta$ correction [@Balding1994].
+
+If a hypothesis states that a contributor is unknown it is necessary to sum over the set possible unknown contributors to the mixture. That is, we can write:
+\begin{align*}
+\p{\mc E|\mc H_i} &= \sum_{\bs \mcg_{u} \in U_i} L\left(\bs{\mc Q}|\bs \mcg_{K_i}, \bs \mcg_{u}\right)\p{\bs \mcg_{u}|\bs \mcg_{K}}
+\end{align*}
+where $\bs \mcg_{K_i}$ are the known contributors under hypothesis $i$, $\bs \mcg_{K} = \{\bs \mcg_{K_d}, \bs \mcg_{K_p}\}$, and $\mc U_i$ is the set of unknown contributors under hypothesis $i$.
+
+The sum over the set of unknown contributors may be intractable. Therefore, we search through the space using an Evolutionary Algorithm. The algorithm will have two objectives:
+\begin{enumerate}[(1)]
+\item Find the combination of unknown genotypes maximising the $L\left(\bs{\mc Q}|\bs \mcg_{K_i}, \bs \mcg_{u}\right)\p{\bs \mcg_{u}|\bs \mcg_{K}}$.
+\item Approximate the set of combinations of unknown contributors by the elements having the largest contribution to the sum.
+\end{enumerate}
+
+In the remainder of this document, we will assume the following, unless otherwise stated: We have sequenced a sample using an $M$ marker multiplex panel and denote an arbitrary locus by $m$. We have observed $A_m$ alleles at locus $m$ and denote an allele (represented as sequenced DNA strings in MPS) by $a \in \{a_{m1}, ..., a_{mA_m}\}$. The DNA sample is a mixture of $C$ DNA profiles, i.e.\ that the sample contains exactly $C$ contributors.
+
+# The coverage model
+We define the coverage model in two parts: (1) an allele coverage model, which will account for ... and (2) a noise coverage model accounting for the remaining observations.
+
+The allele coverage model was introduced in [@Vilsen2017b]; an adaptation of capillary electrophoresis peak height/width models [@tvedebrink_etal_2013], [@taylor_etal_2013], [@cowell_etal_2015], [@oyvind_bleka_2016], and [@steele_2016] in order to model the allele coverage genereated by MPS. The coverage of a string is the number of times the string is observed. Therefore, we model the coverage as overdispersed count data. That is, 
+\begin{align*}
+y_{ma} \sim \text{PG}\left(\mu_{ma}, \eta_m\right),
+\end{align*}
+where PG is the Poisson-gamma distribution (the mean parametrised negative binomial distribution), $\mu_ma$ the expected coverage, and $eta_m$ the overdispersion. Furthermore, we assume that the expected coverage is given as:
+\begin{align*}
+\mu_{ma} = \nu \beta_m \sum_{c} \left[g_{mac} + \sum_{p\,\in\;\mc P(a)} \xi_{mp} g_{mpc} \right]\varphi_c,
+\end{align*}
+where $\nu$ is the average heterozygote coverage, $\beta_m$ is a marker dependent scaling parameter, with $\sum \beta_m = M$, $\varphi_c$ is the relative contribution of contributor $c$, with $\sum_c \varphi_c = 1$, $g_{mac}$ is the genotype of marker $m$ allele $a$ contributor $c$, $\mc P(a)$ is the set of potential parents of allele $a$ and $\xi_{mp}$ is the stutter ratio of parent $p$. Furthermore, note that the parameters $\bs\beta$, the parameters $\bs\xi$, and the set of potential parents are assumed known. 
+
+Any observation not identified as an allele or a stutter of an allele is classified as noise and denoted using set complement notation: $\bs y^c$ and $\bs g^c$. The coverage of the noise is assumed to follow a simple Poisson-gamma intercept model. 
+
+Assuming that the two parts are independent, given the genotypic information, then the likelihood can be written as:
+\begin{align*}
+\prod_m L(\nu, \eta, \bs \varphi | \beta_m, \bs\xi_m, \bs y_m, \bs g_m) L(\mu, \theta | \bs y^c_m, \bs g^c_m)
+\end{align*}
+
+# The evolutionary algorithm {#sec:EA}
+Evolutionary algorithms (EAs) are a class population based meta-heuristic optimisation algorithms (a sub-set of stochastic optimisation algorithms) [@Holland1975], [@Mitchell1996], [@Jones1998], and [@Luke2013]. They work on the principles of Darwinian evolution (survival of the fittest) to create and breed new solutions. The pseudo code of a general EA can be seen in Algorithm \ref{alg:GA}. As a class of optimisation algorithms they are extremely flexible, as all they require is that we can measure the space over which we are optimising. They have, therefore, had success in optimising functions in complex discrete sample spaces. 
+
+\vspace{-10pt}
+\begin{fullwidth}[width=0.75\textwidth, leftmargin = 55pt]
+\begin{algorithm}[H]
+\caption{\label{alg:GA}The General Evolutionary Algorithm.}
+\begin{algorithmic}
+\State Create initial population.
+\Repeat
+\State Select ancestors from current population.
+\State Create descendants from ancestors by crossover and mutation.
+\State Select new population from the created descendants.
+\Until{Convergence.}\\
+\Return Last population.
+\end{algorithmic}
+\end{algorithm}
+\end{fullwidth}
+\vspace{10pt}
+
+In order to create and run an EA, we will need the following:
+\begin{itemize}
+\itemsep0pt
+\item How are individuals (the possible solutions) are represented in the EA population? The structure of the individual is a key aspect of the EA and are usually created simplify the mutation and crossover operators. Note: when we say individuals we will always refer to a EA individual and not the contributors to the DNA mixtures. 
+\item How is the fitness function is defined? A function measuring the space being optimised.
+\item How are ancestors are selected for breeding? Are they are allowed to compete with their descendants for spots in the new population?
+\item How is the crossover operator is defined?
+\item How is the mutation operator is defined?
+\item Are we using hill climbing?
+\item Are running multiple populations in parallel? If yes, is there migration between the sub-populations? How is this migration structured?
+\item How do we define convergence?
+\end{itemize}
+
+We have implemented both a single and parallel population EA. Below we describe each element in detail and end by summarising the implementation. We will start by defining the structure of an individual and the corresponding encoding/decoding of the genotypes.
+
+## Encoding, individuals, and the current population
+An individual is a possible solution of the sample space, in our case a possible combination of unknown profiles and the current population, $\mc P$, is a collection of $N_{\mc P}$ individuals. The individual should be defined such that it eases the use of the population operators (mutation, cross-over, hill-climbing).
+
+Assume for now that we have two contributors, $c_1$ and $c_2$, one marker, $m$, and three observations, i.e.\ the coverage vector are given as $\bs{y}_m = ({y}_{m1}, {y}_{m2}, {y}_{m3})^T$, then the profile matrix of the $m$'th marker, $P_m$, could for example take the form:
+\begin{align*}
+P_m = \begin{bmatrix}
+1 & 1 \\
+0 & 1 \\
+1 & 0
+\end{bmatrix}.
+\end{align*}
+
+We could use the profile matrix itself as an individual, as it already is a potential solution. However, even though the cross-over operator could work in the same way, as described below in Section \ref{sec:crossover}, the mutating the profile matrix is not straight forward. Therefore, we encode the individual by pointing to two positions in the coverage vector of the marker. Furthermore, we do so one contributor at the time. That is, for the $P_m$ matrix above, the individual, $\mc I$, is given as:
+\begin{align*}
+\mc I = \begin{bmatrix}
+1 \\ 3 \\ 1 \\ 2
+\end{bmatrix}.
+\end{align*}
+This structure keeps the cross-over operator the same, but the mutation operator is simplified, as no matter how we change an element of the individual, we can ensure it is still a valid solution by taking modulo $A_m$.
+
+In general, we will structure the individual by marker then contributor, assuming $C$ contributors and $M$ markers, an individual $\mc I$ is simply a vector of size $2\times CM$ elements, i.e.\
+\begin{align}\label{eq:individual_representation}
+\mc I = \left[\begin{array}{ll}
+\text{Marker 1}&\left\{\begin{array}{ll}
+	\text{Contributor 1}&\left\{\begin{array}{l}
+	\mc I_{1} \\
+	\mc I_{2}
+	\end{array}\right. \\
+	\text{Contributor 2}&\left\{\begin{array}{l}
+	\mc I_{3} \\
+	\mc I_{4}
+	\end{array}\right. \\
+\hspace{30pt}\vdots&\hspace{20pt}\vdots \\
+	\text{Contributor }C&\left\{\begin{array}{l}
+	\mc I_{(2C - 1)} \\
+	\mc I_{(2C)}
+	\end{array}\right. \\
+\end{array} \right. \\
+\text{Marker 2}&\left\{\begin{array}{ll}
+	\text{Contributor 1}&\left\{\begin{array}{l}
+	\mc I_{(2C + 1)} \\
+	\mc I_{(2C + 2)}
+	\end{array}\right. \\
+\hspace{30pt}\vdots&\hspace{20pt}\vdots \\
+	\text{Contributor }C&\left\{\begin{array}{l}
+	\mc I_{(4C - 1)} \\
+	\mc I_{(4C )}
+	\end{array}\right. \\
+\end{array} \right. \\
+&\hspace{5pt}\vdots \\
+\text{Marker }M&\left\{\begin{array}{ll}
+	\text{Contributor 1}&\left\{\begin{array}{l}
+	\mc I_{(2C(M - 1) - 1)} \\
+	\mc I_{(2C(M - 1))}
+	\end{array}\right. \\
+\hspace{30pt}\vdots&\hspace{20pt}\vdots \\
+	\text{Contributor }C&\left\{\begin{array}{l}
+	\mc I_{(2CM - 1)} \\
+	\mc I_{(2CM)}
+	\end{array}\right. \\
+\end{array} \right.
+\end{array}\right]
+\end{align}
+
+Structuring the individual by marker and then contributor, may seem counter-intuitive, but every operation has to been performed for every contributor on a marker-by-marker basis, making this structure more convenient for implementation purposes.
+
+## Fitness score
+The fitness score of an individual should reflect how well the possible solution fits the maximisation problem. As an individual is a combination of unknown genotypes, an obvious choice of fitness function would be the likelihood of the observed coverage under the model given the genotype proposed by the individual times the prior of the proposed genotype, given population information. That is, the fitness, $\mc F_j$, is defined as:
+\begin{align}\label{eq:fitness}
+\mc F_j = \ell\left(\bs\mcg_{U}^{(\mc I)}, \nu, \eta, \varphi, \mu, \theta | \bs{y}, \bs\beta, \bs\xi\right) + \log\left(\p{\bs\mcg_{U}^{(\mc I)}\;|\;\bs\mcg_{K}}\right),
+\end{align}
+where $\ell(\cdot)$ is the log-likelihood and $\bs\mcg_{U}^{(\mc I)}$ is the unknown genotypes given by the $\mc I$'th individual. From this point we write $\bs\mcg_{U}$ dropping the superscript, when it is clear from context. 
+
+## Selection
+Selection is broken into two stages: 
+\begin{itemize}
+\item[(1)] Parent partner selection.
+\item[(2)] Individual selection for new population.
+\end{itemize}
+
+### Parent partner selection
+Every individual in the current population is chosen to be a parent. Their partner is chosen by using proportional selection in a neighbourhood of the parent. In this context the population is thought of as a circle, i.e.\ in a population of $N_{\mc P}$ the individual $\mc I_{N_{\mc P}}$ is thought of being immediately to the left of individual $\mc I_1$. The neighbourhood is introduced to control the speed with which good solutions spread through the population. If the pace is to quick population may get stuck in a local maximum.  
+
+By proportional selection the probability of selecting individual $\mc I_j$ as a partner of individual $\mc I_i$, is currently defined as:
+\begin{align} \label{eq:proportionalSelectionProbaility}
+\pi_{j} = \frac{\displaystyle\frac{1}{|\mc F_j|}}{\displaystyle\sum_{k\;\in\;\mc N(i)}\frac{1}{|\mc F_k|}},
+\end{align}
+where $\mc N(i)$ is the neighbourhood of $\mc I_i$. Note that $i\;\notin\;\mc N(i)$. After a partner has been selected, the parent and its partner produces a child by the cross-over operator.
+
+### Individual selection for new population
+We have implemented two approaches to creating the new population. 
+\begin{enumerate}[(1)]
+\item Children always replace the parent. Thus, the new population is simply the children after cross-over, mutation, and hill-climbing.
+\item A child will only replace the parent if it has larger fitness than the parent. This is sometimes referred to as elitist selection. 
+\end{enumerate}
+
+If item (1) is used it is useful to combine it with a super-individual. The super-individual is the fittest individual from the current population. The super-individual is kept separate from the population and only replaced if a better fitting individual is introduced. Using item (1), we ensure that the transition matrix of the underlying Markov chain is ergodic [@Eiben1991, @He1999, @Dorea2010], and by adding a super-individual, we ensure the fittest individual is always retained from population to population. Note that the super-individual is not necessary in the case of item (2), as once the fittest individual enters the population it never leaves.
+
+Thus, if the operators are defined properly, then when the fittest individual enters the population, it implies that we have found the maximum of $L\left(\bs{\mc Q}|\bs \mcg_{K_i}, \bs \mcg_{u}\right)\p{\bs \mcg_{u}|\bs \mcg_{K}}$, and, thus, we have a solution to item (1) seen in the introduction. 
+
+In an effort to approximate the set of unknown contributor profiles (i.e.\ item (2) of the introduction), we have extended the idea of a super-individual to not just include the fittest observed individual, but a list of the $N_{F}$ fittest observed individuals. We assume that there are no duplicates in this set, and denote it $\hat{\mc U}$.
+
+## Cross-over {#sec:crossover}
+The cross-over operator (together with mutation) emulates the mating of two individual. Given two individuals and probability of switching $\pi_{s}$, it works in the following way: 
+\begin{enumerate}[(1)]
+\item Choose the starting individual, which is currently 50/50, but might change in favour of the parent. 
+\item Run through the current individual element-by-element.
+\item Switch the current individual with probability $\pi_s$ at each element.
+\end{enumerate}
+
+To be more concrete: assume we have two individuals, $\mc I_u$ and $\mc I_v$, with $C$ contributors and $M$ markers (i.e.\ length $2CM$). Furthermore, let us assume that we start with individual $\mc I_u$ and switch the current individual twice, at positions $i$ and $j$ (assuming $i \leq j$), then the child created by crossing $\mc I_u$ and $\mc I_v$ can be seen in Figure \ref{fig:crossover}.
+
+\begin{figure}[h]
+\vspace{-10pt}
+\centering
+\[
+\begin{array}{c}
+\begin{array}{rcl}
+\mc I_u & = & (\color{red}{\mc I_{u1},\;\; \mc I_{u2},\;\; \dots, \;\; \mc I_{u(\mc C\mc M)}}\color{black}{)^T} \\
+\mc I_v & = & (\color{black}{\mc I_{v1},\;\; \mc I_{v2},\;\; \dots, \;\; \mc I_{v(\mc C\mc M)}})^T
+\end{array} \\[10pt]
+\Big\downarrow \\[5pt]
+\begin{array}{l}
+(\color{red}{\mc I_{u1},\;\;\dots,\;\;\mc I_{ui},\;\;} \color{black}{\mc I_{v(i+1)},\;\; \dots,\;\; \mc I_{vj},\;\;}\color{red}{\mc I_{u(j+1)},\;\; \dots,\;\; \mc I_{u(\mc C\mc M)}}\color{black}{)^T}
+\end{array}
+\end{array}
+\]
+\vspace{-15pt}
+\caption{\label{fig:crossover}Example of crossover performed on two individuals of length $2CM$ starting with individual $\mc I_u$ and switching twice at positions $i$ and $j$, with $i \leq j$.}
+\end{figure}
+
+## Mutation
+After cross-over is performed the resulting child is mutated. The mutation operator works on an element-by-element basis. An element $\mc I_{(2C(m - 1) + k)}^{(t)}$, $k \in \{1,..., 2C\}$ (the element belongs to the $\lceil k/2 \rceil$'th contributor on the $m$'th marker), in the  $t$'th iteration of the algorithm, is changed with probability $\pi_{mi}(t)$. The element is changed by drawing a random number $q \in \{1, ..., \mc A_m - 1\}$ and updating the element, as follows:
+\begin{align}\label{eq:mutation}
+\mc I_{(2C(m - 1) + k)}^{(t + 1)} = \left\{(\mc I_{(2C(m - 1) + k)}^{(t)} + q)\;\bmod\; A_m\right\} + 1
+\end{align}
+Note that if an element is mutated it always changes its value, as the null state is ensured as long as $1 - \pi_{mi}(t) > 0$.
+
+The probability of mutation $\bs \pi_{m}$ is defined as:
+\begin{align*}
+\pi_{mi}(\tilde{r}_{mi}, d, p, w_t) = \left\{ \begin{array}{ll}
+1 - \dfrac{f(\tilde{r}_{mi}, d)}{f(0, d)}(1 - p), & \text{if } |\tilde{r}_{mi}| > w_t \\
+p, & \text{otherwise}
+\end{array} \right.
+\end{align*}
+where $\tilde{\bs r}_m$ are the deviance residuals, $f$ is the pdf of a t-distribution with $d$ degrees of freedom, $p$ is the lowest possible probability of mutation, and $\{w_t\}_{t \geq 1}$ is a non-decreasing sequence of weights, containing an element for every iteration, $t$. In order to ease notation we write $\pi_{mi}(t)$ instead of $\pi_{mi}(\tilde{r}_{mi}, d, p, w_t)$. The elements of $\bs\pi_m(t)$ will point to rows of the decoded individual with large residuals and hence needs to be encoded.
+
+## Hill-climbing
+Hill-climbing is not always introduced as an operator in EA's, but it has been argued that it can be a very important addition [@Muhlenbein1991]. Hill-climbing can be thought of as standing in a point (the current individual), looking in random directions in the surrounding area, moving to the spot that increases our fitness the most. In a way, it is similar to mutation, though a mutation always sticks, where as, for hill-climbing we only change our current position if it increases our fitness.
+
+Hill-climbing is implemented by choosing a marker, $m$, an unknown contributor, $c$, and an allele, $a$, at random. We then create the $(A_m - 1)$ remaining instances of that allele and choose the instance which increases the fitness the most (if any exists), as shown in Figure \ref{fig:hillClimbing}. Hill-climbing can done multiple times for each individual in each iteration of the algorithm, by drawing a new marker, contributor, and allele and repeating the process. Note that running multiple hill-climbing iterations will slow down the algorithm, especially for large populations.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\draw (0,0) node {$\mc I_{(2C(m - 1) + c + a)}$};
+\draw (4, 1.5) node[anchor = west] {$\{(\mc I_{(2C(m - 1) + c + a)} + 1) \;\bmod\; A_m\} + 1$};
+\draw (4, 0.5) node[anchor = west] {$\{(\mc I_{(2C(m - 1) + c + a)} + 2) \;\bmod\; A_m\} + 1$};
+\draw (4, -0.5) node[anchor = west] {$\qquad\qquad\vdots$};
+\draw (4, -1.5) node[anchor = west] {$\{(\mc I_{(2C(m - 1) + c + a)} + (A_m - 1)) \;\bmod\; A_m\} + 1$};
+
+\draw[->, >=latex] (1.5, 0.25) to (4, 1.5);
+\draw[->, >=latex] (1.5, .125) to (4, 0.5);
+\draw[->, >=latex] (1.5, -0.25) to (4, -1.5);
+\end{tikzpicture}
+\caption{\label{fig:hillClimbing}Creating the remaining instances of allele $a$ of contributor $c$ on marker $m$.}
+\end{figure}
+
+## Multiple populations and migration
+We will be running multiple populations for the following three reasons: (1) the populations can be run in parallel, (2) if we initialise these populations randomly, then they will more thoroughly explore the fitness landscape, compared to running a single populations, and (3) it allows us to run smaller total population size. This is variation on the parallel algorithm presented in @Muhlenbein1991 and @Muhlenbein1991b.
+
+We introduce a migration operator, which shares high fitness individuals of a sub-population with its neighbouring sub-populations. The migration operator combined with item (2) creates the following advantage: If a sub-population gets stuck at a local maxima, then a migration of high fitness individuals from another sub-population can help drag it out the local maximum (hopefully towards the global maximum, but if not it will be pushed to another part of the sample space).
+
+In order to use the migration operator it follows that the EA running on the sub-populations needs to be paused. That is, when running multiple population, we alternate between running the EA (independently on a sub-population level), for a specified number steps (called inner iterations), and migration. We will define and outer iteration as having completed both a of these steps exactly once.
+
+With that being said, we do not want high fitness individuals to spread too quickly through the sub-populations, as they might end up fixating at a local maxima. Therefore, we will use the neighbourhood structure shown in Figure \ref{fig:migration}, inspired by @Muhlenbein1991 and @Muhlenbein1991b. Assuming for the moment that when migration occurs the highest fitness individual of the sub-population is copied and send to its neighbours, replacing their lowest fitness individuals, using the structure depicted in Figure \ref{fig:migration}. Furthermore, assume that we have exactly $V$ sub-populations. Let $\mc I^*$ be the individual corresponding to the global maximum, then the number of iterations until $\mc I^*$ has spread to every sub-population, is given by: 
+\begin{align}\label{eq:numberOfPopulationsMigration}
+\lceil (V + 1) / 3\rceil.
+\end{align}
+
+This relation is obtained by solving for $n$ in the following equation:
+\begin{align*}
+V =\;& \text{\# of paths to reach every node in the right direction} \\
+&+\text{\# of paths to reach every node in the left direction} \\
+&+1 \\
+=\;& n + 2(n - 1) + 1
+\end{align*}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\node (a) [draw, circle, minimum size = 1.25cm, inner sep = 2pt] at (0, 0) {$\mc P_1$};
+\node (b) [draw, circle, minimum size = 1.25cm, inner sep = 2pt] at (2, 0) {$\mc P_2$};
+\node (c) [draw, circle, minimum size = 1.25cm, inner sep = 2pt] at (4, 0) {$\mc P_3$};
+\node (d) [draw, circle, minimum size = 1.25cm, inner sep = 2pt] at (5, -1.5) {$\mc P_4$};
+
+\node (ein) [draw, circle, draw opacity = 0, minimum size = 1.25cm, inner sep = 2pt] at (4, -3) {};
+\node (e) [draw, circle, draw opacity = 0, minimum size = 1.25cm, inner sep = 2pt] at (3, -3) {$\cdots$};
+\node (eout) [draw, circle, draw opacity = 0, minimum size = 1.25cm, inner sep = 2pt] at (2, -3) {};
+
+\node (f) [draw, circle, minimum size = 1.25cm, inner sep = 2pt] at (0, -3) {$\mc P_{V-1}$};
+\node (g) [draw, circle, minimum size = 1.25cm, inner sep = 2pt] at (-1, -1.5) {$\mc P_V$};
+
+\draw [->, >=latex] (a) to (b);
+\draw [->, >=latex] (b) to (c);
+\draw [->, >=latex] (c) to (d);
+\draw [->, >=latex] (d) to (ein);
+\draw [->, >=latex] (eout) to (f);
+\draw [->, >=latex] (f) to (g);
+\draw [->, >=latex] (g) to (a);
+
+\draw [->, >=latex] (a) to (f);
+\draw [->, >=latex] (b) to (g);
+\draw [->, >=latex] (c) to[out = 150, in = 30] (a);
+\draw [->, >=latex] (d) to (b);
+\draw [->, >=latex] (ein) to (c);
+\draw [->, >=latex] (g) to (eout);
+\end{tikzpicture}
+\caption{\label{fig:migration}The migration neighbourhood structure used in the multiple population EA.}
+\end{figure}
+
+## Convergence
+Convergence in EA's is generally speaking very difficult to determine. In fact, all we are sure of is that the fittest individual will enter the population at some point. With that being said, we think of convergence in two slightly different ways dependent on whether we are running a single or multiple population EA. In the remainder of this subsection, assume the total number of allowed iterations is set at $T$.
+
+### Single population convergence
+For a single population EA, we will allow the algorithm to terminate, when the average fitness in the population gets close the highest fitness, for some number of iterations, denoted $T_\varepsilon$. We use the relative difference: 
+\begin{align*}
+\frac{\displaystyle\left|\max\limits_i\{\mc F_i\} - \bar{\mc F}\right|}{\left|\max\limits_i\{\mc F_i\}\right|},
+\end{align*} 
+(\textcolor{red}{should this be redefined to resemble Eq.\eqref{eq:proportionalSelectionProbaility}?}) and when the relative difference has been smaller than some $\varepsilon$ for more than $T_\varepsilon$ iterations, we terminate the algorithm. We usually set $\varepsilon = 1 / N_{\mc P}$, where $N_{\mc P}$ is the population size. 
+
+The question then becomes: How do we ensure that the algorithm does not terminate at a local maximum? Or asked in another way; how do we slow down population fixation?  The answer lies in the following two parameters:
+\begin{enumerate}[(1)]
+\item Population size, $N_{\mc P}$. The larger the population, the more iterations until fixation.
+\item The size of the parent partner selection window. The smaller the selection window, the more iterations until fixation.
+\end{enumerate}
+Furthermore, the size of the selection window is heavily dependent on the population size. Running an EA with e.g.\ $N_{\mc P} = 1000$, we can have a much larger window size, than if the population size was equal to say 100.
+
+### Multiple population convergence
+When running multiple population, we are not worried about sub-populations fixating at local maxima, because of the migration operator. In fact, we want the sub-populations to find good local maxima such that they can share the "good"/"fit" genes to other sub-populations (by migration).
+
+We will define termination in the multiple population case, as: all sub-populations having the same individual, with highest fitness, for more than $T_\varepsilon$ outer iterations. Note that a more relaxed version is also implement requiring only some fraction of the of sub-populations to have the same individual with highest fitness. 
+
+The fixation of the entire population is entirely controlled by (1) the migration structure, and (2) the number of sub-populations. As the migration structure is fixed, all we can do is increase the number of sub-populations in order to increase the time to fixation (given the number of sub-populations the time to fixation is given by Eq. \eqref{eq:numberOfPopulationsMigration}). 
+
+The constraint $T_\varepsilon$ is introduced (in both cases) to create a buffer, which will allow the algorithm time to find a fitter individual in cases, where we have found an individual very close in fitness, but far in the state space, compared to the fittest individual.
+
+# Example
+As we cannot use a real DNA profile as an example, we will simulate data given a fictional case of murder.  
+
+# References
