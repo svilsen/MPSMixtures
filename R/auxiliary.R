@@ -1,3 +1,11 @@
+#' Create genotype matrix
+#'
+#' @description Creates genotype matrix, given a sample and the true profiles of the contributors.
+#'
+#' @param coverageTibble A tibble containing sample information.
+#' @param trueProfiles A list of tibbles, an element for each contributor.
+#'
+#' @return A matrix with the allele counts of of each contributor.
 genotypeMatrix <- function(coverageTibble, trueProfiles) {
     markersInProfiles <- sort(as.character(unique(do.call(rbind, trueProfiles)$Marker)))
 
@@ -18,8 +26,11 @@ genotypeMatrix <- function(coverageTibble, trueProfiles) {
     return(nMatrix)
 }
 
-# s = coverageTibble_m$Region[1]; motifLength = round(coverageTibble_m$MotifLength[1])
-getEntireRepeatStructure <- function(s, motifLength = 4) {
+.cyclicRotation <- function(x, y) {
+    (nchar(y) == nchar(x)) && (grepl(y, strrep(x, 2), fixed = TRUE))
+}
+
+.getEntireRepeatStructure <- function(s, motifLength = 4) {
     motifLength <- if (!is.integer(motifLength)) as.integer(motifLength) else motifLength
 
     sD <- DNAString(s)
@@ -70,8 +81,19 @@ getEntireRepeatStructure <- function(s, motifLength = 4) {
     return(reducedRepeats)
 }
 
-# gapOpeningPenalty = 6; gapExtensionPenalty = 1; trace = T
-potentialParents <- function(coverageTibble, stutterRatioModel = NULL, gapOpeningPenalty = 6, gapExtensionPenalty = 1, trace = FALSE) {
+#' Potential parents list
+#'
+#' @description Creates a list of the potential parents for every region in the provided sample.
+#'
+#' @param coverageTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
+#' @param stutterRatioModel A linear model fit; created by the \link{lm}-function.
+#' @param trace If 'TRUE' adds a simple marker trace.
+#'
+#' @return A list of the potential parents.
+potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = FALSE) {
+    gapOpeningPenalty = 6
+    gapExtensionPenalty = 1
+
     markersInProfiles <- sort(as.character(unique(coverageTibble$Marker)))
 
     potentialParentsAll <- list()
@@ -101,7 +123,7 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, gapOpenin
 
                     if (alignedPotentialParents[j]) {
                         if (is.null(entireParentRepeatStructure_m[[whichPotentialParents[j]]])) {
-                            entireParentRepeatStructure_m[[whichPotentialParents[j]]] <- getEntireRepeatStructure(coverageTibble_m$Region[whichPotentialParents[j]], round(coverageTibble_m$MotifLength[whichPotentialParents[j]]))
+                            entireParentRepeatStructure_m[[whichPotentialParents[j]]] <- .getEntireRepeatStructure(coverageTibble_m$Region[whichPotentialParents[j]], round(coverageTibble_m$MotifLength[whichPotentialParents[j]]))
                         }
                         entireParentRepeatStructure <- entireParentRepeatStructure_m[[whichPotentialParents[j]]]
 
@@ -110,7 +132,7 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, gapOpenin
                         endingMotif <- entireParentRepeatStructure_k$Motif[which(entireParentRepeatStructure_k$End == (missingRepeatUnitStartPosition + coverageTibble_mi$MotifLength))]
 
                         occurenceInParent <- entireParentRepeatStructure_k$Repeats
-                        motifCycles <- sapply(entireParentRepeatStructure_k$Motif, function(m) STRMPS:::.cyclicRotation(endingMotif, m))
+                        motifCycles <- sapply(entireParentRepeatStructure_k$Motif, function(m) .cyclicRotation(endingMotif, m))
 
                         BLMM <- max(occurenceInParent[motifCycles])
                         stutterRatioPotentialParents[j] <- unname(suppressWarnings(predict.lm(stutterRatioModel, newdata = tibble(Marker = m, BlockLengthMissingMotif = BLMM))))
@@ -131,8 +153,31 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, gapOpenin
     return(potentialParentsAll)
 }
 
+.expectedContributionMatrix <- function(coverageTibble, genotypeMatrix_s, potentialParentsList_s) {
+    potentialParentsList_i <- unlist(potentialParentsList_s, recursive = FALSE)
+    resMatrix <- do.call(cbind, lapply(1:dim(genotypeMatrix_s)[2], function(contributor) {
+            coverageTibble_c <- coverageTibble %>% mutate(Contributor = genotypeMatrix_s[, contributor])
 
-encodeProfile <- function(profile, numberOfContributors, numberOfMarkers, numberOfAlleles) {
+            PotentialParentsContribution <- list()
+            ContributorGenotype <- list()
+
+            for(p in seq_along(potentialParentsList_i)) {
+                m <- coverageTibble_c[p, ]$Marker
+                coverageTibble_cm <- coverageTibble_c %>% filter(Marker == m)
+                ContributorGenotype[[p]] <- genotypeMatrix_s[p, contributor]
+                PotentialParentsContribution[[p]] <- sum(potentialParentsList_i[[p]]$PotentialParent * coverageTibble_cm$Contributor * potentialParentsList_i[[p]]$StutterRatio)
+            }
+
+            res <- unname(as.matrix(tibble(ContributorGenotype = do.call(c, ContributorGenotype), PotentialParentContribution = do.call(c, PotentialParentsContribution)) %>%
+                                        mutate(ExpectedContribution = ContributorGenotype + PotentialParentContribution) %>% select(ExpectedContribution)))
+            return(res)
+    }))
+
+    return(resMatrix)
+}
+
+
+.encodeProfile <- function(profile, numberOfContributors, numberOfMarkers, numberOfAlleles) {
     partialSumAlleles <- partialSumEigen(numberOfAlleles)
     encodedProfile <- lapply(seq_along(numberOfAlleles), function(a) {
         profile_a <- as.matrix(profile[(partialSumAlleles[a] + 1):partialSumAlleles[a + 1], ])
@@ -148,4 +193,267 @@ encodeProfile <- function(profile, numberOfContributors, numberOfMarkers, number
 
     encodedProfile <- matrix(unlist(encodedProfile), ncol = 1)
     return(encodedProfile)
+}
+
+.alleleCoverageParameters.control <- function(nu, eta, phi) {
+    return(list(nu = ifelse(is.null(nu), 1000, nu), eta = ifelse(is.null(eta), 2, eta), phi = if(is.null(phi)) c(0.7, 0.3) else phi))
+}
+
+.noiseParameters.control <- function(psi, rho) {
+    return(list(psi = ifelse(is.null(psi), 2, psi), rho = ifelse(is.null(rho), 2, rho)))
+}
+
+
+#' Generate an allelic ladder
+#'
+#' @description
+#'
+#' @param markers A vector of the typed markers in the population.
+#' @param regions A vector, or a list of vectors, of possible STR regions in the population.
+#' @param frequncies A vector or a list of vectors, of the allele frequencies in the population.
+#' @param motifLength A vector of the motif lengths of the markers.
+#'
+#' @details The 'regions' and 'frequencies' list (and/or vectors) should have the same length.
+#'
+#' The length of the 'markers' vector should be the length of the regions and frequencies list (or vectors).
+#'
+#' The regions should be given as either full or compressed STR regions. A compressed region is given as e.g. '[AATG]x[CGTT]y' corresponding to 'AATG' repeated 'x' times followed by 'CGTT' repeated 'y' times.
+#' Note if the region has motifs which are not repeated e.g. '[AATG]xCTT', the non-repeated regions should also be encapsuled in square brackets, i.e. '[AATG]x[CTT]'.
+#'
+#' The 'motifLength' parameter needs length 1, length equal to the length of 'markers', or 'NULL'. If 'NULL' it is assumed to be 4.
+#'
+#' @return A \link{tibble}.
+#' @example inst/examples/generateExamplePopulation.R
+generateAllelicLadder <- function(markers, regions, frequencies, motifLength = NULL) {
+    if (length(unlist(regions)) != length(unlist(frequencies)))
+        stop("The length of 'regions' and 'frequencies' must be equal.")
+
+    if (is.null(motifLength))
+        motifLength = rep(4, length(markers))
+    else if (length(motifLength) == 1)
+        motifLength = rep(motifLength, length(markers))
+
+    if (length(markers) != length(motifLength))
+        stop("The length of 'motifLength' must be equal to the length of 'markers'.")
+
+    if (is.list(regions) & is.list(frequencies)) {
+        if (any(sapply(regions, length) != sapply(frequencies, length)))
+            stop("The length of 'regions' and 'frequencies' must be equal.")
+
+        if (length(markers) != length(regions))
+            stop("The length of 'markers' must be equal to the length of 'frequencies' and 'regions'.")
+
+        markers <- rep(markers, times = sapply(regions, length))
+        motifLength <- rep(motifLength, times = sapply(regions, length))
+        regions <- unlist(regions)
+        frequencies <- unlist(frequencies)
+    }
+    else if (is.list(regions)) {
+        if (length(regions) != length(markers))
+            stop("The length of 'markers' must be equal to the length of 'frequencies' and 'regions'.")
+
+        markers <- rep(markers, times = sapply(regions, length))
+        motifLength <- rep(motifLength, times = sapply(regions, length))
+        regions <- unlist(regions)
+    }
+    else if (is.list(frequencies)) {
+        if (length(frequencies) != length(markers))
+            stop("The length of 'markers' must be equal to the length of 'frequencies' and 'regions'.")
+
+        markers <- rep(markers, times = sapply(frequencies, length))
+        motifLength <- rep(motifLength, times = sapply(frequencies, length))
+        frequencies <- unlist(frequencies)
+    }
+
+    decompressString <- function(s) {
+        s_split <- str_split(s, "\\[", simplify = TRUE)
+        decompressed <- sapply(s_split[, 2:dim(s_split)[2]], function(i) {
+            ss <- unlist(str_split(i, "\\]"))
+            return(paste(rep(ss[1], times = ifelse(is.na(as.numeric(ss[2])), 1, as.numeric(ss[2]))), collapse = ""))
+        })
+
+        return(paste(decompressed, collapse = ""))
+    }
+
+    compressedStrings <- str_detect(regions, "\\[")
+    regions <- sapply(seq_along(compressedStrings), function(i) if (compressedStrings[i]) decompressString(regions[i]) else regions[i])
+
+    populationTibble <- tibble(Marker = markers, MotifLength = motifLength,
+                               Allele = str_length(regions) / motifLength, Region = regions,
+                               AlleleFrequencies = frequencies) %>%
+        group_by(Marker, Allele, MotifLength, Region) %>% summarise(AlleleFrequencies = sum(AlleleFrequencies))
+    return(populationTibble)
+}
+
+#' Sample MPS coverage
+#'
+#' @description Sample coverage under the Poisson-gamma model of Vilsen et. al 2017
+#'
+#' @param trueProfiles A list of \link{tibble}'s containing the true profiles of the mixture.
+#' @param numberOfAlleles A vector of the total number of alleles per marker.
+#' @param markerImbalances A vector of the marker imbalances.
+#' @param populationLadder An allelic ladder containing the possible STR regions of each marker and their allele frequencies.
+#' @param alleleCoverageParameters A list containing the parameters of the allele coverage model.
+#' @param noiseParameters A list containing the paramters of the noise model.
+#' @param p A probability threshold for the created stutters.
+#'
+#' @return A \link{tibble} with the sampled coverage, the marker, and the marker imbalances.
+sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stutterRatioModel,
+                           alleleCoverageParameters = list(), noiseParameters = list(),
+                           p = NULL) {
+    alleleCoverageParameters <- MPSMixtures:::.alleleCoverageParameters.control(nu = alleleCoverageParameters$nu, eta = alleleCoverageParameters$eta, phi = alleleCoverageParameters$phi)
+    noiseParameters <- MPSMixtures:::.noiseParameters.control(psi = noiseParameters$psi, rho = noiseParameters$rho)
+
+    p <- ifelse(is.null(p), 0.025, p)
+
+    markers <- sort(unique(populationLadder$Marker))
+
+    numberOfContributors <- length(trueProfiles)
+    if (length(phi) != numberOfContributors)
+        stop("The number elements of 'phi' should be equal to the length of the 'trueProfiles' list.")
+
+    ## Create regions
+    sampleTibble_m <- vector("list", length(markers))
+    for (m in seq_along(markers)) {
+        trueProfiles_m <- lapply(trueProfiles, function(tp) tp %>% filter(Marker == markers[m]))
+        populationLadder_m <- populationLadder %>% filter(Marker == markers[m])
+
+        collectedProfiles <- bind_rows(trueProfiles_m) %>% select(-Name) %>%
+            distinct(Region, .keep_all = T) %>% mutate(IsAllele = 1, IsStutter = 0)
+
+        collectedProfilesStutters <- bind_rows(lapply(1:nrow(collectedProfiles), function(i) {
+            BLMMs_i <- MPSMixtures:::.getEntireRepeatStructure(collectedProfiles$Region[i], collectedProfiles$MotifLength[i])
+            possibleStutters_i <- sapply(1:nrow(BLMMs_i), function(j) {
+                paste(str_sub(collectedProfiles$Region[i], start = 1, end = BLMMs_i[j, 2] - 1),
+                      str_sub(collectedProfiles$Region[i], start =  BLMMs_i[j, 2] + collectedProfiles$MotifLength[i]),
+                      sep = "")
+            })
+
+            BLMMs_i <- BLMMs_i[which(!duplicated(possibleStutters_i)), ]
+            possibleStutters_i <- possibleStutters_i[which(!duplicated(possibleStutters_i))]
+
+            res <- populationLadder_m[which(populationLadder_m$Region %in% possibleStutters_i), ]
+            if (dim(res)[1] != 0)
+                res %>% mutate(BlockLengthMissingMotif = BLMMs_i$Repeats[which(possibleStutters_i %in% populationLadder_m$Region)],
+                               IsStutter = 1,
+                               IsAllele = predict.lm(stutterRatioModel,
+                                                                  newdata = data.frame(Marker = Marker, BlockLengthMissingMotif = BlockLengthMissingMotif)))
+
+
+        }))
+
+        profileStutters <- bind_rows(collectedProfiles, collectedProfilesStutters) %>%
+            group_by(Marker, MotifLength, Allele, Region, AlleleFrequencies) %>%
+            summarise(IsAllele = max(IsAllele),
+                      IsStutter = sum(IsStutter),
+                      BlockLengthMissingMotif = sum(BlockLengthMissingMotif, na.rm = TRUE)) %>%
+            ungroup() %>%
+            filter(IsAllele > p)
+
+        sampleTibble_m[[m]] <- profileStutters
+    }
+
+    sampleTibble <- bind_rows(sampleTibble_m) %>% arrange(Marker, Allele, Region)
+
+    ## Sample coverage
+    profilesMatrix <- genotypeMatrix(sampleTibble, trueProfiles)
+    potentialParentsList <- potentialParents(sampleTibble, stutterRatioModel)
+    ECM <- MPSMixtures:::.expectedContributionMatrix(sampleTibble, profilesMatrix, potentialParentsList)
+
+    numberOfAlleles <- (sampleTibble %>% group_by(Marker) %>% summarise(Count = n()))$Count
+    markerImbalancesRep <- rep(markerImbalances, times = numberOfAlleles)
+    expectedAlleleCoverage <- alleleCoverageParameters$nu * markerImbalancesRep * (ECM %*% alleleCoverageParameters$phi)
+
+    sampledAllele <- sampleTibble %>%
+        mutate(Coverage = rnbinom(n(), mu = expectedAlleleCoverage, size = alleleCoverageParameters$eta))
+
+    sampledNoise <- populationLadder %>% filter(!(Region %in% sampleTibble$Region)) %>% group_by(Marker) %>%
+        mutate(Coverage = rnbinom(n(), mu = noiseParameters$psi, size = noiseParameters$rho)) %>%
+        filter(Coverage > 0)
+
+    sampledCoverage <- bind_rows(sampledAllele, sampledNoise) %>% arrange(Marker, Allele, Region) %>%
+        group_by(Marker, MotifLength, Allele, AlleleFrequencies, Region) %>%
+        summarise(Coverage = sum(Coverage)) %>%
+        left_join(tibble(Marker = markers, MarkerImbalance = markerImbalances), by = "Marker") %>%
+        ungroup()
+
+    return(sampledCoverage)
+}
+
+
+#' Sample genotypes
+#'
+#' @description Sample genotypes, given the number of profiles and a population, assuming the population was in HWE.
+#'
+#' @param numberOfContributors The number of profiles which should be sampled.
+#' @param populationLadder A \link{tibble} containing the markers, regions, and allele frequencies of the population.
+#' @param contributorNames A vector of names. The length should be the number of profiles.
+#'
+#' @return A list of tibbles, one for each sampled profile.
+sampleGenotypesHWE <- function(numberOfContributors, populationLadder, contributorNames = NULL) {
+    if (!is.null(contributorNames)) {
+        if (length(contributorNames) == 1)
+            contributorNames = rep(contributorNames, numberOfContributors)
+
+        if (numberOfContributors != length(contributorNames))
+            stop("The length of 'contributorNames' must equal to the number of contributors, or 1.")
+    }
+    else {
+        contributorNames <- paste("C", 1:numberOfContributors, sep = "")
+    }
+
+    markers <- unique(populationLadder$Marker)
+
+    sampledProfiles <- vector("list", numberOfContributors)
+    for(cc in 1:numberOfContributors) {
+        sampledProfiles_mm <- vector("list", length(markers))
+        for (mm in seq_along(markers)) {
+            populationLadder_m <- populationLadder %>% filter(Marker == markers[mm])
+            numberOfAlleles_m <- dim(populationLadder_m)[1]
+
+            ## Set-up probabilities
+            outerProduct <- outer(populationLadder_m$AlleleFrequencies, populationLadder_m$AlleleFrequencies, "*")
+
+            homozygoteProbability <- diag(diag(outerProduct))
+            heterozygoteProbability <- 2 * outerProduct
+            heterozygoteProbability[lower.tri(heterozygoteProbability, diag = T)] <- 0
+
+            partialSumStacked <- partialSumEigen(matrix(homozygoteProbability + heterozygoteProbability, ncol = 1))
+
+            ## Draw genotype
+            randomDraw <- runif(1)
+            whichCombination <- which.max(partialSumStacked >= randomDraw) - 1
+            firstAllele <-  ifelse(whichCombination %% numberOfAlleles_m == 0, numberOfAlleles_m, whichCombination %% numberOfAlleles_m)
+            secondAllele <- ceiling(whichCombination / numberOfAlleles_m)
+
+            sampledProfiles_mm[[mm]] <- populationLadder_m[c(firstAllele, secondAllele), ] %>% mutate(Name = contributorNames[cc])
+        }
+
+        sampledProfiles[[cc]] <- bind_rows(sampledProfiles_mm) %>% group_by(Marker) %>%
+            distinct(Region, .keep_all = TRUE) %>% arrange(Marker, Region)
+    }
+
+    sampledProfiles <- structure(sampledProfiles, .Names = contributorNames)
+    return(sampledProfiles)
+}
+
+
+#' Collect coverage and population information
+#'
+#' @description Collects a coverage tibble and the population ladder, by the 'Marker' column.
+#'
+#' @param coverageTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
+#' @param populationLadder A \link{tibble} containing the markers, regions, and allele frequencies of the population.
+#'
+#' @return A joined tibble, having added any regions not seen in the 'coverageTibble' with a coverage set to 0, and a column of allele frequencies from the 'populationLadder'.
+collectSamplePopulation <- function(coverageTibble, populationLadder) {
+    populationLadderCoverageLimited <- (populationLadder %>% mutate(Coverage = 0))[-which(populationLadder$Region %in% coverageTibble$Region), ]
+    columnExtention <- unique(c(which(names(coverageTibble) == "Marker"), which(!(names(coverageTibble) %in% names(populationLadderCoverageLimited)))))
+
+    res <- bind_rows(coverageTibble, populationLadderCoverageLimited %>%
+                         left_join(coverageTibble %>% select(columnExtention) %>%
+                                       distinct(Marker, .keep_all = TRUE), by = "Marker")) %>%
+        ungroup() %>% arrange(Marker, Allele, Region)
+
+    return(res)
 }

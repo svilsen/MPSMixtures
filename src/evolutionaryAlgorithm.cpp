@@ -104,7 +104,7 @@ void EvolutionaryAlgorithm::RestructingIndividual(Individual & I, const Experime
     {
         for (std::size_t c = 0; c < NumberOfUnknownContributors; c++)
         {
-            std::size_t k = 2 * NumberOfUnknownContributors * m + c;
+            std::size_t k = 2 * NumberOfUnknownContributors * m + 2 * c;
 
             std::size_t contributorElement = 2 * NumberOfUnknownContributors * m + 2 * sortedMixtures[c];
 
@@ -226,6 +226,7 @@ Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd E, ExperimentalSetup 
     Eigen::VectorXd encodedMutation = EncodeMutationProbability(mutation, unmutatedIndividual, ES);
 
     std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
+    // Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
     for (std::size_t i = 0; i < ES.NumberOfMarkers; i++)
     {
         for (std::size_t j = 0; j < 2 * numberOfUnknownContributors; j++)
@@ -235,6 +236,33 @@ Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd E, ExperimentalSetup 
             std::size_t k = 2 * numberOfUnknownContributors * i + j;
             if (mutate < encodedMutation[k])
             {
+                // std::size_t n = partialSumAlleles[i] + I[k];
+                // double I_mu_ma = unmutatedIndividual.SampleParameters[0] * ES.MarkerImbalances[n] *
+                //     unmutatedIndividual.ExpectedContributionProfile.row(n) * unmutatedIndividual.MixtureParameters;
+                //
+                // std::vector<Individual> surroundings(ES.NumberOfAlleles[i] - 1);
+                // Eigen::VectorXd surroundingResiduals = Eigen::VectorXd::Zero(ES.NumberOfAlleles[i] - 1);
+                // for (std::size_t j = 1; j < ES.NumberOfAlleles[i]; j++)
+                // {
+                //     Eigen::VectorXd I_j = I;
+                //
+                //     // double randomDirection = uniformDirection(rng);
+                //     I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[i]);
+                //     std::size_t m = partialSumAlleles[i] + I_j[k];
+                //
+                //     Individual J(I_j, unmutatedIndividual.SampleParameters, unmutatedIndividual.NoiseParameters, unmutatedIndividual.MixtureParameters, ES);
+                //     double J_mu_ma = J.SampleParameters[0] * ES.MarkerImbalances[m] * J.ExpectedContributionProfile.row(m) * J.MixtureParameters;
+                //
+                //     RestructingIndividual(J, ES);
+                //     surroundings[j - 1] = J;
+                //     surroundingResiduals[j - 1] = std::abs(ES.Coverage[n] - I_mu_ma + ES.Coverage[m] - J_mu_ma);
+                // }
+                //
+                // Eigen::MatrixXf::Index minIndex;
+                // double smallestValue = surroundingResiduals.minCoeff(&minIndex);
+                //
+                // I = surroundings[minIndex].EncodedProfile;
+
                 boost::random::uniform_int_distribution<> uniformMutation(1, ES.NumberOfAlleles[i] - 1);
                 int mutationShift = uniformMutation(rng);
 
@@ -258,14 +286,20 @@ std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int curre
     int rightBound = (currentIndividual + ParentSelectionWindowSize) % PopulationSize;
 
     Eigen::VectorXd neighbourhood = Eigen::VectorXd::Zero(2 * ParentSelectionWindowSize);
-    Eigen::VectorXd neighbourhoodFitness = Eigen::VectorXd::Zero(2 * ParentSelectionWindowSize);
+    Eigen::VectorXd logNeighbourhoodFitness = Eigen::VectorXd::Zero(2 * ParentSelectionWindowSize);
     for (std::size_t i = 0; i < 2 * ParentSelectionWindowSize; i++)
     {
         bool j = (i >= ParentSelectionWindowSize);
         int k = (leftBound + i + j) % PopulationSize;
         neighbourhood[i] = k;
-        neighbourhoodFitness[i] = 1.0 / std::abs(P.Fitness[k]);
+        logNeighbourhoodFitness[i] = P.Fitness[k];
+    }
 
+    double logNeighbourhoodFitnessCenter = logNeighbourhoodFitness.maxCoeff();
+    Eigen::VectorXd neighbourhoodFitness = Eigen::VectorXd::Zero(2 * ParentSelectionWindowSize);
+    for (std::size_t i = 0; i < 2 * ParentSelectionWindowSize; i++)
+    {
+        neighbourhoodFitness[i] = std::exp(logNeighbourhoodFitness[i] - logNeighbourhoodFitnessCenter);
     }
 
     Eigen::VectorXd windowProbabilities = partialSumEigen(neighbourhoodFitness / neighbourhoodFitness.sum());
@@ -289,6 +323,7 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
     boost::random::uniform_int_distribution<> randomContributor(0, ES.NumberOfContributors - ES.NumberOfKnownContributors - 1);
     boost::random::uniform_int_distribution<> randomBinary(0, 1);
 
+    Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
     for (std::size_t i = 0; i < HillClimbingIterations; i++)
     {
         int stepMarker = randomMarker(rng);
@@ -298,30 +333,60 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
 
         // boost::random::uniform_int_distribution<> uniformDirection(1, ES.NumberOfAlleles[stepMarker] - 1);
 
-        std::vector<Individual> surroundings(ES.NumberOfAlleles[stepMarker] - 1);
-        Eigen::VectorXd surroundingFitness = Eigen::VectorXd::Zero(ES.NumberOfAlleles[stepMarker] - 1);
-        for (std::size_t j = 1; j < ES.NumberOfAlleles[stepMarker]; j++)
+        std::size_t n = partialSumAlleles[stepMarker] + I.EncodedProfile[k];
+        double I_mu_ma = I.SampleParameters[0] * ES.MarkerImbalances[n] * I.ExpectedContributionProfile.row(n) * I.MixtureParameters;
+
+        std::vector<Individual> surroundings(ES.NumberOfAlleles[stepMarker]);
+        Eigen::VectorXd surroundingResiduals = Eigen::VectorXd::Zero(ES.NumberOfAlleles[stepMarker]);
+        for (std::size_t j = 0; j < ES.NumberOfAlleles[stepMarker]; j++)
         {
             Eigen::VectorXd I_j = I.EncodedProfile;
 
             // double randomDirection = uniformDirection(rng);
             I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[stepMarker]);
-            Individual K(I_j, ES);
+            std::size_t m = partialSumAlleles[stepMarker] + I_j[k];
 
-            surroundings[j - 1] = K;
-            surroundingFitness[j - 1] = K.Fitness;
+            Individual J(I_j, I.SampleParameters, I.NoiseParameters, I.MixtureParameters, ES);
+            double J_mu_ma = J.SampleParameters[0] * ES.MarkerImbalances[m] * J.ExpectedContributionProfile.row(m) * J.MixtureParameters;
+
+            RestructingIndividual(J, ES);
+            surroundings[j] = J;
+            surroundingResiduals[j] = std::abs(ES.Coverage[n] - I_mu_ma + ES.Coverage[m] - J_mu_ma);
         }
 
-        Eigen::MatrixXf::Index maxIndex;
-        double maxValue = surroundingFitness.maxCoeff(&maxIndex);
+        Eigen::MatrixXf::Index minIndex;
+        double smallestValue = surroundingResiduals.minCoeff(&minIndex);
 
-        if (maxValue > I.Fitness)
+        Individual K(surroundings[minIndex].EncodedProfile, ES);
+        if (K.Fitness > I.Fitness)
         {
-            Individual K = surroundings[maxIndex];
-            RestructingIndividual(K, ES);
-
             I = K;
         }
+
+        // std::vector<Individual> surroundings(ES.NumberOfAlleles[stepMarker] - 1);
+        // Eigen::VectorXd surroundingFitness = Eigen::VectorXd::Zero(ES.NumberOfAlleles[stepMarker] - 1);
+        // for (std::size_t j = 1; j < ES.NumberOfAlleles[stepMarker]; j++)
+        // {
+        //     Eigen::VectorXd I_j = I.EncodedProfile;
+        //
+        //     // double randomDirection = uniformDirection(rng);
+        //     I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[stepMarker]);
+        //     Individual K(I_j, ES);
+        //
+        //     surroundings[j - 1] = K;
+        //     surroundingFitness[j - 1] = K.Fitness;
+        // }
+        //
+        // Eigen::MatrixXf::Index maxIndex;
+        // double maxValue = surroundingFitness.maxCoeff(&maxIndex);
+        //
+        // if (maxValue > I.Fitness)
+        // {
+        //     Individual K = surroundings[maxIndex];
+        //     RestructingIndividual(K, ES);
+        //
+        //     I = K;
+        // }
     }
 }
 

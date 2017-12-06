@@ -4,8 +4,8 @@
 \alias{LR}
 \title{Likelihood ratio}
 \usage{
-LR(sampleTibble, Hp, Hd, potentialParentsList, stutterRatioModel = NULL,
-  control = LR.control())
+LR(sampleTibble, Hp, Hd, potentialParentsList = NULL,
+  stutterRatioModel = NULL, control = LR.control())
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}

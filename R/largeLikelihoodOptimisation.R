@@ -49,8 +49,9 @@ optimiseParametersLargeLikelihood <- function(sampleTibble, REA, numberOfContrib
 
     logGenotypeProbability = unlist(lapply(REA, function(rr) rr$LogLikelihoods[3]))
 
-    initialPars <- c(REA[[length(REA)]]$SampleParameters, REA[[length(REA)]]$NoiseParameters,
-                     REA[[length(REA)]]$MixtureParameters)
+    fittestParameters <- REA[[1]]$Parameters
+    initialPars <- c(fittestParameters$SampleParameters, fittestParameters$NoiseParameters,
+                     fittestParameters$MixtureParameters)
 
     pars = solnp(initialPars, fun = .LargeLikelihood,
                      LB = lowerBounds, UB = upperBounds, eqfun = eqBounds, eqB = 1,

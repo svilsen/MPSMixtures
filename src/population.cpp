@@ -25,6 +25,34 @@ Population::Population(std::vector<Individual> I)
     Fitness = fitnessVector;
 }
 
+Population::Population(Eigen::MatrixXd encodedProfilesList, Eigen::MatrixXd sampleParametersList, Eigen::MatrixXd noiseParametersList,
+                       Eigen::MatrixXd mixtureParametersList, ExperimentalSetup ES)
+{
+    const std::size_t populationSize = encodedProfilesList.cols();
+
+    std::vector< Individual > currentIndividuals(populationSize);
+    for (std::size_t i = 0; i < populationSize; i++)
+    {
+        Eigen::VectorXd encodedProfile_i = encodedProfilesList.col(i);
+        Eigen::VectorXd sampleParameters_i = sampleParametersList.col(i);
+        Eigen::VectorXd noiseParameters_i = noiseParametersList.col(i);
+        Eigen::VectorXd mixtureParameters_i = mixtureParametersList.col(i);
+        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, ES);
+        currentIndividuals[i] = I;
+    }
+
+    Individuals = currentIndividuals;
+
+    Eigen::VectorXd fitnessVector = Eigen::VectorXd::Zero(populationSize);
+    for (std::size_t m = 0; m < populationSize; m++)
+    {
+        fitnessVector[m] = Individuals[m].Fitness;
+    }
+
+    Fitness = fitnessVector;
+}
+
+
 Rcpp::List Population::ReturnRcppList()
 {
     std::size_t populationSize = Individuals.size();

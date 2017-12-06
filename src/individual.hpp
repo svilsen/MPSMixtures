@@ -22,6 +22,7 @@ class Individual
 
         Eigen::VectorXd DevianceResiduals;
 
+        Eigen::VectorXd LogLikelihoodAlleleMarker;
         double LogLikelihoodAllele;
         double LogLikelihoodNoise;
         double LogPriorGenotypeProbability;
@@ -36,7 +37,7 @@ class Individual
                    Eigen::VectorXd mixtureParameters, ExperimentalSetup ES);
 
         Eigen::MatrixXd GenerateExpectedContributionProfile(ExperimentalSetup ES);
-        Eigen::VectorXd GenerateNoiseProfile();
+        Eigen::VectorXd GenerateNoiseProfile(ExperimentalSetup ES);
 
         void EstimateParameters(ExperimentalSetup ES);
         void CalculateResiduals(ExperimentalSetup ES);

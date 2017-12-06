@@ -4,8 +4,7 @@
 \alias{setHypothesis}
 \title{Set a hypothesis.}
 \usage{
-setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta,
-  alleleFrequencies)
+setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta)
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}
@@ -15,8 +14,6 @@ setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta,
 \item{knownProfilesList}{A list of tibbles containing the alleles of the known contributors.}
 
 \item{theta}{The inbreeding coefficient (Fst).}
-
-\item{alleleFrequencies}{The allele frequencies of the population.}
 }
 \value{
 A list containing the information relavent to the hypothesis.

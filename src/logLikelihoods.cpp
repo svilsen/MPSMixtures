@@ -64,23 +64,33 @@ double logDirichletMultinomialTheta(Eigen::VectorXd counts, double theta, Eigen:
     return resLogDirichletMultinomial;
 }
 
-double logLikelihoodAlleleCoverage(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
+Eigen::VectorXd logLikelihoodAlleleCoverage(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
                                    Eigen::VectorXd sampleParameters, Eigen::VectorXd mixtureProportions,
-                                   Eigen::VectorXd markerImbalances)
+                                   Eigen::VectorXd numberOfAlleles, Eigen::VectorXd markerImbalances)
 {
+    std::size_t M = numberOfAlleles.size();
+
     Eigen::VectorXd expectedContribution = expectedContributionMatrix * mixtureProportions;
 
     double referenceMarkerAverage = sampleParameters[0];
     double dispersion = sampleParameters[1];
 
-    double logLikelihood = 0.0;
-    for (std::size_t n = 0; n < coverage.size(); n++)
+    Eigen::VectorXd partialSumAlleles = partialSumEigen(numberOfAlleles);
+    Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(M);
+    for (std::size_t m = 0; m < M; m++)
     {
-        double mu_ma = referenceMarkerAverage * markerImbalances[n] * expectedContribution[n];
-        if (mu_ma > 0.0)
+        double logLikelihood_m = 0.0;
+        for (std::size_t a = 0; a < numberOfAlleles[m]; a++)
         {
-            logLikelihood += logPoissonGammaDistribution(coverage[n], mu_ma, dispersion);
+            std::size_t n = partialSumAlleles[m] + a;
+            double mu_ma = referenceMarkerAverage * markerImbalances[n] * expectedContribution[n];
+            if (mu_ma > 0.0)
+            {
+                logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, dispersion);
+            }
         }
+
+        logLikelihood[m] = logLikelihood_m;
     }
 
     return logLikelihood;

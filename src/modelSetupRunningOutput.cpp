@@ -26,6 +26,7 @@ Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t & numb
     boost::random::uniform_int_distribution<> uniformShift(0, 1e6);
 
     std::size_t seedShift = uniformShift(rngSeed);
+
     EvolutionaryAlgorithm EA(ES, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival,
                              crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, 1,
                              hillClimbingDirections, hillClimbingIterations, seed + seedShift);
@@ -67,7 +68,7 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
                                                 const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
                                                 const double & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
                                                 const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
-                                                const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool & allowParentSurvival,
+                                                const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool allowParentSurvival,
                                                 const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
                                                 const Eigen::VectorXd mutationDecay,
                                                 const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations,
@@ -77,16 +78,8 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
 {
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies);
-    const std::size_t populationSize = encodedPopulationList.cols();
 
-    std::vector< Individual > currentIndividuals(populationSize);
-    for (std::size_t i = 0; i < populationSize; i++)
-    {
-        Individual I(encodedPopulationList.col(i), sampleParametersList.col(i), noiseParametersList.col(i), mixtureParametersList.col(i), ES);
-        currentIndividuals[i] = I;
-    }
-
-    Population currentPopulation(currentIndividuals);
+    Population currentPopulation(encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, ES);
 
     EvolutionaryAlgorithm EA(ES, currentPopulation,
                              numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals,

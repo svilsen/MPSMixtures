@@ -12,7 +12,7 @@ LR.control(numberOfPopulations = 4, populationSize = 10,
   mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
   mutationDecayRate = 2, mutationDecay = NULL,
   fractionFittestIndividuals = 1, hillClimbingDirections = 1,
-  hillClimbingIterations = 1, tolerance = 1e-04, seed = NULL,
+  hillClimbingIterations = 1, tolerance = 1e-06, seed = NULL,
   trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4)
 }
 \arguments{

@@ -10,9 +10,9 @@ double logMultinomialCoefficient(int totalCounts, Eigen::VectorXd counts);
 double logDirichletMultinomial(Eigen::VectorXd counts, Eigen::VectorXd alleleFrequencies);
 double logDirichletMultinomialTheta(Eigen::VectorXd counts, double theta, Eigen::VectorXd alleleFrequencies);
 
-double logLikelihoodAlleleCoverage(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
-                                   Eigen::VectorXd sampleParameters, Eigen::VectorXd mixtureProportions,
-                                   Eigen::VectorXd markerImbalances);
+Eigen::VectorXd logLikelihoodAlleleCoverage(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
+                                            Eigen::VectorXd sampleParameters, Eigen::VectorXd mixtureProportions,
+                                            Eigen::VectorXd numberOfAlleles, Eigen::VectorXd markerImbalances);
 
 double logLikelihoodNoiseCoverage(Eigen::VectorXd & coverage, Eigen::VectorXd & noiseProfile, double noiseLevel, double noiseDispersion);
 

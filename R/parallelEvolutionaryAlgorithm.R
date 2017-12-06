@@ -24,20 +24,20 @@
     migratedPopulation <- currentPopulationList
     for (i in seq_along(currentPopulationList)) {
         migrant_i = which.max(currentPopulationList[[i]]$Fitness)
-        migratedPopulation[[migrationForward[i]]] <- .migration(currentPopulationList[[i]], migratedPopulation[[migrationForward[i]]], migrant_i)
-        migratedPopulation[[migrationBackward[i]]] <- .migration(currentPopulationList[[i]], migratedPopulation[[migrationBackward[i]]], migrant_i)
+        migratedPopulation[[migrationForward[i]]] <- MPSMixtures:::.migration(currentPopulationList[[i]], migratedPopulation[[migrationForward[i]]], migrant_i)
+        migratedPopulation[[migrationBackward[i]]] <- MPSMixtures:::.migration(currentPopulationList[[i]], migratedPopulation[[migrationBackward[i]]], migrant_i)
     }
 
     return(migratedPopulation)
 }
 
-# numberOfMaxThreads = control$numberOfMaxThreads; numberOfInnerIterations = control$numberOfInnerIterations;
+# numberOfMaxThreads = control$numberOfThreads; numberOfInnerIterations = control$numberOfInnerIterations;
+# allKnownProfiles <- H$KnownProfiles
 
 .runningParallelPopulationEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                                                            coverage, potentialParentsList, markerImbalances, tolerance, theta, alleleFrequencies,
                                                            numberOfPopulations, populationSize, numberOfIterations, numberOfInnerIterations,
-                                                           numberOfIterationsEqualMax, fractionOfPopulationsMax,
-                                                           numberOfFittestIndividuals,
+                                                           numberOfIterationsEqualMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
                                                            parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
                                                            mutationDecay, hillClimbingDirections, hillClimbingIterations,
                                                            seed, trace, numberOfMaxThreads) {
@@ -64,7 +64,7 @@
 
         ## Updating subpopulations
         newPopulation <- mclapply(1:numberOfPopulations, function(i) {
-            PEA_i <- .runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
+            PEA_i <- MPSMixtures:::.runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                                                         coverage, potentialParentsList, markerImbalances, tolerance, theta, alleleFrequencies,
                                                         numberOfInnerIterations, numberOfInnerIterations, populationSize,
                                                         parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
@@ -79,15 +79,15 @@
 
         ## Updating list of fittest individuals
         fittestIndividuals <- append(fittestIndividuals, currentFittestList)
-        duplicateIndividuals <- fittestIndividuals[!duplicated(lapply(fittestIndividuals, function(cfl) cfl$EncodedUnknownProfiles))]
+        fittestIndividuals <- fittestIndividuals[!duplicated(lapply(fittestIndividuals, function(cfl) cfl$EncodedUnknownProfiles))]
         fittestIndividuals <- fittestIndividuals[order(unlist(lapply(fittestIndividuals, function(fi) fi$Fitness)), decreasing = TRUE)[1:(min(c(numberOfFittestIndividuals, length(fittestIndividuals))))]]
 
         ## Updating convergence condition
         populationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) cpl$Fitness))
         uniqueSubpopulationMaxima <- unique.matrix(do.call("cbind", lapply(currentPopulationList, function(cpl) cpl$EncodedProfiles[, which.max(cpl$Fitness)])), MARGIN = 2)
-        numberOfUniqueSubpopulationMaxima = dim(uniqueSubpopulationMaxima)[2]
+        fractionOfUniqueSubpopulationMaxima = dim(uniqueSubpopulationMaxima)[2] / numberOfPopulations
 
-        if ((numberOfUniqueSubpopulationMaxima / numberOfPopulations) <= fractionOfPopulationsMax) {
+        if (fractionOfUniqueSubpopulationMaxima <= fractionOfPopulationsMax) {
             k = k + 1
         }
         else {
@@ -103,7 +103,7 @@
                 "\t\t  Highest:", max(populationFitness), "\n",
                 "\t\t  Average:", mean(populationFitness), "\n",
                 "\t\t  Lowest:", min(populationFitness), "\n",
-                "\t\tSubpopulations /w unique maxima:", numberOfUniqueSubpopulationMaxima, "\n",
+                "\t\tSubpopulations /w unique maxima:", fractionOfUniqueSubpopulationMaxima, "\n",
                 "\t\tTermination counter:", k, "/", numberOfIterationsEqualMax, "\n")
     }
 

@@ -22,7 +22,7 @@ Individual::Individual(ExperimentalSetup ES)
     if ((ES.NumberOfContributors - ES.NumberOfKnownContributors) == 0)
     {
         ExpectedContributionProfile = GenerateExpectedContributionProfile(ES);
-        NoiseProfile = GenerateNoiseProfile();
+        NoiseProfile = GenerateNoiseProfile(ES);
 
         EstimateParameters(ES);
         CalculateResiduals(ES);
@@ -41,7 +41,7 @@ Individual::Individual(Eigen::VectorXd encodedGenotype, ExperimentalSetup ES)
 
     ExpectedContributionProfile = GenerateExpectedContributionProfile(ES);
 
-    NoiseProfile = GenerateNoiseProfile();
+    NoiseProfile = GenerateNoiseProfile(ES);
 
     EstimateParameters(ES);
     CalculateResiduals(ES);
@@ -54,7 +54,7 @@ Individual::Individual(Eigen::VectorXd encodedGenotype, Eigen::VectorXd samplePa
 
     DecodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
     ExpectedContributionProfile = GenerateExpectedContributionProfile(ES);
-    NoiseProfile = GenerateNoiseProfile();
+    NoiseProfile = GenerateNoiseProfile(ES);
 
     SampleParameters = sampleParameters;
     NoiseParameters = noiseParameters;
@@ -117,7 +117,7 @@ Eigen::MatrixXd Individual::GenerateExpectedContributionProfile(ExperimentalSetu
 }
 
 
-Eigen::VectorXd Individual::GenerateNoiseProfile()
+Eigen::VectorXd Individual::GenerateNoiseProfile(ExperimentalSetup ES)
 {
     Eigen::VectorXd Ones = Eigen::VectorXd::Ones(ExpectedContributionProfile.cols());
     Eigen::VectorXd ExpectedContributionProfileRowSum = ExpectedContributionProfile * Ones;
@@ -126,7 +126,7 @@ Eigen::VectorXd Individual::GenerateNoiseProfile()
     Eigen::VectorXd identifiedNoise = Eigen::VectorXd::Zero(N);
     for (std::size_t n = 0; n < N; n++)
     {
-        if (!(ExpectedContributionProfileRowSum[n] > 0.0))
+        if (!(ExpectedContributionProfileRowSum[n] > 0.0) & (ES.Coverage[n] > 0.0))
         {
             identifiedNoise[n] = 1.0;
         }
@@ -143,6 +143,7 @@ void Individual::EstimateParameters(ExperimentalSetup ES)
     SampleParameters = EPGA.SampleParameters;
     MixtureParameters = EPGA.MixtureParameters;
 
+    LogLikelihoodAlleleMarker = logLikelihoodAlleleCoverage(ES.Coverage, ExpectedContributionProfile, SampleParameters, MixtureParameters, ES.NumberOfAlleles, ES.MarkerImbalances);
     LogLikelihoodAllele = EPGA.LogLikelihood;
 
     EstimatePoissonGammaNoiseParameters EPGN(ES.Coverage, NoiseProfile, ES.Tolerance);
@@ -151,7 +152,14 @@ void Individual::EstimateParameters(ExperimentalSetup ES)
     NoiseParameters = EPGN.NoiseParameters;
     LogLikelihoodNoise = EPGN.LogLikelihood;
 
-    LogPriorGenotypeProbability = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, DecodedProfile, ES.AllKnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
+    if ((ES.Theta < 0.0) | (ES.AlleleFrequencies.sum() == 0))
+    {
+        LogPriorGenotypeProbability = 0.0;
+    }
+    else
+    {
+        LogPriorGenotypeProbability = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, DecodedProfile, ES.AllKnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
+    }
 
     Fitness = LogLikelihoodAllele + LogLikelihoodNoise + LogPriorGenotypeProbability;
 }
@@ -159,9 +167,18 @@ void Individual::EstimateParameters(ExperimentalSetup ES)
 
 void Individual::CalculateFitness(ExperimentalSetup ES)
 {
-    LogLikelihoodAllele = logLikelihoodAlleleCoverage(ES.Coverage, ExpectedContributionProfile, SampleParameters, MixtureParameters, ES.MarkerImbalances);
+    LogLikelihoodAlleleMarker = logLikelihoodAlleleCoverage(ES.Coverage, ExpectedContributionProfile, SampleParameters, MixtureParameters, ES.NumberOfAlleles, ES.MarkerImbalances);
+    LogLikelihoodAllele = LogLikelihoodAlleleMarker.sum();
     LogLikelihoodNoise = logLikelihoodNoiseCoverage(ES.Coverage, NoiseProfile, NoiseParameters[0], NoiseParameters[1]);
-    LogPriorGenotypeProbability = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, DecodedProfile, ES.KnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
+
+    if ((ES.Theta < 0.0) | (ES.AlleleFrequencies.sum() == 0.0))
+    {
+        LogPriorGenotypeProbability = 0.0;
+    }
+    else
+    {
+        LogPriorGenotypeProbability = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, DecodedProfile, ES.KnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
+    }
 
     Fitness = LogLikelihoodAllele + LogLikelihoodNoise + LogPriorGenotypeProbability;
 }
@@ -191,12 +208,6 @@ void Individual::CalculateResiduals(ExperimentalSetup ES)
             dispersion = NoiseParameters[1];
         }
 
-        // Ensures finite values
-        if (mu_ma == 0)
-        {
-            mu_ma += 1e-323;
-        }
-
         double deviance_ma = (Coverage[n] + dispersion) * (std::log(mu_ma + dispersion) - std::log(Coverage[n] + dispersion));
         if (Coverage[n] > 0)
         {
@@ -213,10 +224,12 @@ Rcpp::List Individual::ReturnRcppList()
                               Rcpp::Named("DecodedUnknownProfiles") = DecodedProfile,
                               Rcpp::Named("ExpectedContributionMatrix") = ExpectedContributionProfile,
                               Rcpp::Named("NoiseVector") = NoiseProfile,
-                              Rcpp::Named("SampleParameters") = SampleParameters,
-                              Rcpp::Named("MixtureParameters") = MixtureParameters,
-                              Rcpp::Named("NoiseParameters") = NoiseParameters,
+                              Rcpp::Named("Parameters") = Rcpp::List::create(
+                                  Rcpp::Named("SampleParameters") = SampleParameters,
+                                  Rcpp::Named("MixtureParameters") = MixtureParameters,
+                                  Rcpp::Named("NoiseParameters") = NoiseParameters),
                               Rcpp::Named("DevianceResiduals") = DevianceResiduals,
+                              Rcpp::Named("LogLikelihoodAlleleCoverage") = LogLikelihoodAlleleMarker,
                               Rcpp::Named("LogLikelihoods") = Rcpp::NumericVector::create(LogLikelihoodAllele, LogLikelihoodNoise, LogPriorGenotypeProbability),
                               Rcpp::Named("Fitness") = Fitness);
 }
@@ -241,10 +254,12 @@ Rcpp::List setupIndividual(std::size_t numberOfMarkers, Eigen::VectorXd numberOf
                               Rcpp::Named("DecodedUnknownProfiles") = I.DecodedProfile,
                               Rcpp::Named("ExpectedContributionMatrix") = I.ExpectedContributionProfile,
                               Rcpp::Named("NoiseVector") = I.NoiseProfile,
-                              Rcpp::Named("SampleParameters") = I.SampleParameters,
-                              Rcpp::Named("MixtureParameters") = I.MixtureParameters,
-                              Rcpp::Named("NoiseParameters") = I.NoiseParameters,
+                              Rcpp::Named("Parameters") = Rcpp::List::create(
+                                  Rcpp::Named("SampleParameters") = I.SampleParameters,
+                                  Rcpp::Named("MixtureParameters") = I.MixtureParameters,
+                                  Rcpp::Named("NoiseParameters") = I.NoiseParameters),
                               Rcpp::Named("DevianceResiduals") = I.DevianceResiduals,
+                              Rcpp::Named("LogLikelihoodAlleleCoverage") = I.LogLikelihoodAlleleMarker,
                               Rcpp::Named("LogLikelihoods") = Rcpp::NumericVector::create(I.LogLikelihoodAllele, I.LogLikelihoodNoise, I.LogPriorGenotypeProbability),
                               Rcpp::Named("Fitness") = I.Fitness);
 }

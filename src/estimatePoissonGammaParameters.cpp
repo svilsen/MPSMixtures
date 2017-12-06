@@ -13,7 +13,9 @@
 #include "AuxiliaryFunctions.hpp"
 
 #include "nlopt.hpp"
-
+#include "cppoptlib/meta.h"
+#include "cppoptlib/boundedproblem.h"
+#include "cppoptlib/solver/lbfgsbsolver.h"
 
 // Allele coverage
 EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
@@ -23,9 +25,6 @@ EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(Eigen
     ExpectedContributionMatrix = expectedContributionMatrix;
     MarkerImbalances = markerImbalances;
     ToleranceFRelative = tolerance;
-    ToleranceXRelative = tolerance;
-    ToleranceFAbsolute = tolerance;
-    ToleranceXAbsolute = tolerance;
     ToleranceEqualityConstraints = tolerance;
     MaximumNumberOfIterations = 2000;
 
@@ -39,20 +38,43 @@ EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(Eigen
 
 void EstimatePoissonGammaAlleleParameters::initialiseParameters()
 {
-    MixtureParameters = Eigen::VectorXd::Ones(ExpectedContributionMatrix.cols()) / ExpectedContributionMatrix.cols();
+    // Initialising mixture parameters
+    double sumCoverage = Coverage.sum();
 
-    Eigen::VectorXd EC = ExpectedContributionMatrix * MixtureParameters;
-    double referenceMarkerCoverage = 0.0;
+    Eigen::VectorXd mixtureParameters = Eigen::VectorXd::Ones(ExpectedContributionMatrix.cols()) / ExpectedContributionMatrix.cols();
+	for (std::size_t c = 0; c < mixtureParameters.size(); c++)
+	{
+	    Eigen::VectorXd contributor_c = ExpectedContributionMatrix.col(c);
+
+	    double ECC = 0.0;
+	    for (std::size_t n = 0; n < Coverage.size(); n++)
+	    {
+	        if (contributor_c[n] > 0)
+	        {
+	            ECC += Coverage[n] / contributor_c[n];
+	        }
+	    }
+
+	    mixtureParameters[c] = ECC / sumCoverage;
+	}
+
+	MixtureParameters = mixtureParameters / mixtureParameters.sum();
+
+	// Initialising average heterozygote parameter
+	Eigen::VectorXd EC = ExpectedContributionMatrix * MixtureParameters;
+	Eigen::VectorXd alleles = Eigen::VectorXd::Zero(Coverage.size());
+    double averageCoverage = 0.0;
     for (std::size_t n = 0; n < Coverage.size(); n++)
     {
         if (EC[n] > 0)
         {
-                referenceMarkerCoverage += Coverage[n] / EC[n];
+            averageCoverage += Coverage[n] / EC[n];
+            alleles[n] = 1.0;
         }
     }
 
     SampleParameters = Eigen::VectorXd::Ones(2);
-    SampleParameters[0] = referenceMarkerCoverage / Coverage.size();
+    SampleParameters[0] = averageCoverage / alleles.sum();
 }
 
 double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data)
@@ -65,105 +87,74 @@ double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<dou
     std::size_t & counter = EPGA->Counter;
 
     std::size_t M = EPGA->NumberOfContributors;
-    std::size_t S = x.size() - M;
+    std::size_t S = 2;
 
     double referenceMarkerAverage = x[0];
     double dispersion = x[1];
 
     double logLikelihood = 0.0;
-    std::vector<double> gradient(M + S, 0.0);
+    std::vector<double> gradient(M + S - 1, 0.0);
     for (std::size_t n = 0; n < Coverage.size(); n++)
     {
-        double EC_n = 0.0;
-        for (std::size_t m = 0; m < M; m++)
+        double EC_n = ExpectedContributionMatrix.row(n)[M - 1];
+        for (std::size_t m = 0; m < M - 1; m++)
         {
-            EC_n += ExpectedContributionMatrix.row(n)[m] * x[S + m];
+            EC_n += (ExpectedContributionMatrix.row(n)[m] - ExpectedContributionMatrix.row(n)[M - 1]) * x[S + m];
         }
 
         double mu_ma = referenceMarkerAverage * MarkerImbalances[n] * EC_n;
         if (EC_n > 0.0)
         {
             logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
-            // if (!grad.empty())
-            // {
-            //     gradient[0] += Coverage[n] / referenceMarkerAverage + (Coverage[n] + dispersion) * (MarkerImbalances[n] * EC_n) / (mu_ma + dispersion);
-            //     gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
-            //         std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion);
-            //
-            //     for (std::size_t m = 0; m < M; m++)
-            //     {
-            //         double & EC_nm = ExpectedContributionMatrix.row(n)[m];
-            //         if (EC_nm != 0.0)
-            //         {
-            //             gradient[S + m] += EC_nm * Coverage[n] / EC_n - (Coverage[n] + dispersion) * (referenceMarkerAverage * MarkerImbalances[n] * EC_nm) / (mu_ma + dispersion);
-            //         }
-            //
-            //     }
-            //
-            // }
+
+            if (!grad.empty())
+            {
+                gradient[0] += Coverage[n] / referenceMarkerAverage - (Coverage[n] + dispersion) * (MarkerImbalances[n] * EC_n) / (mu_ma + dispersion);
+                gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
+                    std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion);
+
+                for (std::size_t m = 0; m < M - 1; m++)
+                {
+                    double EC_nm = ExpectedContributionMatrix.row(n)[m] - ExpectedContributionMatrix.row(n)[M - 1];
+                    gradient[S + m] += EC_nm * Coverage[n] / (EC_n) - (Coverage[n] + dispersion) * (referenceMarkerAverage * MarkerImbalances[n] * EC_nm) / (mu_ma + dispersion);
+                }
+
+            }
 
         }
 
     }
 
-    // if (!grad.empty())
-    // {
-    //     grad = gradient;
-    // }
+    if (!grad.empty())
+    {
+        grad = gradient;
+    }
 
     counter++;
     return logLikelihood;
 }
 
-
-double linearConstraintsLoglikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data)
-{
-    EstimatePoissonGammaAlleleParameters *EPGA = reinterpret_cast<EstimatePoissonGammaAlleleParameters*>(data);
-    std::size_t M = EPGA->NumberOfContributors;
-    std::size_t S = x.size() - M;
-
-    double mixtureParametersSum = 0.0;
-    for (std::size_t m = 0; m < M; m++)
-    {
-        mixtureParametersSum += x[S + m];
-    }
-
-    // std::vector<double> gradient(S + M, 1.0);
-    // gradient[0] = 0.0;
-    // gradient[1] = 0.0;
-    // if (!grad.empty())
-    // {
-    //     grad = gradient;
-    // }
-
-    return (mixtureParametersSum - 1.0);
-}
-
 void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA)
 {
-    // Rcpp::Rcout << "\t\t Initialising:\n";
     std::size_t S = EPGA.SampleParameters.size();
     std::size_t M = EPGA.MixtureParameters.size();
-    // Rcpp::Rcout << "\t\t\t Sample parameters: " << EPGA.SampleParameters.transpose() << "\n";
-    // Rcpp::Rcout << "\t\t\t Mixture parameters: " << EPGA.MixtureParameters.transpose() << "\n";
 
-    std::vector<double> parameters(S + M, 0.0);
+    std::vector<double> parameters(S + M - 1, 0.0);
     for (std::size_t s = 0; s < S; s++)
     {
         parameters[s] = EPGA.SampleParameters[s];
     }
 
-    for (std::size_t m = 0; m < M; m++)
+    for (std::size_t m = 0; m < M - 1; m++)
     {
         parameters[S + m] = EPGA.MixtureParameters[m];
     }
 
     // Optimiser
-    // nlopt::opt individualOptimisation(nlopt::LD_SLSQP, S + M);
-    nlopt::opt individualOptimisation(nlopt::LN_COBYLA, S + M);
+    nlopt::opt individualOptimisation(nlopt::LD_LBFGS, S + M - 1);
 
     // Box-constraints
-    std::vector<double> lowerBound(S + M), upperBound(S + M);
+    std::vector<double> lowerBound(S + M - 1), upperBound(S + M - 1);
     for (std::size_t i = 0; i < S; i++)
     {
         lowerBound[i] = 1e-16;
@@ -177,7 +168,7 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     }
     else
     {
-        for (std::size_t j = 0; j < M; j++)
+        for (std::size_t j = 0; j < M - 1; j++)
         {
             lowerBound[S + j] = 1e-16;
             upperBound[S + j] = 1.0 - 1e-16;
@@ -187,16 +178,10 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     individualOptimisation.set_lower_bounds(lowerBound);
     individualOptimisation.set_upper_bounds(upperBound);
 
-    // Equality constraints
-    individualOptimisation.add_equality_constraint(linearConstraintsLoglikelihoodAlleleCoverage, &EPGA, EPGA.ToleranceEqualityConstraints);
-
     // Objective function
     individualOptimisation.set_max_objective(logLikelihoodAlleleCoverage, &EPGA);
 
     individualOptimisation.set_ftol_rel(EPGA.ToleranceFRelative);
-    individualOptimisation.set_xtol_rel(EPGA.ToleranceXRelative);
-    individualOptimisation.set_ftol_abs(EPGA.ToleranceFAbsolute);
-    individualOptimisation.set_xtol_abs(EPGA.ToleranceXAbsolute);
     individualOptimisation.set_maxeval(EPGA.MaximumNumberOfIterations);
 
     double logLikelihood;
@@ -206,11 +191,10 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     EPGA.LogLikelihood = logLikelihood;
     Eigen::VectorXd Parameters = STDEigen(parameters);
 
-    // Rcpp::Rcout << "\t\t Estimated:\n";
     EPGA.SampleParameters = Parameters.segment(0, S);
-    EPGA.MixtureParameters = Parameters.segment(S, M);
-    // Rcpp::Rcout << "\t\t\t Sample parameters: " << EPGA.SampleParameters.transpose() << "\n";
-    // Rcpp::Rcout << "\t\t\t Mixture parameters: " << EPGA.MixtureParameters.transpose() << "\n";
+
+    EPGA.MixtureParameters.segment(0, M - 1) = Parameters.segment(S, M - 1);
+    EPGA.MixtureParameters[M - 1] =  1.0 - Parameters.segment(S, M - 1).sum();
 }
 
 
@@ -220,9 +204,6 @@ EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(Eigen::
     Coverage = coverage;
     NoiseContribution = noiseContribution;
     ToleranceFRelative = tolerance;
-    ToleranceXRelative = tolerance;
-    ToleranceFAbsolute = tolerance;
-    ToleranceXAbsolute = tolerance;
     MaximumNumberOfIterations = 2000;
 
     Counter = 0;
@@ -258,13 +239,26 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
     double dispersion = x[1];
 
     double logLikelihood = 0.0;
+    std::vector<double> gradient(2, 0.0);
     for (std::size_t n = 0; n < Coverage.size(); n++)
     {
         double mu_ma = mean * NoiseContribution[n];
         if (mu_ma > 0.0)
         {
             logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
+
+            if (!grad.empty())
+            {
+                gradient[0] += Coverage[n] / mu_ma - (Coverage[n] + dispersion) / (mu_ma + dispersion);
+                gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
+                    std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion);
+            }
         }
+    }
+
+    if (!grad.empty())
+    {
+        grad = gradient;
     }
 
     counter++;
@@ -277,7 +271,7 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     std::vector<double> parameters = EigenSTD(EPGN.NoiseParameters);
 
     // Optimiser
-    nlopt::opt individualOptimisation(nlopt::LN_COBYLA, N);
+    nlopt::opt individualOptimisation(nlopt::LD_LBFGS, N);
 
     // Box-constraints
     std::vector<double> lowerBound(N), upperBound(N);
@@ -294,9 +288,6 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     individualOptimisation.set_max_objective(logLikelihoodNoiseCoverage, &EPGN);
 
     individualOptimisation.set_ftol_rel(EPGN.ToleranceFRelative);
-    individualOptimisation.set_xtol_rel(EPGN.ToleranceXRelative);
-    individualOptimisation.set_ftol_abs(EPGN.ToleranceFAbsolute);
-    individualOptimisation.set_xtol_abs(EPGN.ToleranceXAbsolute);
     individualOptimisation.set_maxeval(EPGN.MaximumNumberOfIterations);
 
     double logLikelihood;
