@@ -12,10 +12,7 @@
 #' @export
 estimateParametersOfKnownProfiles <- function(sampleTibble, knownProfilesList, potentialParentsList, stutterRatioModel = NULL, tolerance) {
     if (is.null(potentialParentsList)) {
-        potentialParentsTibble <- potentialParents(sampleTibble, stutterRatioModel, trace = FALSE)
-        potentialParentsList <- lapply(potentialParentsTibble, function(ppp) lapply(ppp, function(pppp) {
-            pppp %>% select(PotentialParent, StutterRatio) %>% as.matrix()
-        }))
+        potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
     }
 
     H <- setHypothesis(sampleTibble, length(knownProfilesList), knownProfilesList, 0)[[1]]
@@ -71,10 +68,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, numberOfContributors,
         if (control$trace)
             cat("Building potential parents list.\n")
 
-        potentialParentsTibble <- potentialParents(sampleTibble, stutterRatioModel, trace = control$trace)
-        potentialParentsList <- lapply(potentialParentsTibble, function(ppp) lapply(ppp, function(pppp) {
-            pppp %>% select(PotentialParent, StutterRatio) %>% as.matrix()
-        }))
+        potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
     }
 
     H <- setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta)[[1]]

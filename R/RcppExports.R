@@ -9,6 +9,17 @@ partialSumEigen <- function(x) {
     .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies)
 }
 
+#' Deviance residuals of the Poisson-gamma distribution
+#'
+#' @param x the count.
+#' @param mean the expected count.
+#' @param dispersion the overdispersion.
+#'
+#' @return The deviance residual.
+devianceResidualPoissonGammaDistribution <- function(x, mean, dispersion) {
+    .Call('_MPSMixtures_devianceResidualPoissonGammaDistribution', PACKAGE = 'MPSMixtures', x, mean, dispersion)
+}
+
 logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles) {
     .Call('_MPSMixtures_logPriorGenotypeProbability', PACKAGE = 'MPSMixtures', alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles)
 }
@@ -21,7 +32,7 @@ logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfile
     .Call('_MPSMixtures_initialisingParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, seed)
 }
 
-.runningParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList) {
-    .Call('_MPSMixtures_runningParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList)
+.runningParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, fitnessList) {
+    .Call('_MPSMixtures_runningParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, fitnessList)
 }
 

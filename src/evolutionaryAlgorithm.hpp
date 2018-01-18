@@ -39,36 +39,36 @@ class EvolutionaryAlgorithm
 
         // Constructors
         EvolutionaryAlgorithm();
-        EvolutionaryAlgorithm(ExperimentalSetup ES, const std::size_t populationSize, const std::size_t seed);
-        EvolutionaryAlgorithm(ExperimentalSetup ES, const std::size_t populationSize, const std::size_t numberOfIterations,
-                              const std::size_t numberOfIterationsEqualMinMax, const std::size_t numberOfFittestIndividuals,
-                              const int parentSelectionWindowSize, const bool allowParentSurvival, const double crossoverProbability, const double mutationProbabilityLowerLimit,
-                              const double mutationDegreesOfFreedom, const Eigen::VectorXd mutationDecay, const double fractionFittestIndividuals,
-                              const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations, std::size_t seed);
-        EvolutionaryAlgorithm(ExperimentalSetup ES, Population P, const std::size_t numberOfIterations, const std::size_t numberOfIterationsEqualMinMax,
-                              const std::size_t numberOfFittestIndividuals, const int parentSelectionWindowSize, const bool allowParentSurvival,
-                              const double crossoverProbability, const double mutationProbabilityLowerLimit, const double mutationDegreesOfFreedom,
-                              const Eigen::VectorXd mutationDecay, const double fractionFittestIndividuals,
-                              const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations);
+        EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & seed);
+        EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & numberOfIterations,
+                              const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
+                              const int & parentSelectionWindowSize, const bool & allowParentSurvival, const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                              const double & mutationDegreesOfFreedom, const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
+                              const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations, const std::size_t & seed);
+        EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P, const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
+                              const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool & allowParentSurvival,
+                              const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
+                              const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
+                              const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations);
 
         // Functions
         void RestructingIndividual(Individual & I, const ExperimentalSetup & ES);
 
-        Population InitialisePopulation(ExperimentalSetup & ES, std::size_t seed);
+        Population InitialisePopulation(ExperimentalSetup & ES, const std::size_t & seed);
 
-        std::size_t ChoosePartner(const Population & P, int currentIndividual, std::size_t seed);
+        std::size_t ChoosePartner(const Population & P, int currentIndividual, const std::size_t & seed);
 
-        Eigen::VectorXd Crossover(const Individual & I, const Individual & J, std::size_t seed);
+        Eigen::VectorXd Crossover(const Individual & I, const Individual & J, const std::size_t & seed);
 
-        Eigen::VectorXd CreateMutationProbability(const Individual & I, const ExperimentalSetup & ES);
-        Eigen::VectorXd EncodeMutationProbability(Eigen::VectorXd mutationProability, Individual I, ExperimentalSetup & ES);
-        Individual Mutation(Eigen::VectorXd E, ExperimentalSetup & ES, std::size_t seed);
+        Eigen::VectorXd CreateMutationProbability(Individual & I, const ExperimentalSetup & ES);
+        Eigen::VectorXd EncodeMutationProbability(Eigen::VectorXd & mutationProability, Individual & I, ExperimentalSetup & ES);
+        Individual Mutation(Eigen::VectorXd & E, ExperimentalSetup & ES, const std::size_t & seed);
 
-        void HillClimbing(Individual & I, ExperimentalSetup & ES, std::size_t seed);
+        void HillClimbing(Individual & I, ExperimentalSetup & ES, const std::size_t & seed);
 
-        Population SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, std::size_t seed);
+        Population SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, const std::size_t & seed);
 
-        void Run(ExperimentalSetup & ES, std::size_t seed, const bool & trace);
+        void Run(ExperimentalSetup & ES, const std::size_t & seed, const bool & trace);
 };
 
 

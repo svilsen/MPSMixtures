@@ -37,7 +37,7 @@ Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t & numb
 
     Population FittestIndividuals = EA.FittestMembersOfEntireRun;
 
-    Rcpp::List RL = FittestIndividuals.ReturnRcppList();
+    Rcpp::List RL = FittestIndividuals.ReturnRcppList(ES);
     return RL;
 }
 
@@ -70,16 +70,17 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
                                                 const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
                                                 const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool allowParentSurvival,
                                                 const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
-                                                const Eigen::VectorXd mutationDecay,
-                                                const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations,
+                                                const Eigen::VectorXd & mutationDecay,
+                                                const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations,
                                                 const std::size_t & seed, const bool & trace,
                                                 const Eigen::MatrixXd encodedPopulationList, const Eigen::MatrixXd sampleParametersList,
-                                                const Eigen::MatrixXd noiseParametersList, const Eigen::MatrixXd mixtureParametersList)
+                                                const Eigen::MatrixXd noiseParametersList, const Eigen::MatrixXd mixtureParametersList,
+                                                const Eigen::VectorXd fitnessList)
 {
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies);
 
-    Population currentPopulation(encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, ES);
+    Population currentPopulation(encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, fitnessList);
 
     EvolutionaryAlgorithm EA(ES, currentPopulation,
                              numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals,
@@ -95,7 +96,7 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
     EA.Run(ES, seed + seedShift, trace);
 
     Rcpp::List RL = EA.CurrentPopulation.ReturnCompressedRcppList();
-    Rcpp::List FL = EA.FittestMembersOfEntireRun.ReturnRcppList();
+    Rcpp::List FL = EA.FittestMembersOfEntireRun.ReturnRcppList(ES);
     return Rcpp::List::create(Rcpp::Named("LastPopulation") = RL,
                               Rcpp::Named("FittestIndividuals") = FL);
 }

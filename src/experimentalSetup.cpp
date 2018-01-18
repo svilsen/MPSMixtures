@@ -12,10 +12,10 @@
 #include "encodingScheme.hpp"
 #include "AuxiliaryFunctions.hpp"
 
-ExperimentalSetup::ExperimentalSetup(std::size_t numberOfMarkers, Eigen::VectorXd numberOfAlleles, std::size_t numberOfContributors, std::size_t numberOfKnownContributors,
-                                     Eigen::MatrixXd knownProfiles, Eigen::MatrixXd allKnownProfiles,
-                                     Eigen::VectorXd coverage, std::vector< std::vector < Eigen::MatrixXd > > potentialParents, Eigen::VectorXd markerImbalances,
-                                     double tolerance, double theta, Eigen::VectorXd alleleFrequencies)
+ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
+                                     const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
+                                     const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
+                                     const double & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies)
 {
     NumberOfMarkers = numberOfMarkers;
     NumberOfAlleles = numberOfAlleles;
@@ -35,7 +35,7 @@ ExperimentalSetup::ExperimentalSetup(std::size_t numberOfMarkers, Eigen::VectorX
     AlleleFrequencies = alleleFrequencies;
 }
 
-Eigen::VectorXd ExperimentalSetup::GenerateUnknownGenotype(std::size_t seed)
+Eigen::VectorXd ExperimentalSetup::GenerateUnknownGenotype(const std::size_t & seed)
 {
     const Eigen::VectorXd partialSumAlleles = partialSumEigen(NumberOfAlleles);
     std::size_t NumberOfUnknownContributors = (NumberOfContributors - NumberOfKnownContributors);
@@ -57,4 +57,3 @@ Eigen::VectorXd ExperimentalSetup::GenerateUnknownGenotype(std::size_t seed)
 
     return individual;
 }
-

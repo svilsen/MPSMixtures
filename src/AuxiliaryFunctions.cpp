@@ -24,7 +24,7 @@ Eigen::MatrixXd bindColumns(const Eigen::MatrixXd & A, const Eigen::MatrixXd & B
 }
 
 
-Eigen::VectorXd STDEigen(std::vector<double> &x)
+Eigen::VectorXd STDEigen(const std::vector<double> &x)
 {
     Eigen::VectorXd xEigen(x.size());
     for (std::size_t i = 0; i < x.size(); i++)
@@ -33,7 +33,7 @@ Eigen::VectorXd STDEigen(std::vector<double> &x)
     return xEigen;
 }
 
-std::vector<double> EigenSTD(Eigen::VectorXd &x)
+std::vector<double> EigenSTD(const Eigen::VectorXd &x)
 {
     std::vector<double> xNEWMAT(x.size());
     for (std::size_t i = 0; i < x.size(); i++)

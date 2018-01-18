@@ -21,7 +21,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
     return(res)
 }
 
-# knownProfiles = H$KnownProfiles; coverage = sampleTibble$Coverage; markerImbalances = sampleTibble$MarkerImbalance; tolerance = control$tolerance; theta = H$ThetaCorrection; alleleFrequencies = sampleTibble$AlleleFrequencies; numberOfPopulations = control$numberOfPopulations; populationSize = control$populationSize; numberOfIterations = control$numberOfIterations; numberOfIterationsEqualMinMax = control$numberOfIterationsEqualMinMax; numberOfFittestIndividuals = control$numberOfFittestIndividuals; parentSelectionWindowSize = control$parentSelectionWindowSize; allowParentSurvival = control$allowParentSurvival; mutationDegreesOfFreedom = control$mutationDegreesOfFreedom; mutationDecay = control$mutationDecay; fractionFittestIndividuals = control$fractionFittestIndividuals; hillClimbingDirections = control$hillClimbingDirections; hillClimbingIterations = control$hillClimbingIterations; simplifiedReturn = FALSE; seed = control$seed; trace = control$trace
+# allKnownProfiles = H$KnownProfiles; coverage = sampleTibble$Coverage; markerImbalances = sampleTibble$MarkerImbalance; tolerance = control$tolerance; theta = H$ThetaCorrection; alleleFrequencies = sampleTibble$AlleleFrequencies; numberOfPopulations = control$numberOfPopulations; populationSize = control$populationSize; numberOfIterations = control$numberOfIterations; numberOfIterationsEqualMinMax = control$numberOfIterationsEqualMinMax; numberOfFittestIndividuals = control$numberOfFittestIndividuals; parentSelectionWindowSize = control$parentSelectionWindowSize; allowParentSurvival = control$allowParentSurvival; mutationDegreesOfFreedom = control$mutationDegreesOfFreedom; mutationDecay = control$mutationDecay; fractionFittestIndividuals = control$fractionFittestIndividuals; hillClimbingDirections = control$hillClimbingDirections; hillClimbingIterations = control$hillClimbingIterations; simplifiedReturn = FALSE; seed = control$seed; trace = control$trace
 # H = Hd[[i]]
 
 .optimalUnknownProfilesHi <- function(sampleTibble, H, potentialParentsList, allKnownProfiles, control) {
@@ -54,7 +54,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
             optimalUnknownProfiles <- optimalUnknownProfiles[order(sapply(optimalUnknownProfiles, function(oup) oup$Fitness), decreasing = TRUE)]
         }
         else {
-            optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
+            optimalUnknownProfiles <- MPSMixtures:::.runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
                                                                                      sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                      control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
                                                                                      control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
@@ -108,7 +108,13 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                        mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
                        tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4) {
 
-    numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else numberOfFittestIndividuals
+    if (numberOfPopulations == 1) {
+        numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else min(numberOfFittestIndividuals, populationSize)
+    }
+    else {
+        numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else numberOfFittestIndividuals
+    }
+
     fractionOfPopulationsMax <- if (is.null(fractionOfPopulationsMax)) max(c(0.05, 1 / numberOfPopulations)) else fractionOfPopulationsMax
 
     if (is.null(mutationDecay)) {
@@ -132,7 +138,7 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
     return(controlList)
 }
 
-# sampleTibble = coverageTibble; potentialParentsList = rrpp; control = LR.control(numberOfPopulations = 4, numberOfIterations = 25, populationSize = 10, numberOfFittestIndividuals = 100, hillClimbingIterations = 2, parentSelectionWindowSize = 2, simplifiedReturn = F, allowParentSurvival = T)
+# control = LR.control(numberOfPopulations = 12, numberOfIterations = 25, populationSize = 10, numberOfFittestIndividuals = 100, hillClimbingIterations = 2, parentSelectionWindowSize = 2, simplifiedReturn = F, allowParentSurvival = T, trace = T)
 
 #' @title Likelihood ratio
 #'
@@ -153,10 +159,7 @@ LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioMo
         if (control$trace)
             cat("Building potential parents list.\n")
 
-        potentialParentsTibble <- potentialParents(sampleTibble, stutterRatioModel, trace = control$trace)
-        potentialParentsList <- lapply(potentialParentsTibble, function(ppp) lapply(ppp, function(pppp) {
-            pppp %>% select(PotentialParent, StutterRatio) %>% as.matrix()
-        }))
+        potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
     }
 
     allKnownProfiles = unique(do.call("cbind", lapply(append(Hp, Hd), function(H) H$KnownProfiles)), MARGIN = 2)
@@ -164,9 +167,18 @@ LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioMo
     if (control$trace)
         cat("Running Hp-list.\n")
 
+    if ((length(Hp) != length(Hd)) & ((length(Hp) != 1) | (length(Hd) != 1)))  {
+        stop("'Hp' must have the same length as 'Hd', or either 'Hp' or 'Hd' must have length '1'.")
+    }
+
     optimalUnknownGenotypesHp <- vector("list", length(Hp))
     for (i in seq_along(Hp)) {
-        optimalUnknownGenotypesHp[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hp[[i]], potentialParentsList, allKnownProfiles, control)
+        optimalUnknownGenotypesHp[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hp[[i]], potentialParentsList, allKnownProfiles, control)
+    }
+
+    if ((length(Hp) == 1) & (length(Hd) != 1)) {
+        Hp = rep(Hp[[i]], length(Hd))
+        optimalUnknownGenotypesHp = rep(optimalUnknownGenotypesHp[[1]], length(Hd))
     }
 
     if (control$trace)
@@ -174,32 +186,40 @@ LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioMo
 
     optimalUnknownGenotypesHd <- vector("list", length(Hd))
     for (i in seq_along(Hd)) {
-        optimalUnknownGenotypesHd[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hd[[i]], potentialParentsList, allKnownProfiles, control)
+        optimalUnknownGenotypesHd[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hd[[i]], potentialParentsList, allKnownProfiles, control)
+    }
+
+    if ((length(Hd) == 1) & (length(Hp) != 1)) {
+        Hd = rep(Hd[[i]], length(Hp))
+        optimalUnknownGenotypesHd = rep(optimalUnknownGenotypesHd[[1]], length(Hp))
     }
 
     if (control$trace)
         cat("Optimising parameters and calculating LR's.\n")
 
-    allPairwiseCombinations <- expand.grid(Hp = seq_along(optimalUnknownGenotypesHp), Hd = seq_along(optimalUnknownGenotypesHd))
-    pairwiseComparisonResults <- vector("list", dim(allPairwiseCombinations)[1])
-    for (i in 1:dim(allPairwiseCombinations)[1]) {
+
+    pairwiseComparisonResults <- vector("list", length(Hp))
+    for (i in seq_along(pairwiseComparisonResults)) {
         if (control$trace)
-            cat("  Combination:", paste0("Hp = ", allPairwiseCombinations[i, 1], ", Hd = ", allPairwiseCombinations[i, 2]), "\n")
+            cat("  Comparison:", i, "\n")
 
-        LHpNormaliser <- max(sapply(optimalUnknownGenotypesHp[[allPairwiseCombinations[i, 1]]], function(hh) hh$Fitness))
-        LHdNormaliser <- max(sapply(optimalUnknownGenotypesHd[[allPairwiseCombinations[i, 2]]], function(hh) hh$Fitness))
+        optimalUnknownGenotypesHp_i <- optimalUnknownGenotypesHp[[i]][sapply(optimalUnknownGenotypesHp[[i]], function(hh) !is.null(hh$Fitness))]
+        optimalUnknownGenotypesHd_i <- optimalUnknownGenotypesHd[[i]][sapply(optimalUnknownGenotypesHd[[i]], function(hh) !is.null(hh$Fitness))]
 
-        parametersLRHp <- optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp[[allPairwiseCombinations[i, 1]]],
-                                                            Hp[[allPairwiseCombinations[i, 1]]]$NumberOfContributors, LHpNormaliser)
-        parametersLRHd <- optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd[[allPairwiseCombinations[i, 2]]],
-                                                            Hd[[allPairwiseCombinations[i, 2]]]$NumberOfContributors, LHdNormaliser)
+        LHpNormaliser <- max(sapply(optimalUnknownGenotypesHp_i, function(hh) hh$Fitness))
+        LHdNormaliser <- max(sapply(optimalUnknownGenotypesHd_i, function(hh) hh$Fitness))
+
+        parametersLRHp <- optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
+                                                            Hp[[i]]$NumberOfContributors, LHpNormaliser)
+        parametersLRHd <- optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
+                                                            Hd[[i]]$NumberOfContributors, LHdNormaliser)
 
         logLR = log(parametersLRHp$Likelihood) + LHpNormaliser - log(parametersLRHd$Likelihood) - LHdNormaliser
 
-        resultsList <- list(LR = exp(logLR), Log10LR = logLR * log10(exp(1)), Hp = Hp[[allPairwiseCombinations[i, 1]]], Hd = Hd[[allPairwiseCombinations[i, 1]]])
+        resultsList <- list(LR = exp(logLR), Log10LR = logLR * log10(exp(1)), Hp = Hp[[i]], Hd = Hd[[i]])
         if (!control$simplifiedReturn) {
-            resultsList$HpOptimalUnknownGenotypes = optimalUnknownGenotypesHp[[allPairwiseCombinations[i, 1]]]
-            resultsList$HdOptimalUnknownGenotypes = optimalUnknownGenotypesHd[[allPairwiseCombinations[i, 2]]]
+            resultsList$HpOptimalUnknownGenotypes = optimalUnknownGenotypesHp[[i]]
+            resultsList$HdOptimalUnknownGenotypes = optimalUnknownGenotypesHd[[i]]
 
             resultsList$HpParameterEstimates <- parametersLRHp
             resultsList$HdParameterEstimates <- parametersLRHd
@@ -211,7 +231,7 @@ LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioMo
 
     resList <- list(AllPairwiseComparisonData = pairwiseComparisonResults)
 
-    comparisonTable <- expand.grid(Hp = sapply(Hp, function(H) H$NumberOfContributors), Hd = sapply(Hd, function(H) H$NumberOfContributors))
+    comparisonTable <- data.frame(Hp = sapply(Hp, function(H) H$NumberOfContributors), Hd = sapply(Hd, function(H) H$NumberOfContributors))
     comparisonTable$Log10LR <- sapply(pairwiseComparisonResults, function(L) L$Log10LR)
 
     resList$ComparisonTable <- comparisonTable

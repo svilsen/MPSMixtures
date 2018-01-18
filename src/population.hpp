@@ -12,15 +12,14 @@ class Population
 {
     public:
         std::vector<Individual> Individuals;
-        // Eigen::MatrixXd EncodedProfiles;
         Eigen::VectorXd Fitness;
 
         Population();
         Population(std::vector<Individual> I);
-        Population(Eigen::MatrixXd encodedProfilesList, Eigen::MatrixXd sampleParametersList, Eigen::MatrixXd noiseParametersList,
-                   Eigen::MatrixXd mixtureParametersList, ExperimentalSetup ES);
+        Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen::MatrixXd & sampleParametersList, const Eigen::MatrixXd & noiseParametersList,
+                   const Eigen::MatrixXd & mixtureParametersList, const Eigen::VectorXd & fitnessList);
 
-        Rcpp::List ReturnRcppList();
+        Rcpp::List ReturnRcppList(const ExperimentalSetup & ES);
         Rcpp::List ReturnCompressedRcppList();
 };
 

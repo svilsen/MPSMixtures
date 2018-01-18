@@ -8,6 +8,7 @@
 #include "population.hpp"
 #include "evolutionaryAlgorithm.hpp"
 #include "AuxiliaryFunctions.hpp"
+#include "logLikelihoods.hpp"
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -18,19 +19,19 @@
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm() { }
 
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup ES, const std::size_t populationSize, std::size_t seed)
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & seed)
 {
     PopulationSize = populationSize;
     CurrentPopulation = InitialisePopulation(ES, seed);
 }
 
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup ES, const std::size_t populationSize,
-                                             const std::size_t numberOfIterations, const std::size_t numberOfIterationsEqualMinMax, const std::size_t numberOfFittestIndividuals,
-                                             const int parentSelectionWindowSize, const bool allowParentSurvival,
-                                             const double crossoverProbability, const double mutationProbabilityLowerLimit, const double mutationDegreesOfFreedom,
-                                             const Eigen::VectorXd mutationDecay, const double fractionFittestIndividuals,
-                                             const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations,
-                                             std::size_t seed)
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize,
+                                             const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
+                                             const int & parentSelectionWindowSize, const bool & allowParentSurvival,
+                                             const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
+                                             const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
+                                             const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations,
+                                             const std::size_t & seed)
 {
     PopulationSize = populationSize;
     NumberOfFittestIndividuals = numberOfFittestIndividuals;
@@ -55,12 +56,12 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup ES, const std::si
     CurrentPopulation = InitialisePopulation(ES, seed);
 }
 
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup ES, Population P,
-                                             const std::size_t numberOfIterations, const std::size_t numberOfIterationsEqualMinMax, const std::size_t numberOfFittestIndividuals,
-                                             const int parentSelectionWindowSize, const bool allowParentSurvival,
-                                             const double crossoverProbability, const double mutationProbabilityLowerLimit, const double mutationDegreesOfFreedom,
-                                             const Eigen::VectorXd mutationDecay, const double fractionFittestIndividuals,
-                                             const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations)
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P,
+                                             const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
+                                             const int & parentSelectionWindowSize, const bool & allowParentSurvival,
+                                             const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
+                                             const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
+                                             const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations)
 {
     CurrentPopulation = P;
 
@@ -92,7 +93,6 @@ void EvolutionaryAlgorithm::RestructingIndividual(Individual & I, const Experime
     Eigen::VectorXd Mixtures = I.MixtureParameters.segment(ES.NumberOfKnownContributors, NumberOfUnknownContributors);
 
     std::vector<int> sortedMixtures = sortedIndex(Mixtures);
-
     for (std::size_t n = 0; n < NumberOfUnknownContributors; n++)
     {
         I.MixtureParameters[ES.NumberOfKnownContributors + n] = Mixtures[sortedMixtures[n]];
@@ -118,12 +118,9 @@ void EvolutionaryAlgorithm::RestructingIndividual(Individual & I, const Experime
             }
         }
     }
-
-    I.DecodedProfile = decoding(I.EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, NumberOfUnknownContributors);
-    I.ExpectedContributionProfile = I.GenerateExpectedContributionProfile(ES);
 }
 
-Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, std::size_t seed)
+Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, const std::size_t & seed)
 {
     std::vector<Individual> I(PopulationSize);
     for (std::size_t n = 0; n < PopulationSize; n++)
@@ -138,7 +135,7 @@ Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, s
     return P;
 }
 
-Eigen::VectorXd EvolutionaryAlgorithm::Crossover(const Individual & I, const Individual & J, std::size_t seed)
+Eigen::VectorXd EvolutionaryAlgorithm::Crossover(const Individual & I, const Individual & J, const std::size_t & seed)
 {
     Eigen::MatrixXd E_IJ = bindColumns(I.EncodedProfile, J.EncodedProfile);
 
@@ -164,32 +161,52 @@ Eigen::VectorXd EvolutionaryAlgorithm::Crossover(const Individual & I, const Ind
     return E;
 }
 
-Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(const Individual & I, const ExperimentalSetup & ES)
+Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I, const ExperimentalSetup & ES)
 {
-    std::size_t N = I.DevianceResiduals.size();
-    Eigen::VectorXd deviance = I.DevianceResiduals;
-    // boost::math::normal_distribution<> devianceDistribution(0, MutationDecay_t);
+    const Eigen::VectorXd & E = I.EncodedProfile;
+    const Eigen::MatrixXd decodedProfile = decoding(E, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
+    const Eigen::MatrixXd expectedContributionProfile = I.GenerateExpectedContributionProfile(ES, decodedProfile);
+    const Eigen::VectorXd noiseProfile = I.GenerateNoiseProfile(ES, expectedContributionProfile);
+
+    const double & referenceMarkerAverage = I.SampleParameters[0];
+    double dispersion;
+    const Eigen::VectorXd & Coverage = ES.Coverage;
+    const Eigen::VectorXd & MarkerImbalance = ES.MarkerImbalances;
+    const Eigen::VectorXd EC = expectedContributionProfile * I.MixtureParameters;
+
+    std::size_t N = ES.Coverage.size();
     boost::math::students_t devianceDistribution(MutationDegreesOfFreedom);
 
     Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(N);
     for (std::size_t n = 0; n < N; n++)
     {
-        if (std::abs(deviance[n]) > MutationDecay_t)
+        double mu_ma;
+        if (noiseProfile[n] == 0)
         {
-            mutation[n] = 1.0 - (1.0 - MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance[n]) / boost::math::pdf(devianceDistribution, 0.0);
+            mu_ma = referenceMarkerAverage * MarkerImbalance[n] * EC[n];
+            dispersion = I.SampleParameters[1];
+        }
+        else
+        {
+            mu_ma = I.NoiseParameters[0];
+            dispersion = I.NoiseParameters[1];
         }
 
-        // mutation[n] = 1.0 - (1.0 - MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance[n]) / boost::math::pdf(devianceDistribution, 0.0);
+        double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
+        if (std::abs(deviance_n) > MutationDecay_t)
+        {
+            mutation[n] = (1.0 - MutationProbabilityLowerLimit) - (1.0 - 2 * MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) / boost::math::pdf(devianceDistribution, 0.0);
+        }
     }
 
     return mutation;
 }
 
-Eigen::VectorXd EvolutionaryAlgorithm::EncodeMutationProbability(Eigen::VectorXd mutationProability, Individual I, ExperimentalSetup & ES)
+Eigen::VectorXd EvolutionaryAlgorithm::EncodeMutationProbability(Eigen::VectorXd & mutationProability, Individual & I, ExperimentalSetup & ES)
 {
-    Eigen::MatrixXd profile = I.DecodedProfile;
-    std::size_t N = profile.rows();
     std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
+    Eigen::MatrixXd profile = decoding(I.EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, numberOfUnknownContributors);
+    std::size_t N = profile.rows();
 
     Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
 
@@ -197,7 +214,6 @@ Eigen::VectorXd EvolutionaryAlgorithm::EncodeMutationProbability(Eigen::VectorXd
     for (std::size_t i = 0; i < ES.NumberOfMarkers; i++)
     {
         Eigen::MatrixXd profile_m = profile.block(partialSumAlleles[i], 0, ES.NumberOfAlleles[i], numberOfUnknownContributors);
-
         Eigen::VectorXd mutation_m = mutationProability.segment(partialSumAlleles[i], ES.NumberOfAlleles[i]);
 
         for (std::size_t j = 0; j < numberOfUnknownContributors; j++)
@@ -213,7 +229,7 @@ Eigen::VectorXd EvolutionaryAlgorithm::EncodeMutationProbability(Eigen::VectorXd
     return encodedMutation;
 }
 
-Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd E, ExperimentalSetup & ES, std::size_t seed)
+Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd & E, ExperimentalSetup & ES, const std::size_t & seed)
 {
     Individual unmutatedIndividual(E, ES);
     Eigen::VectorXd I = unmutatedIndividual.EncodedProfile;
@@ -224,50 +240,18 @@ Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd E, ExperimentalSetup 
     Eigen::VectorXd mutation = CreateMutationProbability(unmutatedIndividual, ES);
 
     Eigen::VectorXd encodedMutation = EncodeMutationProbability(mutation, unmutatedIndividual, ES);
-
     std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
-    // Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
-    for (std::size_t i = 0; i < ES.NumberOfMarkers; i++)
+    for (std::size_t i = 0; i < I.size(); i++)
     {
-        for (std::size_t j = 0; j < 2 * numberOfUnknownContributors; j++)
+        double mutate = uniform(rng);
+        if (mutate < encodedMutation[i])
         {
-            double mutate = uniform(rng);
+            std::size_t m = std::floor(i / (2 * numberOfUnknownContributors));
+            boost::random::uniform_int_distribution<> uniformMutation(1, ES.NumberOfAlleles[m] - 1);
+            int mutationShift = uniformMutation(rng);
 
-            std::size_t k = 2 * numberOfUnknownContributors * i + j;
-            if (mutate < encodedMutation[k])
-            {
-                // std::size_t n = partialSumAlleles[i] + I[k];
-                // double I_mu_ma = unmutatedIndividual.SampleParameters[0] * ES.MarkerImbalances[n] *
-                //     unmutatedIndividual.ExpectedContributionProfile.row(n) * unmutatedIndividual.MixtureParameters;
-                //
-                // std::vector<Individual> surroundings(ES.NumberOfAlleles[i] - 1);
-                // Eigen::VectorXd surroundingResiduals = Eigen::VectorXd::Zero(ES.NumberOfAlleles[i] - 1);
-                // for (std::size_t j = 1; j < ES.NumberOfAlleles[i]; j++)
-                // {
-                //     Eigen::VectorXd I_j = I;
-                //
-                //     // double randomDirection = uniformDirection(rng);
-                //     I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[i]);
-                //     std::size_t m = partialSumAlleles[i] + I_j[k];
-                //
-                //     Individual J(I_j, unmutatedIndividual.SampleParameters, unmutatedIndividual.NoiseParameters, unmutatedIndividual.MixtureParameters, ES);
-                //     double J_mu_ma = J.SampleParameters[0] * ES.MarkerImbalances[m] * J.ExpectedContributionProfile.row(m) * J.MixtureParameters;
-                //
-                //     RestructingIndividual(J, ES);
-                //     surroundings[j - 1] = J;
-                //     surroundingResiduals[j - 1] = std::abs(ES.Coverage[n] - I_mu_ma + ES.Coverage[m] - J_mu_ma);
-                // }
-                //
-                // Eigen::MatrixXf::Index minIndex;
-                // double smallestValue = surroundingResiduals.minCoeff(&minIndex);
-                //
-                // I = surroundings[minIndex].EncodedProfile;
-
-                boost::random::uniform_int_distribution<> uniformMutation(1, ES.NumberOfAlleles[i] - 1);
-                int mutationShift = uniformMutation(rng);
-
-                I[k] = static_cast<int>(I[k] + mutationShift) % static_cast<int>(ES.NumberOfAlleles[i]);
-            }
+            const double I_k = I[i];
+            I[i] = static_cast<int>(I_k + mutationShift) % static_cast<int>(ES.NumberOfAlleles[m]);
         }
     }
 
@@ -275,7 +259,7 @@ Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd E, ExperimentalSetup 
     return mutatedIndividual;
 }
 
-std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int currentIndividual, std::size_t seed)
+std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int currentIndividual, const std::size_t & seed)
 {
     boost::random::mt19937 rng(seed);
 
@@ -316,11 +300,63 @@ std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int curre
     return partnerIndex;
 }
 
-void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES, std::size_t seed)
+Eigen::VectorXd expectedContributionMatrixRow(const Eigen::VectorXd & E, const ExperimentalSetup & ES,
+                                              const Eigen::VectorXd & partialSumAlleles,
+                                              const int & m, const std::size_t & k, const std::size_t & n)
 {
+
+    const std::size_t & a = E[k];
+    const std::size_t & numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
+
+    // Creating genotype matrix of marker m
+    Eigen::MatrixXd decodedProfile_m = Eigen::MatrixXd::Zero(ES.NumberOfAlleles[m], ES.NumberOfContributors);
+    for (std::size_t i = 0; i < ES.NumberOfAlleles[m]; i++)
+    {
+        for (std::size_t j = 0; j < ES.NumberOfKnownContributors; j++)
+        {
+            decodedProfile_m(i, j) = ES.KnownProfiles(partialSumAlleles[m] + i, j);
+        }
+    }
+
+    for (std::size_t i = 0; i < numberOfUnknownContributors; i++)
+    {
+        for (std::size_t j = 0; j <= 1; j++)
+        {
+            std::size_t l = 2 * m * numberOfUnknownContributors + 2 * i + j;
+            decodedProfile_m(E[l], i + ES.NumberOfKnownContributors) += 1;
+        }
+    }
+
+    // Creating ECM of row n
+    Eigen::MatrixXd potentialParents_ma = ES.PotentialParents[m][a];
+    Eigen::VectorXd potentialParentIndex = potentialParents_ma.col(1);
+    Eigen::VectorXd stutterContribution = potentialParents_ma.col(2);
+
+    Eigen::VectorXd ECM_n = Eigen::VectorXd::Zero(decodedProfile_m.cols());
+    for (std::size_t j = 0; j < ECM_n.size(); j++)
+    {
+        const Eigen::VectorXd & decodedProfile_nj = decodedProfile_m.col(j);
+        Eigen::VectorXd potentialParentContribution_mua = Eigen::VectorXd::Zero(potentialParentIndex.size());
+        if (potentialParentIndex.sum() != -1)
+        {
+            for (std::size_t i = 0; i < potentialParentIndex.size(); i++)
+            {
+                potentialParentContribution_mua[i] = stutterContribution[i] * decodedProfile_nj[potentialParentIndex[i] - 1];
+            }
+        }
+
+        ECM_n[j] = decodedProfile_nj[a] + potentialParentContribution_mua.sum();
+    }
+
+    return ECM_n;
+}
+
+void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES, const std::size_t & seed)
+{
+    std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
     boost::random::mt19937 rng(seed);
     boost::random::uniform_int_distribution<> randomMarker(0, ES.NumberOfMarkers - 1);
-    boost::random::uniform_int_distribution<> randomContributor(0, ES.NumberOfContributors - ES.NumberOfKnownContributors - 1);
+    boost::random::uniform_int_distribution<> randomContributor(0, numberOfUnknownContributors - 1);
     boost::random::uniform_int_distribution<> randomBinary(0, 1);
 
     Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
@@ -329,68 +365,42 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
         int stepMarker = randomMarker(rng);
         int stepContributor = randomContributor(rng);
         int stepBinary = randomBinary(rng);
-        std::size_t k = 2 * stepMarker * (ES.NumberOfContributors - ES.NumberOfKnownContributors) + 2 * stepContributor + stepBinary;
+        std::size_t k = 2 * stepMarker * numberOfUnknownContributors + 2 * stepContributor + stepBinary;
 
-        // boost::random::uniform_int_distribution<> uniformDirection(1, ES.NumberOfAlleles[stepMarker] - 1);
-
+        // Create n'th row of the decoded and ecm matrix
         std::size_t n = partialSumAlleles[stepMarker] + I.EncodedProfile[k];
-        double I_mu_ma = I.SampleParameters[0] * ES.MarkerImbalances[n] * I.ExpectedContributionProfile.row(n) * I.MixtureParameters;
+        Eigen::VectorXd expectedContributionMatrixRow_n_i = expectedContributionMatrixRow(I.EncodedProfile, ES, partialSumAlleles, stepMarker, k, n);
 
-        std::vector<Individual> surroundings(ES.NumberOfAlleles[stepMarker]);
-        Eigen::VectorXd surroundingResiduals = Eigen::VectorXd::Zero(ES.NumberOfAlleles[stepMarker]);
-        for (std::size_t j = 0; j < ES.NumberOfAlleles[stepMarker]; j++)
+        double I_mu_ma = I.SampleParameters[0] * ES.MarkerImbalances[n] * expectedContributionMatrixRow_n_i.transpose() * I.MixtureParameters;
+
+        std::vector< Eigen::VectorXd > surroundings(ES.NumberOfAlleles[stepMarker] - 1);
+        Eigen::VectorXd surroundingResiduals = Eigen::VectorXd::Zero(ES.NumberOfAlleles[stepMarker] - 1);
+        for (std::size_t j = 1; j < ES.NumberOfAlleles[stepMarker]; j++)
         {
             Eigen::VectorXd I_j = I.EncodedProfile;
 
-            // double randomDirection = uniformDirection(rng);
             I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[stepMarker]);
             std::size_t m = partialSumAlleles[stepMarker] + I_j[k];
 
-            Individual J(I_j, I.SampleParameters, I.NoiseParameters, I.MixtureParameters, ES);
-            double J_mu_ma = J.SampleParameters[0] * ES.MarkerImbalances[m] * J.ExpectedContributionProfile.row(m) * J.MixtureParameters;
+            Eigen::VectorXd expectedContributionMatrixRow_n_j = expectedContributionMatrixRow(I_j, ES, partialSumAlleles, stepMarker, k, m);
+            double J_mu_ma = I.SampleParameters[0] * ES.MarkerImbalances[m] * expectedContributionMatrixRow_n_j.transpose() * I.MixtureParameters;
 
-            RestructingIndividual(J, ES);
-            surroundings[j] = J;
-            surroundingResiduals[j] = std::abs(ES.Coverage[n] - I_mu_ma + ES.Coverage[m] - J_mu_ma);
+            surroundings[j - 1] = I_j;
+            surroundingResiduals[j - 1] = std::abs(ES.Coverage[n] - I_mu_ma + ES.Coverage[m] - J_mu_ma);
         }
 
         Eigen::MatrixXf::Index minIndex;
         double smallestValue = surroundingResiduals.minCoeff(&minIndex);
 
-        Individual K(surroundings[minIndex].EncodedProfile, ES);
+        Individual K(surroundings[minIndex], ES);
         if (K.Fitness > I.Fitness)
         {
             I = K;
         }
-
-        // std::vector<Individual> surroundings(ES.NumberOfAlleles[stepMarker] - 1);
-        // Eigen::VectorXd surroundingFitness = Eigen::VectorXd::Zero(ES.NumberOfAlleles[stepMarker] - 1);
-        // for (std::size_t j = 1; j < ES.NumberOfAlleles[stepMarker]; j++)
-        // {
-        //     Eigen::VectorXd I_j = I.EncodedProfile;
-        //
-        //     // double randomDirection = uniformDirection(rng);
-        //     I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[stepMarker]);
-        //     Individual K(I_j, ES);
-        //
-        //     surroundings[j - 1] = K;
-        //     surroundingFitness[j - 1] = K.Fitness;
-        // }
-        //
-        // Eigen::MatrixXf::Index maxIndex;
-        // double maxValue = surroundingFitness.maxCoeff(&maxIndex);
-        //
-        // if (maxValue > I.Fitness)
-        // {
-        //     Individual K = surroundings[maxIndex];
-        //     RestructingIndividual(K, ES);
-        //
-        //     I = K;
-        // }
     }
 }
 
-Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, std::size_t seed)
+Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, const std::size_t & seed)
 {
     boost::random::mt19937 rng(seed);
     boost::random::uniform_int_distribution<> uniformShift(0, 1e6);
@@ -400,25 +410,27 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
     for (std::size_t i = 0; i < PopulationSize; i++)
     {
         Individual parent = P.Individuals[i];
+
         // Parent partner selection
-        std::size_t seedShift = uniformShift(rng);
-        std::size_t partnerIndex = ChoosePartner(P, i, seedShift);
+        std::size_t seedShift_1 = uniformShift(rng);
+        std::size_t partnerIndex = ChoosePartner(P, i, seedShift_1);
 
         // Crossover
-        seedShift = uniformShift(rng);
-        Eigen::VectorXd crossedParents = Crossover(parent, P.Individuals[partnerIndex], seedShift);
+        std::size_t seedShift_2 = uniformShift(rng);
+        Eigen::VectorXd crossedParents = Crossover(parent, P.Individuals[partnerIndex], seedShift_2);
 
         // Mutation
-        seedShift = uniformShift(rng);
-        Individual mutatedChild = Mutation(crossedParents, ES, seedShift);
+        std::size_t seedShift_3 = uniformShift(rng);
+        Individual mutatedChild = Mutation(crossedParents, ES, seedShift_3);
 
         if (AllowParentSurvival)
         {
             // Hill-climbing
-            if ((HillClimbingDirections != 0) & (HillClimbingIterations != 0))
+            if (HillClimbingIterations != 0)
             {
                 std::size_t seedShiftHillClimbing = uniformShift(rng);
                 HillClimbing(parent, ES, seedShiftHillClimbing);
+                RestructingIndividual(parent, ES);
             }
 
             if (parent.Fitness < mutatedChild.Fitness)
@@ -435,7 +447,7 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
         else
         {
             // Hill-climbing
-            if ((HillClimbingDirections != 0) & (HillClimbingIterations != 0))
+            if (HillClimbingIterations != 0)
             {
                 std::size_t seedShiftHillClimbing = uniformShift(rng);
                 HillClimbing(mutatedChild, ES, seedShiftHillClimbing);
@@ -445,6 +457,8 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
             RestructingIndividual(mutatedChild, ES);
             childPopulation[i] = mutatedChild;
         }
+
+
     }
 
     Population C(childPopulation);
@@ -457,7 +471,7 @@ bool individualsEqual(Individual & I, Individual & J)
     return (K.sum() < 2e-16);
 }
 
-void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, std::size_t seed, const bool & trace)
+void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, const std::size_t & seed, const bool & trace)
 {
     boost::random::mt19937 rng(seed);
     boost::random::uniform_int_distribution<> uniformShift(1, 1e6);
@@ -478,12 +492,16 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, std::size_t seed, const 
 
         // Updating the list of fittest individuals
         std::vector<int> sortedFitness = sortedIndex(C.Fitness);
-        for (std::size_t m = 0; m < PopulationSize; m++)
+
+        std::size_t m = 0;
+        bool updateFittest = true;
+        while (updateFittest)
         {
             Individual I_m = C.Individuals[sortedFitness[m]];
 
             double F_m = I_m.Fitness;
-            // bool isDuplicate = std::find(TF.begin(), TF.end(), F_m) != TF.end();
+
+            bool isDuplicate = std::find(TF.begin(), TF.end(), F_m) != TF.end();
             if ((F_m > TF[0])) // & !isDuplicate)
             {
                 auto it_front = std::lower_bound(TF.cbegin(), TF.cend(), F_m);
@@ -512,11 +530,13 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, std::size_t seed, const 
                     TF[j - 1] = F_m;
                 }
             }
+
+            m++;
+            updateFittest = (m < NumberOfFittestIndividuals) & (F_m > TF[0]);
         }
 
         // Updates the termination counter
-        std::vector<int> sortedFitness_C = sortedIndex(C.Fitness);
-        if (std::abs(C.Fitness[sortedFitness_C[0]] - C.Fitness.mean()) / std::abs(C.Fitness[sortedFitness_C[0]]) < ES.Tolerance)
+        if (std::abs(C.Fitness[sortedFitness[0]] - C.Fitness.mean()) / std::abs(C.Fitness[sortedFitness[0]]) < ES.Tolerance)
         {
             terminationCounter++;
         }
@@ -532,9 +552,9 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, std::size_t seed, const 
         {
             Rcpp::Rcout << "\tCurrent iteration: " << n << "\n"
                         << "\t\tPopulation Fitness: " << "\n"
-                        << "\t\t  Highest: " << C.Fitness[sortedFitness_C[0]] << "\n"
+                        << "\t\t  Highest: " << C.Fitness[sortedFitness[0]] << "\n"
                         << "\t\t  Average: " << C.Fitness.mean() << "\n"
-                        << "\t\t  Lowest: " << C.Fitness[sortedFitness_C[sortedFitness_C.size() - 1]] << "\n"
+                        << "\t\t  Lowest: " << C.Fitness[sortedFitness[sortedFitness.size() - 1]] << "\n"
                         << "\t\tTermination counter: " << terminationCounter << " / " << NumberOfIterationsEqualMinMax << "\n";
         }
     }

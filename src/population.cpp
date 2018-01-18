@@ -25,8 +25,8 @@ Population::Population(std::vector<Individual> I)
     Fitness = fitnessVector;
 }
 
-Population::Population(Eigen::MatrixXd encodedProfilesList, Eigen::MatrixXd sampleParametersList, Eigen::MatrixXd noiseParametersList,
-                       Eigen::MatrixXd mixtureParametersList, ExperimentalSetup ES)
+Population::Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen::MatrixXd & sampleParametersList, const Eigen::MatrixXd & noiseParametersList,
+                       const Eigen::MatrixXd & mixtureParametersList, const Eigen::VectorXd & fitnessList)
 {
     const std::size_t populationSize = encodedProfilesList.cols();
 
@@ -37,7 +37,8 @@ Population::Population(Eigen::MatrixXd encodedProfilesList, Eigen::MatrixXd samp
         Eigen::VectorXd sampleParameters_i = sampleParametersList.col(i);
         Eigen::VectorXd noiseParameters_i = noiseParametersList.col(i);
         Eigen::VectorXd mixtureParameters_i = mixtureParametersList.col(i);
-        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, ES);
+        double fitness_i = fitnessList[i];
+        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, fitness_i);
         currentIndividuals[i] = I;
     }
 
@@ -53,14 +54,17 @@ Population::Population(Eigen::MatrixXd encodedProfilesList, Eigen::MatrixXd samp
 }
 
 
-Rcpp::List Population::ReturnRcppList()
+Rcpp::List Population::ReturnRcppList(const ExperimentalSetup & ES)
 {
     std::size_t populationSize = Individuals.size();
 
     Rcpp::List RL(populationSize);
     for (std::size_t n = 0; n < populationSize; n++)
     {
-        RL[n] = Individuals[n].ReturnRcppList();
+        if (Individuals[n].Fitness > -HUGE_VAL)
+        {
+            RL[n] = Individuals[n].ReturnRcppList(ES);
+        }
     }
 
     return RL;

@@ -5,7 +5,8 @@
 \title{Compare profile combinations}
 \usage{
 ggplotComparingProfiles(sampleTibble, profileList1, profileList2,
-  plotDifferencesOnly = FALSE, profileNames = NULL)
+  plotDifferencesOnly = FALSE, profileNames = NULL,
+  contributorNames = NULL)
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}

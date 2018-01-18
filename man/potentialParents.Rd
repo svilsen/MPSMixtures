@@ -4,7 +4,8 @@
 \alias{potentialParents}
 \title{Potential parents list}
 \usage{
-potentialParents(coverageTibble, stutterRatioModel = NULL, trace = FALSE)
+potentialParents(coverageTibble, stutterRatioModel = NULL, trace = FALSE,
+  simplifiedReturn = TRUE)
 }
 \arguments{
 \item{coverageTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}
@@ -12,6 +13,8 @@ potentialParents(coverageTibble, stutterRatioModel = NULL, trace = FALSE)
 \item{stutterRatioModel}{A linear model fit; created by the \link{lm}-function.}
 
 \item{trace}{If 'TRUE' adds a simple marker trace.}
+
+\item{simplifiedReturn}{Should the returned list be simplified (TRUE/FALSE)?}
 }
 \value{
 A list of the potential parents.

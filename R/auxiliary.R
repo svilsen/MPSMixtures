@@ -1,3 +1,15 @@
+.rtnbinom = function(n, tau, mu, theta) {
+    fill = rep(NA, n)
+    for(i in 1:n){
+        val = tau
+        while(val <= tau){
+            val = rnbinom(1, size = theta, mu = mu)
+        }
+        fill[i] = val
+    }
+    fill
+}
+
 #' Create genotype matrix
 #'
 #' @description Creates genotype matrix, given a sample and the true profiles of the contributors.
@@ -88,15 +100,16 @@ genotypeMatrix <- function(coverageTibble, trueProfiles) {
 #' @param coverageTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
 #' @param stutterRatioModel A linear model fit; created by the \link{lm}-function.
 #' @param trace If 'TRUE' adds a simple marker trace.
+#' @param simplifiedReturn Should the returned list be simplified (TRUE/FALSE)?
 #'
 #' @return A list of the potential parents.
-potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = FALSE) {
+potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = FALSE, simplifiedReturn = TRUE) {
     gapOpeningPenalty = 6
     gapExtensionPenalty = 1
 
     markersInProfiles <- sort(as.character(unique(coverageTibble$Marker)))
 
-    potentialParentsAll <- list()
+    potentialParentsAll <- structure(vector("list", length(markersInProfiles)), .Names = markersInProfiles)
     for (m in markersInProfiles) {
         if (trace)
             cat("Marker:", m, ":: ", which(markersInProfiles == m), "/", length(markersInProfiles), "\n")
@@ -123,7 +136,7 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = F
 
                     if (alignedPotentialParents[j]) {
                         if (is.null(entireParentRepeatStructure_m[[whichPotentialParents[j]]])) {
-                            entireParentRepeatStructure_m[[whichPotentialParents[j]]] <- .getEntireRepeatStructure(coverageTibble_m$Region[whichPotentialParents[j]], round(coverageTibble_m$MotifLength[whichPotentialParents[j]]))
+                            entireParentRepeatStructure_m[[whichPotentialParents[j]]] <- MPSMixtures:::.getEntireRepeatStructure(coverageTibble_m$Region[whichPotentialParents[j]], round(coverageTibble_m$MotifLength[whichPotentialParents[j]]))
                         }
                         entireParentRepeatStructure <- entireParentRepeatStructure_m[[whichPotentialParents[j]]]
 
@@ -132,7 +145,7 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = F
                         endingMotif <- entireParentRepeatStructure_k$Motif[which(entireParentRepeatStructure_k$End == (missingRepeatUnitStartPosition + coverageTibble_mi$MotifLength))]
 
                         occurenceInParent <- entireParentRepeatStructure_k$Repeats
-                        motifCycles <- sapply(entireParentRepeatStructure_k$Motif, function(m) .cyclicRotation(endingMotif, m))
+                        motifCycles <- sapply(entireParentRepeatStructure_k$Motif, function(m) MPSMixtures:::.cyclicRotation(endingMotif, m))
 
                         BLMM <- max(occurenceInParent[motifCycles])
                         stutterRatioPotentialParents[j] <- unname(suppressWarnings(predict.lm(stutterRatioModel, newdata = tibble(Marker = m, BlockLengthMissingMotif = BLMM))))
@@ -144,11 +157,109 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = F
                 res_m$StutterRatio[whichPotentialParents] <- stutterRatioPotentialParents[alignedPotentialParents]
             }
 
+            if (simplifiedReturn) {
+                if (sum(res_m$PotentialParent) > 0) {
+                    res_m <- res_m %>% mutate(Index = 1:n()) %>% filter(PotentialParent == 1) %>%
+                        select(PotentialParent, Index, StutterRatio) %>% as.matrix()
+                }
+                else {
+                    res_m <- matrix(c(0, -1, 0), nrow = 1)
+                    colnames(res_m) <- c("PotentialParent", "Index", "StutterRatio")
+                }
+
+            }
             potentialParentsAll_m[[i]] <- res_m
         }
 
         potentialParentsAll[[m]] <- potentialParentsAll_m
     }
+
+    return(potentialParentsAll)
+}
+
+#' Multi-core potential parents
+#'
+#' @description Simplified multi-core implementation of the potential parents function.
+#'
+#' @param coverageTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
+#' @param stutterRatioModel A linear model fit; created by the \link{lm}-function.
+#' @param numberOfThreads The maximum number of threads allowed.
+#'
+#' @return A list of the potential parents.
+potentialParentsMultiCore <- function(coverageTibble, stutterRatioModel, numberOfThreads = 4) {
+    markersInProfiles <- sort(as.character(unique(coverageTibble$Marker)))
+
+    potentialParentsAll <- mclapply(markersInProfiles, function(mm) {
+        coverageTibble_m <- coverageTibble %>% filter(Marker == mm)
+
+        potentialParentsAll_m <- structure(vector("list", dim(coverageTibble_m)[1]), .Names = coverageTibble_m$Region)
+        for (i in 1:dim(coverageTibble_m)[1]) {
+            coverageTibble_mi <- coverageTibble_m[i, ]
+
+            whichPotentialParents <- which(coverageTibble_m$Allele == coverageTibble_mi$Allele + 1)
+            alignedPotentialParents <- rep(FALSE, length(whichPotentialParents))
+            stutterRatioPotentialParents <- rep(0, length(whichPotentialParents))
+
+            if (!is.null(stutterRatioModel)) {
+                for (j in seq_along(whichPotentialParents)) {
+                    child <- as.character(coverageTibble_mi$Region)
+                    parent <- coverageTibble_m$Region[whichPotentialParents[j]]
+                    motifLength <- round(coverageTibble_mi$MotifLength)
+
+                    x = 1
+                    stringsMatch = TRUE
+                    while (stringsMatch) {
+                        if ((stringr::str_sub(child, x, x) == stringr::str_sub(parent, x, x)) & (x <= nchar(child))) {
+                            x = x + 1
+                        }
+                        else {
+                            stringsMatch = FALSE
+                        }
+                    }
+
+                    missingRepeatUnitStartPosition <- x - 1
+                    if (missingRepeatUnitStartPosition == nchar(child)) {
+                        alignedPotentialParents[j] = TRUE
+                    } else if (stringr::str_sub(child, x - 1) == stringr::str_sub(parent, x - 1 + motifLength)) {
+                        alignedPotentialParents[j] = TRUE
+                    }
+
+
+                    if (alignedPotentialParents[j]) {
+                        endingMotif <- stringr::str_sub(parent, x, x - 1 + motifLength)
+
+                        BLMM <- 1
+                        moreInBlock <- TRUE
+                        while (moreInBlock) {
+                            adjacentMotif <- stringr::str_sub(parent, max(1, x - BLMM * motifLength), x - 1 + motifLength - BLMM * motifLength)
+                            if (adjacentMotif == endingMotif) {
+                                BLMM = BLMM + 1
+                            }
+                            else {
+                                moreInBlock = FALSE
+                            }
+                        }
+
+                        stutterRatioPotentialParents[j] <- unname(suppressWarnings(predict.lm(stutterRatioModel, newdata = data.frame(Marker = mm, BlockLengthMissingMotif = BLMM))))
+                    }
+                }
+
+                whichPotentialParents <- whichPotentialParents[alignedPotentialParents]
+                if (length(whichPotentialParents) > 0) {
+                    res_m <- matrix(c(as.numeric(alignedPotentialParents[alignedPotentialParents]),
+                                      whichPotentialParents,
+                                      stutterRatioPotentialParents[alignedPotentialParents]), ncol = 3, byrow = F)
+                }
+                else {
+                    res_m <- matrix(c(0, -1, 0), nrow = 1)
+                }
+
+                potentialParentsAll_m[[i]] <- res_m
+            }
+        }
+
+        return(potentialParentsAll_m)
+    }, mc.cores = numberOfThreads)
 
     return(potentialParentsAll)
 }
@@ -357,8 +468,8 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
 
     ## Sample coverage
     profilesMatrix <- genotypeMatrix(sampleTibble, trueProfiles)
-    potentialParentsList <- potentialParents(sampleTibble, stutterRatioModel)
-    ECM <- MPSMixtures:::.expectedContributionMatrix(sampleTibble, profilesMatrix, potentialParentsList)
+    potentialParentsList <- potentialParents(sampleTibble, stutterRatioModel, simplifiedReturn = FALSE)
+    ECM <- .expectedContributionMatrix(sampleTibble, profilesMatrix, potentialParentsList)
 
     numberOfAlleles <- (sampleTibble %>% group_by(Marker) %>% summarise(Count = n()))$Count
     markerImbalancesRep <- rep(markerImbalances, times = numberOfAlleles)

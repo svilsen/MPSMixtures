@@ -13,9 +13,6 @@
 #include "AuxiliaryFunctions.hpp"
 
 #include "nlopt.hpp"
-#include "cppoptlib/meta.h"
-#include "cppoptlib/boundedproblem.h"
-#include "cppoptlib/solver/lbfgsbsolver.h"
 
 // Allele coverage
 EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
@@ -86,7 +83,7 @@ double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<dou
     Eigen::VectorXd & Coverage = EPGA->Coverage;
     std::size_t & counter = EPGA->Counter;
 
-    std::size_t M = EPGA->NumberOfContributors;
+    std::size_t & M = EPGA->NumberOfContributors;
     std::size_t S = 2;
 
     double referenceMarkerAverage = x[0];
@@ -231,35 +228,40 @@ void EstimatePoissonGammaNoiseParameters::initialiseParameters()
 double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data)
 {
     EstimatePoissonGammaNoiseParameters *EPGN = reinterpret_cast<EstimatePoissonGammaNoiseParameters*>(data);
-    Eigen::VectorXd NoiseContribution = EPGN->NoiseContribution;
-    Eigen::VectorXd Coverage = EPGN->Coverage;
+    Eigen::VectorXd & NoiseContribution = EPGN->NoiseContribution;
+    Eigen::VectorXd & Coverage = EPGN->Coverage;
     std::size_t & counter = EPGN->Counter;
 
-    double mean = x[0];
-    double dispersion = x[1];
+    const double & mean = x[0];
+    const double & dispersion = x[1];
 
     double logLikelihood = 0.0;
-    std::vector<double> gradient(2, 0.0);
+    // std::vector<double> gradient(2, 0.0);
     for (std::size_t n = 0; n < Coverage.size(); n++)
     {
         double mu_ma = mean * NoiseContribution[n];
         if (mu_ma > 0.0)
         {
-            logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
+            double logeta = std::log(dispersion) - std::log(mu_ma + dispersion);
+            logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, dispersion) - std::log(1 - std::exp(dispersion * logeta));
 
-            if (!grad.empty())
-            {
-                gradient[0] += Coverage[n] / mu_ma - (Coverage[n] + dispersion) / (mu_ma + dispersion);
-                gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
-                    std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion);
-            }
+            // if (!grad.empty())
+            // {
+            //     gradient[0] += Coverage[n] / mu_ma - (Coverage[n] + dispersion) / (mu_ma + dispersion) -
+            //         dispersion * std::exp(dispersion * logeta) / ((dispersion + mu_ma) * (1.0 - std::exp(dispersion * logeta)));
+            //
+            //     gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
+            //         std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion) -
+            //         (std::exp(dispersion * logeta) * (mu_ma * (logeta + 1.0) + dispersion * (logeta))) /
+            //         ((mu_ma + dispersion) * (std::exp(dispersion * logeta) - 1.0));
+            // }
         }
     }
 
-    if (!grad.empty())
-    {
-        grad = gradient;
-    }
+    // if (!grad.empty())
+    // {
+    //     grad = gradient;
+    // }
 
     counter++;
     return logLikelihood;
@@ -267,19 +269,15 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
 
 void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
 {
-    std::size_t N = EPGN.NoiseParameters.size();
+    const std::size_t & N = EPGN.NoiseParameters.size();
     std::vector<double> parameters = EigenSTD(EPGN.NoiseParameters);
 
     // Optimiser
-    nlopt::opt individualOptimisation(nlopt::LD_LBFGS, N);
+    nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, N);
 
     // Box-constraints
-    std::vector<double> lowerBound(N), upperBound(N);
-    for (std::size_t i = 0; i < N; i++)
-    {
-        lowerBound[i] = 1e-16;
-        upperBound[i] = HUGE_VAL;
-    }
+    std::vector<double> lowerBound(N, 1e-16), upperBound(N, HUGE_VAL);
+    lowerBound[0] = 1.0;
 
     individualOptimisation.set_lower_bounds(lowerBound);
     individualOptimisation.set_upper_bounds(upperBound);
@@ -291,7 +289,6 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     individualOptimisation.set_maxeval(EPGN.MaximumNumberOfIterations);
 
     double logLikelihood;
-
     nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
 
     EPGN.LogLikelihood = logLikelihood;

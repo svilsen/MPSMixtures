@@ -3,7 +3,8 @@
 
 #include "AuxiliaryFunctions.hpp"
 
-Eigen::MatrixXd decoding(Eigen::VectorXd individual, Eigen::VectorXd numberOfAlleles, std::size_t numberOfMarkers, std::size_t numberOfUnknownContributors)
+Eigen::MatrixXd decoding(const Eigen::VectorXd & individual, const Eigen::VectorXd & numberOfAlleles, const std::size_t &numberOfMarkers,
+                         const std::size_t & numberOfUnknownContributors)
 {
     const std::size_t N = individual.size();
     const Eigen::VectorXd partialSumAlleles = partialSumEigen(numberOfAlleles);
