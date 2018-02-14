@@ -19,6 +19,7 @@ class EstimatePoissonGammaAlleleParameters
 
         Eigen::VectorXd SampleParameters;
         Eigen::VectorXd MixtureParameters;
+        Eigen::VectorXd MarkerImbalancesParameters;
 
         double LogLikelihood;
         double ToleranceFRelative;

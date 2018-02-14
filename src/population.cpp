@@ -61,9 +61,10 @@ Rcpp::List Population::ReturnRcppList(const ExperimentalSetup & ES)
     Rcpp::List RL(populationSize);
     for (std::size_t n = 0; n < populationSize; n++)
     {
-        if (Individuals[n].Fitness > -HUGE_VAL)
+        Individual I = Individuals[n];
+        if (I.Fitness > -HUGE_VAL)
         {
-            RL[n] = Individuals[n].ReturnRcppList(ES);
+            RL[n] = I.ReturnRcppList(ES);
         }
     }
 

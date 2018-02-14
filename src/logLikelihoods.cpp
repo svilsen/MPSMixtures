@@ -124,7 +124,8 @@ double logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen:
     {
         if (noiseProfile[n] == 1.0)
         {
-            logLikelihood += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion);
+            logLikelihood += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion) -
+                std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
         }
     }
 

@@ -10,7 +10,7 @@
 #'
 #' @return A list of estimated parameters.
 #' @export
-estimateParametersOfKnownProfiles <- function(sampleTibble, knownProfilesList, potentialParentsList, stutterRatioModel = NULL, tolerance) {
+estimateParametersOfKnownProfiles <- function(sampleTibble, knownProfilesList, levelsOfStutterRecursion, potentialParentsList, stutterRatioModel = NULL, tolerance) {
     if (is.null(potentialParentsList)) {
         potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
     }
@@ -26,7 +26,7 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, knownProfilesList, p
     creatingIndividualObject <- MPSMixtures:::.setupIndividual(numberOfMarkers, numberOfAlleles,
                                                  numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
                                                  sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance,
-                                                 tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies)
+                                                 tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, levelsOfStutterRecursion)
 
     return(creatingIndividualObject)
 }
@@ -41,10 +41,10 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
                                                      numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
                                                      parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
                                                      mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
-                                                     tolerance = 1e-6, seed = NULL, trace = TRUE, numberOfThreads = 4) {
+                                                     tolerance = 1e-6, seed = NULL, trace = TRUE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
     controlList <- LR.control(numberOfPopulations, populationSize, numberOfIterations, numberOfInnerIterations, numberOfIterationsEqualMinMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
                               parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecayRate,
-                              mutationDecay, fractionFittestIndividuals, hillClimbingDirections, hillClimbingIterations, tolerance, seed, trace, FALSE, numberOfThreads)
+                              mutationDecay, fractionFittestIndividuals, hillClimbingDirections, hillClimbingIterations, tolerance, seed, trace, FALSE, numberOfThreads, levelsOfStutterRecursion)
     return(controlList)
 }
 

@@ -83,20 +83,20 @@ double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<dou
     Eigen::VectorXd & Coverage = EPGA->Coverage;
     std::size_t & counter = EPGA->Counter;
 
-    std::size_t & M = EPGA->NumberOfContributors;
+    std::size_t & C = EPGA->NumberOfContributors;
     std::size_t S = 2;
 
     double referenceMarkerAverage = x[0];
     double dispersion = x[1];
 
     double logLikelihood = 0.0;
-    std::vector<double> gradient(M + S - 1, 0.0);
+    std::vector<double> gradient(C + S - 1, 0.0);
     for (std::size_t n = 0; n < Coverage.size(); n++)
     {
-        double EC_n = ExpectedContributionMatrix.row(n)[M - 1];
-        for (std::size_t m = 0; m < M - 1; m++)
+        double EC_n = ExpectedContributionMatrix.row(n)[C - 1];
+        for (std::size_t c = 0; c < C - 1; c++)
         {
-            EC_n += (ExpectedContributionMatrix.row(n)[m] - ExpectedContributionMatrix.row(n)[M - 1]) * x[S + m];
+            EC_n += (ExpectedContributionMatrix.row(n)[c] - ExpectedContributionMatrix.row(n)[C - 1]) * x[S + c];
         }
 
         double mu_ma = referenceMarkerAverage * MarkerImbalances[n] * EC_n;
@@ -110,10 +110,10 @@ double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<dou
                 gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
                     std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion);
 
-                for (std::size_t m = 0; m < M - 1; m++)
+                for (std::size_t c = 0; c < C - 1; c++)
                 {
-                    double EC_nm = ExpectedContributionMatrix.row(n)[m] - ExpectedContributionMatrix.row(n)[M - 1];
-                    gradient[S + m] += EC_nm * Coverage[n] / (EC_n) - (Coverage[n] + dispersion) * (referenceMarkerAverage * MarkerImbalances[n] * EC_nm) / (mu_ma + dispersion);
+                    double EC_nm = ExpectedContributionMatrix.row(n)[c] - ExpectedContributionMatrix.row(n)[C - 1];
+                    gradient[S + c] += EC_nm * Coverage[n] / (EC_n) - (Coverage[n] + dispersion) * (referenceMarkerAverage * MarkerImbalances[n] * EC_nm) / (mu_ma + dispersion);
                 }
 
             }
@@ -236,7 +236,6 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
     const double & dispersion = x[1];
 
     double logLikelihood = 0.0;
-    // std::vector<double> gradient(2, 0.0);
     for (std::size_t n = 0; n < Coverage.size(); n++)
     {
         double mu_ma = mean * NoiseContribution[n];
@@ -244,24 +243,8 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
         {
             double logeta = std::log(dispersion) - std::log(mu_ma + dispersion);
             logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, dispersion) - std::log(1 - std::exp(dispersion * logeta));
-
-            // if (!grad.empty())
-            // {
-            //     gradient[0] += Coverage[n] / mu_ma - (Coverage[n] + dispersion) / (mu_ma + dispersion) -
-            //         dispersion * std::exp(dispersion * logeta) / ((dispersion + mu_ma) * (1.0 - std::exp(dispersion * logeta)));
-            //
-            //     gradient[1] += boost::math::digamma(Coverage[n] + dispersion) - boost::math::digamma(dispersion) + 1.0 +
-            //         std::log(dispersion) - std::log(mu_ma + dispersion) - (Coverage[n] + dispersion) / (mu_ma + dispersion) -
-            //         (std::exp(dispersion * logeta) * (mu_ma * (logeta + 1.0) + dispersion * (logeta))) /
-            //         ((mu_ma + dispersion) * (std::exp(dispersion * logeta) - 1.0));
-            // }
         }
     }
-
-    // if (!grad.empty())
-    // {
-    //     grad = gradient;
-    // }
 
     counter++;
     return logLikelihood;

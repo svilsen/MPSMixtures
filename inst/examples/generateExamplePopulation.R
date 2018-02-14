@@ -1,3 +1,4 @@
+library("stringr")
 library("htmltab")
 
 markers <- c("TPOX", "D3S1358", "D5S818", "CSF1PO", "D7S820", "TH01", "VWA", "D13S317", "D16S539", "D18S51")

@@ -35,7 +35,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
         creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
                                                     numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
                                                     sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance,
-                                                    control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies)
+                                                    control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion)
 
         optimalUnknownProfiles <- list(creatingIndividualObject)
     }
@@ -49,7 +49,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
                                                                                    control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
                                                                                    control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
                                                                                    control$mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
-                                                                                   control$seed, control$trace)
+                                                                                   control$seed, control$trace, control$levelsOfStutterRecursion)
 
             optimalUnknownProfiles <- optimalUnknownProfiles[order(sapply(optimalUnknownProfiles, function(oup) oup$Fitness), decreasing = TRUE)]
         }
@@ -60,7 +60,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
                                                                                      control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
                                                                                      control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
                                                                                      control$mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
-                                                                                     control$seed, control$trace, control$numberOfThreads)
+                                                                                     control$seed, control$trace, control$numberOfThreads, control$levelsOfStutterRecursion)
         }
     }
 
@@ -106,7 +106,7 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                        numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
                        parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
                        mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
-                       tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4) {
+                       tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
 
     if (numberOfPopulations == 1) {
         numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else min(numberOfFittestIndividuals, populationSize)
@@ -134,7 +134,7 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                         numberOfFittestIndividuals = numberOfFittestIndividuals, parentSelectionWindowSize = parentSelectionWindowSize, allowParentSurvival = allowParentSurvival, crossoverProbability = crossoverProbability,
                         mutationProbabilityLowerLimit = mutationProbabilityLowerLimit, mutationDegreesOfFreedom = mutationDegreesOfFreedom, mutationDecayRate = mutationDecayRate,
                         mutationDecay = mutationDecay, fractionFittestIndividuals = 1.0, hillClimbingDirections = hillClimbingDirections, hillClimbingIterations = hillClimbingIterations,
-                        tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads)
+                        tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion)
     return(controlList)
 }
 

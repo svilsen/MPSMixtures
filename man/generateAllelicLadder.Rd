@@ -32,6 +32,7 @@ Note if the region has motifs which are not repeated e.g. '[AATG]xCTT', the non-
 The 'motifLength' parameter needs length 1, length equal to the length of 'markers', or 'NULL'. If 'NULL' it is assumed to be 4.
 }
 \examples{
+library("stringr")
 library("htmltab")
 
 markers <- c("TPOX", "D3S1358", "D5S818", "CSF1PO", "D7S820", "TH01", "VWA", "D13S317", "D16S539", "D18S51")

@@ -500,9 +500,7 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, const std::size_t & seed
             Individual I_m = C.Individuals[sortedFitness[m]];
 
             double F_m = I_m.Fitness;
-
-            bool isDuplicate = std::find(TF.begin(), TF.end(), F_m) != TF.end();
-            if ((F_m > TF[0])) // & !isDuplicate)
+            if (F_m > TF[0])
             {
                 auto it_front = std::lower_bound(TF.cbegin(), TF.cend(), F_m);
                 auto it_end = std::upper_bound(TF.cbegin(), TF.cend(), F_m);
@@ -514,7 +512,12 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, const std::size_t & seed
                     for (std::size_t k = i - 1; k < j; k++)
                     {
                         Eigen::VectorXd K = I_m.EncodedProfile - TI[k].EncodedProfile;
-                        isDuplicate = (K.cwiseAbs().sum() < 2e-16);
+                        double sumAbs = 0.0;
+                        for (std::size_t h = 0; h < K.size(); h++) {
+                            sumAbs += std::abs(K[h]);
+                        }
+
+                        isDuplicate = (sumAbs < 2e-16);
                     }
                 }
 
