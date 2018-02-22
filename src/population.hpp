@@ -17,7 +17,7 @@ class Population
         Population();
         Population(std::vector<Individual> I);
         Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen::MatrixXd & sampleParametersList, const Eigen::MatrixXd & noiseParametersList,
-                   const Eigen::MatrixXd & mixtureParametersList, const Eigen::VectorXd & fitnessList);
+                   const Eigen::MatrixXd & mixtureParametersList, const Eigen::MatrixXd & markerParametersList, const Eigen::VectorXd & fitnessList);
 
         Rcpp::List ReturnRcppList(const ExperimentalSetup & ES);
         Rcpp::List ReturnCompressedRcppList();

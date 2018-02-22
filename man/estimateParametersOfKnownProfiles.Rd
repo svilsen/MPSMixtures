@@ -4,9 +4,10 @@
 \alias{estimateParametersOfKnownProfiles}
 \title{Estimate parameters}
 \usage{
-estimateParametersOfKnownProfiles(sampleTibble, knownProfilesList,
-  levelsOfStutterRecursion, potentialParentsList, stutterRatioModel = NULL,
-  tolerance)
+estimateParametersOfKnownProfiles(sampleTibble, markerImbalance,
+  knownProfilesList, potentialParentsList, stutterRatioModel = NULL,
+  levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8,
+  tolerance = 1e-06)
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}

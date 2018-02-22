@@ -7,6 +7,7 @@
 double logPoissonGammaDistribution(const double & x, const double & mean, const double & overdispersion);
 double devianceResidualPoissonGammaDistribution(const double & x, const double & mean, const double & overdispersion);
 
+double devianceResidualPG1(const double & x, const double & mean, const double & dispersion);
 
 double logMultinomialCoefficient(const int & totalCounts, const Eigen::VectorXd & counts);
 double logDirichletMultinomial(const Eigen::VectorXd & counts, const Eigen::VectorXd & alleleFrequencies);

@@ -265,23 +265,36 @@ potentialParentsMultiCore <- function(coverageTibble, stutterRatioModel, numberO
 }
 
 .expectedContributionMatrix <- function(coverageTibble, genotypeMatrix_s, potentialParentsList_s) {
-    potentialParentsList_i <- unlist(potentialParentsList_s, recursive = FALSE)
+    coverageTibble_s <- coverageTibble %>%
+        left_join(coverageTibble %>% distinct_("Marker") %>% mutate("MarkerNumeric" = 1:n()), by = "Marker")
     resMatrix <- do.call(cbind, lapply(1:dim(genotypeMatrix_s)[2], function(contributor) {
-            coverageTibble_c <- coverageTibble %>% mutate(Contributor = genotypeMatrix_s[, contributor])
+        coverageTibble_c <- coverageTibble_s %>% mutate(Contributor = genotypeMatrix_s[, contributor])
 
-            PotentialParentsContribution <- list()
-            ContributorGenotype <- list()
+        PotentialParentsContribution <- list()
+        ContributorGenotype <- list(coverageTibble_c$Contributor)
+        for(p in seq_along(potentialParentsList_s)) {
+            potentialParentsList_sp <- potentialParentsList_s[[p]]
+            coverageTibble_cm <- coverageTibble_c %>% filter(MarkerNumeric == p)
 
-            for(p in seq_along(potentialParentsList_i)) {
-                m <- coverageTibble_c[p, ]$Marker
-                coverageTibble_cm <- coverageTibble_c %>% filter(Marker == m)
-                ContributorGenotype[[p]] <- genotypeMatrix_s[p, contributor]
-                PotentialParentsContribution[[p]] <- sum(potentialParentsList_i[[p]]$PotentialParent * coverageTibble_cm$Contributor * potentialParentsList_i[[p]]$StutterRatio)
+            parentContribution = rep(0, length(potentialParentsList_sp))
+            for (pp in seq_along(potentialParentsList_sp)) {
+                potentialParentsListIndex <- potentialParentsList_sp[[pp]][, 2]
+                potentialParentsListStutterRatio <- potentialParentsList_sp[[pp]][, 3]
+
+                if (potentialParentsListIndex[1] != -1) {
+                    for (ppp in seq_along(potentialParentsListIndex)) {
+                        parentContribution[pp] <- parentContribution[pp] + coverageTibble_cm$Contributor[potentialParentsListIndex[ppp]] * potentialParentsListStutterRatio[ppp]
+                    }
+
+                }
             }
 
-            res <- unname(as.matrix(tibble(ContributorGenotype = do.call(c, ContributorGenotype), PotentialParentContribution = do.call(c, PotentialParentsContribution)) %>%
-                                        mutate(ExpectedContribution = ContributorGenotype + PotentialParentContribution) %>% select(ExpectedContribution)))
-            return(res)
+            PotentialParentsContribution[[p]] <- parentContribution
+        }
+
+        res <- unname(as.matrix(tibble(ContributorGenotype = do.call(c, ContributorGenotype), PotentialParentContribution = do.call(c, PotentialParentsContribution)) %>%
+                                    mutate(ExpectedContribution = ContributorGenotype + PotentialParentContribution) %>% select(ExpectedContribution)))
+        return(res)
     }))
 
     return(resMatrix)
@@ -448,7 +461,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
                 res %>% mutate(BlockLengthMissingMotif = BLMMs_i$Repeats[which(possibleStutters_i %in% populationLadder_m$Region)],
                                IsStutter = 1,
                                IsAllele = predict.lm(stutterRatioModel,
-                                                                  newdata = data.frame(Marker = Marker, BlockLengthMissingMotif = BlockLengthMissingMotif)))
+                                                     newdata = data.frame(Marker = Marker, BlockLengthMissingMotif = BlockLengthMissingMotif)))
 
 
         }))

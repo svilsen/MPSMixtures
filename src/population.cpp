@@ -26,7 +26,7 @@ Population::Population(std::vector<Individual> I)
 }
 
 Population::Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen::MatrixXd & sampleParametersList, const Eigen::MatrixXd & noiseParametersList,
-                       const Eigen::MatrixXd & mixtureParametersList, const Eigen::VectorXd & fitnessList)
+                       const Eigen::MatrixXd & mixtureParametersList, const Eigen::MatrixXd & markerParametersList, const Eigen::VectorXd & fitnessList)
 {
     const std::size_t populationSize = encodedProfilesList.cols();
 
@@ -35,10 +35,11 @@ Population::Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen:
     {
         Eigen::VectorXd encodedProfile_i = encodedProfilesList.col(i);
         Eigen::VectorXd sampleParameters_i = sampleParametersList.col(i);
+        Eigen::VectorXd markerParameters_i = markerParametersList.col(i);
         Eigen::VectorXd noiseParameters_i = noiseParametersList.col(i);
         Eigen::VectorXd mixtureParameters_i = mixtureParametersList.col(i);
         double fitness_i = fitnessList[i];
-        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, fitness_i);
+        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, markerParameters_i, fitness_i);
         currentIndividuals[i] = I;
     }
 
@@ -77,6 +78,7 @@ Rcpp::List Population::ReturnCompressedRcppList()
 
     Eigen::MatrixXd encodedIndividuals = Eigen::MatrixXd::Zero(Individuals[0].EncodedProfile.size(), populationSize);
     Eigen::MatrixXd sampleParameters = Eigen::MatrixXd::Zero(Individuals[0].SampleParameters.size(), populationSize);
+    Eigen::MatrixXd markerParamters = Eigen::MatrixXd::Zero(Individuals[0].MarkerImbalanceParameters.size(), populationSize);
     Eigen::MatrixXd noiseParameters = Eigen::MatrixXd::Zero(Individuals[0].NoiseParameters.size(), populationSize);
     Eigen::MatrixXd mixtureParameters = Eigen::MatrixXd::Zero(Individuals[0].MixtureParameters.size(), populationSize);
     for (std::size_t p = 0; p < populationSize; p++)
@@ -84,6 +86,7 @@ Rcpp::List Population::ReturnCompressedRcppList()
         Individual I_m = Individuals[p];
         encodedIndividuals.col(p) = I_m.EncodedProfile;
         sampleParameters.col(p) = I_m.SampleParameters;
+        markerParamters.col(p) = I_m.MarkerImbalanceParameters;
         noiseParameters.col(p) = I_m.NoiseParameters;
         mixtureParameters.col(p) = I_m.MixtureParameters;
     }
@@ -92,5 +95,6 @@ Rcpp::List Population::ReturnCompressedRcppList()
                               Rcpp::Named("SampleParameters") = sampleParameters,
                               Rcpp::Named("NoiseParameters") = noiseParameters,
                               Rcpp::Named("MixtureParameters") = mixtureParameters,
+                              Rcpp::Named("MarkerImbalanceParameters") = markerParamters,
                               Rcpp::Named("Fitness") = Fitness);
 }

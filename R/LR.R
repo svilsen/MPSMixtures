@@ -21,10 +21,10 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
     return(res)
 }
 
-# allKnownProfiles = H$KnownProfiles; coverage = sampleTibble$Coverage; markerImbalances = sampleTibble$MarkerImbalance; tolerance = control$tolerance; theta = H$ThetaCorrection; alleleFrequencies = sampleTibble$AlleleFrequencies; numberOfPopulations = control$numberOfPopulations; populationSize = control$populationSize; numberOfIterations = control$numberOfIterations; numberOfIterationsEqualMinMax = control$numberOfIterationsEqualMinMax; numberOfFittestIndividuals = control$numberOfFittestIndividuals; parentSelectionWindowSize = control$parentSelectionWindowSize; allowParentSurvival = control$allowParentSurvival; mutationDegreesOfFreedom = control$mutationDegreesOfFreedom; mutationDecay = control$mutationDecay; fractionFittestIndividuals = control$fractionFittestIndividuals; hillClimbingDirections = control$hillClimbingDirections; hillClimbingIterations = control$hillClimbingIterations; simplifiedReturn = FALSE; seed = control$seed; trace = control$trace
+# allKnownProfiles = H$KnownProfiles; coverage = sampleTibble$Coverage; convexMarkerImbalanceInterpolation = control$convexMarkerImbalanceInterpolation; tolerance = control$tolerance; theta = H$ThetaCorrection; alleleFrequencies = sampleTibble$AlleleFrequencies; numberOfPopulations = control$numberOfPopulations; populationSize = control$populationSize; numberOfIterations = control$numberOfIterations; numberOfIterationsEqualMinMax = control$numberOfIterationsEqualMinMax; numberOfFittestIndividuals = control$numberOfFittestIndividuals; parentSelectionWindowSize = control$parentSelectionWindowSize; allowParentSurvival = control$allowParentSurvival; mutationDegreesOfFreedom = control$mutationDegreesOfFreedom; mutationDecay = control$mutationDecay; fractionFittestIndividuals = control$fractionFittestIndividuals; hillClimbingDirections = control$hillClimbingDirections; hillClimbingIterations = control$hillClimbingIterations; simplifiedReturn = FALSE; seed = control$seed; trace = control$trace
 # H = Hd[[i]]
 
-.optimalUnknownProfilesHi <- function(sampleTibble, H, potentialParentsList, allKnownProfiles, control) {
+.optimalUnknownProfilesHi <- function(sampleTibble, H, markerImbalances, potentialParentsList, allKnownProfiles, control) {
     numberOfMarkers = dim(sampleTibble %>% distinct(Marker))[1]
     numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(Count = n()))$Count
 
@@ -34,7 +34,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
     if ((numberOfContributors - numberOfKnownContributors) == 0) {
         creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
                                                     numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                    sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance,
+                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
                                                     control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion)
 
         optimalUnknownProfiles <- list(creatingIndividualObject)
@@ -45,7 +45,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
 
         if (control$numberOfPopulations == 1) {
             optimalUnknownProfiles <- MPSMixtures:::.runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                   sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                                                   sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                    control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
                                                                                    control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
                                                                                    control$mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
@@ -55,7 +55,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
         }
         else {
             optimalUnknownProfiles <- MPSMixtures:::.runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                     sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                                                     sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                      control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
                                                                                      control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
                                                                                      control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
@@ -106,7 +106,7 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                        numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
                        parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
                        mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
-                       tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
+                       convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
 
     if (numberOfPopulations == 1) {
         numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else min(numberOfFittestIndividuals, populationSize)
@@ -134,7 +134,7 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                         numberOfFittestIndividuals = numberOfFittestIndividuals, parentSelectionWindowSize = parentSelectionWindowSize, allowParentSurvival = allowParentSurvival, crossoverProbability = crossoverProbability,
                         mutationProbabilityLowerLimit = mutationProbabilityLowerLimit, mutationDegreesOfFreedom = mutationDegreesOfFreedom, mutationDecayRate = mutationDecayRate,
                         mutationDecay = mutationDecay, fractionFittestIndividuals = 1.0, hillClimbingDirections = hillClimbingDirections, hillClimbingIterations = hillClimbingIterations,
-                        tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion)
+                        convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation, tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion)
     return(controlList)
 }
 
@@ -153,13 +153,21 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
 #'
 #' @return A list of likelihood ratios comparing the two hypotheses (always calculated as Hp / Hd).
 #' @export
-LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioModel = NULL, control = LR.control()) {
+LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsList = NULL, stutterRatioModel = NULL, control = LR.control()) {
     ## Set-up
     if (is.null(potentialParentsList)) {
         if (control$trace)
             cat("Building potential parents list.\n")
 
         potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
+    }
+
+    numberOfMarkers = length(unique(sampleTibble$Marker))
+    if (is.null(markerImbalances)) {
+        markerImbalances = rep(1, numberOfMarkers)
+    }
+    else if (numberOfMarkers != markerImbalances) {
+        stop("The length of 'markerImbalances' is not equal to the number of unique markers in 'sampleTibble'.")
     }
 
     allKnownProfiles = unique(do.call("cbind", lapply(append(Hp, Hd), function(H) H$KnownProfiles)), MARGIN = 2)
@@ -173,7 +181,7 @@ LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioMo
 
     optimalUnknownGenotypesHp <- vector("list", length(Hp))
     for (i in seq_along(Hp)) {
-        optimalUnknownGenotypesHp[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hp[[i]], potentialParentsList, allKnownProfiles, control)
+        optimalUnknownGenotypesHp[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)
     }
 
     if ((length(Hp) == 1) & (length(Hd) != 1)) {
@@ -186,7 +194,7 @@ LR <- function(sampleTibble, Hp, Hd, potentialParentsList = NULL, stutterRatioMo
 
     optimalUnknownGenotypesHd <- vector("list", length(Hd))
     for (i in seq_along(Hd)) {
-        optimalUnknownGenotypesHd[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hd[[i]], potentialParentsList, allKnownProfiles, control)
+        optimalUnknownGenotypesHd[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)
     }
 
     if ((length(Hd) == 1) & (length(Hp) != 1)) {

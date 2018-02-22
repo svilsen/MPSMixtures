@@ -171,31 +171,37 @@ Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I,
     const double & referenceMarkerAverage = I.SampleParameters[0];
     double dispersion;
     const Eigen::VectorXd & Coverage = ES.Coverage;
-    const Eigen::VectorXd & MarkerImbalance = ES.MarkerImbalances;
+    const Eigen::VectorXd & MarkerImbalance = I.MarkerImbalanceParameters;
+    const Eigen::VectorXd & NumberOfAlleles = ES.NumberOfAlleles;
+    const Eigen::VectorXd & partialSumAlleles = partialSumEigen(NumberOfAlleles);
     const Eigen::VectorXd EC = expectedContributionProfile * I.MixtureParameters;
 
     std::size_t N = ES.Coverage.size();
     boost::math::students_t devianceDistribution(MutationDegreesOfFreedom);
 
     Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(N);
-    for (std::size_t n = 0; n < N; n++)
+    for (std::size_t m = 0; m < MarkerImbalance.size(); m++)
     {
-        double mu_ma;
-        if (noiseProfile[n] == 0)
+        for (std::size_t a = 0; a < NumberOfAlleles[m]; a++)
         {
-            mu_ma = referenceMarkerAverage * MarkerImbalance[n] * EC[n];
-            dispersion = I.SampleParameters[1];
-        }
-        else
-        {
-            mu_ma = I.NoiseParameters[0];
-            dispersion = I.NoiseParameters[1];
-        }
+            std::size_t n = partialSumAlleles[m] + a;
+            double mu_ma;
+            if (noiseProfile[n] == 0)
+            {
+                mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[n];
+                dispersion = mu_ma / I.SampleParameters[1];
+            }
+            else
+            {
+                mu_ma = I.NoiseParameters[0];
+                dispersion = I.NoiseParameters[1];
+            }
 
-        double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
-        if (std::abs(deviance_n) > MutationDecay_t)
-        {
-            mutation[n] = (1.0 - MutationProbabilityLowerLimit) - (1.0 - 2 * MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) / boost::math::pdf(devianceDistribution, 0.0);
+            double deviance_n = devianceResidualPG1(Coverage[n], mu_ma, dispersion);
+            if (std::abs(deviance_n) > MutationDecay_t)
+            {
+                mutation[n] = (1.0 - MutationProbabilityLowerLimit) - (1.0 - 2 * MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) / boost::math::pdf(devianceDistribution, 0.0);
+            }
         }
     }
 
@@ -328,24 +334,14 @@ Eigen::VectorXd expectedContributionMatrixRow(const Eigen::VectorXd & E, const E
     }
 
     // Creating ECM of row n
-    Eigen::MatrixXd potentialParents_ma = ES.PotentialParents[m][a];
-    Eigen::VectorXd potentialParentIndex = potentialParents_ma.col(1);
-    Eigen::VectorXd stutterContribution = potentialParents_ma.col(2);
-
+    std::vector<Eigen::MatrixXd> potentialParents_m = ES.PotentialParents[m];
     Eigen::VectorXd ECM_n = Eigen::VectorXd::Zero(decodedProfile_m.cols());
     for (std::size_t j = 0; j < ECM_n.size(); j++)
     {
-        const Eigen::VectorXd & decodedProfile_nj = decodedProfile_m.col(j);
-        Eigen::VectorXd potentialParentContribution_mua = Eigen::VectorXd::Zero(potentialParentIndex.size());
-        if (potentialParentIndex.sum() != -1)
-        {
-            for (std::size_t i = 0; i < potentialParentIndex.size(); i++)
-            {
-                potentialParentContribution_mua[i] = stutterContribution[i] * decodedProfile_nj[potentialParentIndex[i] - 1];
-            }
-        }
+        const Eigen::VectorXd & decodedProfile_mj = decodedProfile_m.col(j);
 
-        ECM_n[j] = decodedProfile_nj[a] + potentialParentContribution_mua.sum();
+        double potentialParentContribution = ParentStutterContribution(a, ES.LevelsOfStutterRecursion, 1, decodedProfile_mj, potentialParents_m, ES.NumberOfAlleles[m]);
+        ECM_n[j] = decodedProfile_mj[a] + potentialParentContribution;
     }
 
     return ECM_n;

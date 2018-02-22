@@ -13,7 +13,8 @@ optimalUnknownProfileCombination.control(numberOfPopulations = 4,
   mutationDegreesOfFreedom = 100, mutationDecayRate = 2,
   mutationDecay = NULL, fractionFittestIndividuals = 1,
   hillClimbingDirections = 1, hillClimbingIterations = 1,
-  tolerance = 1e-06, seed = NULL, trace = TRUE, numberOfThreads = 4,
+  convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-06,
+  seed = NULL, trace = TRUE, numberOfThreads = 4,
   levelsOfStutterRecursion = 2)
 }
 \value{

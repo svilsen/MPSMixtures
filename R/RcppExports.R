@@ -5,8 +5,8 @@ partialSumEigen <- function(x) {
     .Call('_MPSMixtures_partialSumEigen', PACKAGE = 'MPSMixtures', x)
 }
 
-.setupIndividual <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion) {
-    .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
+.setupIndividual <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion) {
+    .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
 }
 
 #' Deviance residuals of the Poisson-gamma distribution
@@ -20,19 +20,30 @@ devianceResidualPoissonGammaDistribution <- function(x, mean, dispersion) {
     .Call('_MPSMixtures_devianceResidualPoissonGammaDistribution', PACKAGE = 'MPSMixtures', x, mean, dispersion)
 }
 
+#' Deviance residuals of the Poisson-gamma distribution of order 1
+#'
+#' @param x the count.
+#' @param mean the expected count.
+#' @param dispersion the overdispersion.
+#'
+#' @return The deviance residual.
+devianceResidualPG1 <- function(x, mean, dispersion) {
+    .Call('_MPSMixtures_devianceResidualPG1', PACKAGE = 'MPSMixtures', x, mean, dispersion)
+}
+
 logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles) {
     .Call('_MPSMixtures_logPriorGenotypeProbability', PACKAGE = 'MPSMixtures', alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles)
 }
 
-.runningSinglePopulationEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, levelsOfStutterRecursion) {
-    .Call('_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, levelsOfStutterRecursion)
+.runningSinglePopulationEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, levelsOfStutterRecursion) {
+    .Call('_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, levelsOfStutterRecursion)
 }
 
-.initialisingParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, seed, levelsOfStutterRecursion) {
-    .Call('_MPSMixtures_initialisingParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, seed, levelsOfStutterRecursion)
+.initialisingParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, seed, levelsOfStutterRecursion) {
+    .Call('_MPSMixtures_initialisingParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, seed, levelsOfStutterRecursion)
 }
 
-.runningParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, fitnessList, levelsOfStutterRecursion) {
-    .Call('_MPSMixtures_runningParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, fitnessList, levelsOfStutterRecursion)
+.runningParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList, levelsOfStutterRecursion) {
+    .Call('_MPSMixtures_runningParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList, levelsOfStutterRecursion)
 }
 

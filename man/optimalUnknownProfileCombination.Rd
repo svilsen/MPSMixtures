@@ -4,8 +4,9 @@
 \alias{optimalUnknownProfileCombination}
 \title{Optimal unknown profile combinations.}
 \usage{
-optimalUnknownProfileCombination(sampleTibble, numberOfContributors,
-  knownProfilesList, theta, potentialParentsList, stutterRatioModel = NULL,
+optimalUnknownProfileCombination(sampleTibble, markerImbalances,
+  numberOfContributors, knownProfilesList, theta, potentialParentsList,
+  stutterRatioModel = NULL,
   control = optimalUnknownProfileCombination.control())
 }
 \arguments{

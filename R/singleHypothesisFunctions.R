@@ -10,7 +10,7 @@
 #'
 #' @return A list of estimated parameters.
 #' @export
-estimateParametersOfKnownProfiles <- function(sampleTibble, knownProfilesList, levelsOfStutterRecursion, potentialParentsList, stutterRatioModel = NULL, tolerance) {
+estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalance, knownProfilesList, potentialParentsList, stutterRatioModel = NULL, levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6) {
     if (is.null(potentialParentsList)) {
         potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
     }
@@ -25,7 +25,8 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, knownProfilesList, l
 
     creatingIndividualObject <- MPSMixtures:::.setupIndividual(numberOfMarkers, numberOfAlleles,
                                                  numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                 sampleTibble$Coverage, potentialParentsList, sampleTibble$MarkerImbalance,
+                                                 sampleTibble$Coverage, potentialParentsList, markerImbalance,
+                                                 convexMarkerImbalanceInterpolation,
                                                  tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, levelsOfStutterRecursion)
 
     return(creatingIndividualObject)
@@ -41,10 +42,10 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
                                                      numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
                                                      parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
                                                      mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
-                                                     tolerance = 1e-6, seed = NULL, trace = TRUE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
+                                                     convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
     controlList <- LR.control(numberOfPopulations, populationSize, numberOfIterations, numberOfInnerIterations, numberOfIterationsEqualMinMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
                               parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecayRate,
-                              mutationDecay, fractionFittestIndividuals, hillClimbingDirections, hillClimbingIterations, tolerance, seed, trace, FALSE, numberOfThreads, levelsOfStutterRecursion)
+                              mutationDecay, fractionFittestIndividuals, hillClimbingDirections, hillClimbingIterations, convexMarkerImbalanceInterpolation, tolerance, seed, trace, FALSE, numberOfThreads, levelsOfStutterRecursion)
     return(controlList)
 }
 
@@ -62,7 +63,7 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
 #'
 #' @return A list of the unknown profile combinations contributing the most to the probability of the evidence under the provided hypothesis. The size of the list is controlled by 'control$numberOfFittestIndividuals'.
 #' @export
-optimalUnknownProfileCombination <- function(sampleTibble, numberOfContributors, knownProfilesList, theta,
+optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, numberOfContributors, knownProfilesList, theta,
                                              potentialParentsList, stutterRatioModel = NULL, control = optimalUnknownProfileCombination.control()) {
     if (is.null(potentialParentsList)) {
         if (control$trace)
@@ -72,7 +73,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, numberOfContributors,
     }
 
     H <- setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta)[[1]]
-    optimalUnknownProfiles <- .optimalUnknownProfilesHi(sampleTibble, H, potentialParentsList, H$KnownProfiles, control)
+    optimalUnknownProfiles <- .optimalUnknownProfilesHi(sampleTibble, H, markerImbalances, potentialParentsList, H$KnownProfiles, control)
 
     return(optimalUnknownProfiles)
 }

@@ -18,8 +18,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // setupIndividual
-Rcpp::List setupIndividual(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& levelsOfStutterRecursion);
-RcppExport SEXP _MPSMixtures_setupIndividual(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP levelsOfStutterRecursionSEXP) {
+Rcpp::List setupIndividual(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& convexMarkerImbalanceInterpolation, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& levelsOfStutterRecursion);
+RcppExport SEXP _MPSMixtures_setupIndividual(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP convexMarkerImbalanceInterpolationSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP levelsOfStutterRecursionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -31,11 +31,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
     Rcpp::traits::input_parameter< const std::vector< std::vector < Eigen::MatrixXd > >& >::type potentialParents(potentialParentsSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type convexMarkerImbalanceInterpolation(convexMarkerImbalanceInterpolationSEXP);
     Rcpp::traits::input_parameter< const double& >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
-    rcpp_result_gen = Rcpp::wrap(setupIndividual(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion));
+    rcpp_result_gen = Rcpp::wrap(setupIndividual(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -49,6 +50,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double& >::type mean(meanSEXP);
     Rcpp::traits::input_parameter< const double& >::type dispersion(dispersionSEXP);
     rcpp_result_gen = Rcpp::wrap(devianceResidualPoissonGammaDistribution(x, mean, dispersion));
+    return rcpp_result_gen;
+END_RCPP
+}
+// devianceResidualPG1
+double devianceResidualPG1(const double& x, const double& mean, const double& dispersion);
+RcppExport SEXP _MPSMixtures_devianceResidualPG1(SEXP xSEXP, SEXP meanSEXP, SEXP dispersionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const double& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double& >::type mean(meanSEXP);
+    Rcpp::traits::input_parameter< const double& >::type dispersion(dispersionSEXP);
+    rcpp_result_gen = Rcpp::wrap(devianceResidualPG1(x, mean, dispersion));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -69,8 +83,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // runningSinglePopulationEvolutionaryAlgorithm
-Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& populationSize, const std::size_t& numberOfIterations, const std::size_t& numberOfIterationsEqualMinMax, const std::size_t& numberOfFittestIndividuals, const int& parentSelectionWindowSize, const bool& allowParentSurvival, const double& crossoverProbability, const double& mutationProbabilityLowerLimit, const double& mutationDegreesOfFreedom, const Eigen::VectorXd mutationDecay, const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations, const std::size_t& seed, const bool& trace, const std::size_t& levelsOfStutterRecursion);
-RcppExport SEXP _MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP populationSizeSEXP, SEXP numberOfIterationsSEXP, SEXP numberOfIterationsEqualMinMaxSEXP, SEXP numberOfFittestIndividualsSEXP, SEXP parentSelectionWindowSizeSEXP, SEXP allowParentSurvivalSEXP, SEXP crossoverProbabilitySEXP, SEXP mutationProbabilityLowerLimitSEXP, SEXP mutationDegreesOfFreedomSEXP, SEXP mutationDecaySEXP, SEXP hillClimbingDirectionsSEXP, SEXP hillClimbingIterationsSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP levelsOfStutterRecursionSEXP) {
+Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& convexMarkerImbalanceInterpolation, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& populationSize, const std::size_t& numberOfIterations, const std::size_t& numberOfIterationsEqualMinMax, const std::size_t& numberOfFittestIndividuals, const int& parentSelectionWindowSize, const bool& allowParentSurvival, const double& crossoverProbability, const double& mutationProbabilityLowerLimit, const double& mutationDegreesOfFreedom, const Eigen::VectorXd mutationDecay, const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations, const std::size_t& seed, const bool& trace, const std::size_t& levelsOfStutterRecursion);
+RcppExport SEXP _MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP convexMarkerImbalanceInterpolationSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP populationSizeSEXP, SEXP numberOfIterationsSEXP, SEXP numberOfIterationsEqualMinMaxSEXP, SEXP numberOfFittestIndividualsSEXP, SEXP parentSelectionWindowSizeSEXP, SEXP allowParentSurvivalSEXP, SEXP crossoverProbabilitySEXP, SEXP mutationProbabilityLowerLimitSEXP, SEXP mutationDegreesOfFreedomSEXP, SEXP mutationDecaySEXP, SEXP hillClimbingDirectionsSEXP, SEXP hillClimbingIterationsSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP levelsOfStutterRecursionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -83,6 +97,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
     Rcpp::traits::input_parameter< const std::vector< std::vector < Eigen::MatrixXd > >& >::type potentialParents(potentialParentsSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type convexMarkerImbalanceInterpolation(convexMarkerImbalanceInterpolationSEXP);
     Rcpp::traits::input_parameter< const double& >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
@@ -101,13 +116,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t& >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< const bool& >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
-    rcpp_result_gen = Rcpp::wrap(runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, levelsOfStutterRecursion));
+    rcpp_result_gen = Rcpp::wrap(runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, levelsOfStutterRecursion));
     return rcpp_result_gen;
 END_RCPP
 }
 // initialisingParallelEvolutionaryAlgorithm
-Rcpp::List initialisingParallelEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t populationSize, const std::size_t seed, const std::size_t& levelsOfStutterRecursion);
-RcppExport SEXP _MPSMixtures_initialisingParallelEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP populationSizeSEXP, SEXP seedSEXP, SEXP levelsOfStutterRecursionSEXP) {
+Rcpp::List initialisingParallelEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& convexMarkerImbalanceInterpolation, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& populationSize, const std::size_t& seed, const std::size_t& levelsOfStutterRecursion);
+RcppExport SEXP _MPSMixtures_initialisingParallelEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP convexMarkerImbalanceInterpolationSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP populationSizeSEXP, SEXP seedSEXP, SEXP levelsOfStutterRecursionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -120,19 +135,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
     Rcpp::traits::input_parameter< const std::vector< std::vector < Eigen::MatrixXd > >& >::type potentialParents(potentialParentsSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type convexMarkerImbalanceInterpolation(convexMarkerImbalanceInterpolationSEXP);
     Rcpp::traits::input_parameter< const double& >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type populationSize(populationSizeSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type populationSize(populationSizeSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
-    rcpp_result_gen = Rcpp::wrap(initialisingParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, populationSize, seed, levelsOfStutterRecursion));
+    rcpp_result_gen = Rcpp::wrap(initialisingParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, seed, levelsOfStutterRecursion));
     return rcpp_result_gen;
 END_RCPP
 }
 // runningParallelEvolutionaryAlgorithm
-Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& numberOfIterations, const std::size_t& numberOfIterationsEqualMinMax, const std::size_t& numberOfFittestIndividuals, const int& parentSelectionWindowSize, const bool allowParentSurvival, const double& crossoverProbability, const double& mutationProbabilityLowerLimit, const double& mutationDegreesOfFreedom, const Eigen::VectorXd& mutationDecay, const std::size_t& hillClimbingDirections, const std::size_t& hillClimbingIterations, const std::size_t& seed, const bool& trace, const Eigen::MatrixXd encodedPopulationList, const Eigen::MatrixXd sampleParametersList, const Eigen::MatrixXd noiseParametersList, const Eigen::MatrixXd mixtureParametersList, const Eigen::VectorXd fitnessList, const std::size_t& levelsOfStutterRecursion);
-RcppExport SEXP _MPSMixtures_runningParallelEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP numberOfIterationsSEXP, SEXP numberOfIterationsEqualMinMaxSEXP, SEXP numberOfFittestIndividualsSEXP, SEXP parentSelectionWindowSizeSEXP, SEXP allowParentSurvivalSEXP, SEXP crossoverProbabilitySEXP, SEXP mutationProbabilityLowerLimitSEXP, SEXP mutationDegreesOfFreedomSEXP, SEXP mutationDecaySEXP, SEXP hillClimbingDirectionsSEXP, SEXP hillClimbingIterationsSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP encodedPopulationListSEXP, SEXP sampleParametersListSEXP, SEXP noiseParametersListSEXP, SEXP mixtureParametersListSEXP, SEXP fitnessListSEXP, SEXP levelsOfStutterRecursionSEXP) {
+Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& convexMarkerImbalanceInterpolation, const double& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& numberOfIterations, const std::size_t& numberOfIterationsEqualMinMax, const std::size_t& numberOfFittestIndividuals, const int& parentSelectionWindowSize, const bool allowParentSurvival, const double& crossoverProbability, const double& mutationProbabilityLowerLimit, const double& mutationDegreesOfFreedom, const Eigen::VectorXd& mutationDecay, const std::size_t& hillClimbingDirections, const std::size_t& hillClimbingIterations, const std::size_t& seed, const bool& trace, const Eigen::MatrixXd encodedPopulationList, const Eigen::MatrixXd sampleParametersList, const Eigen::MatrixXd noiseParametersList, const Eigen::MatrixXd mixtureParametersList, const Eigen::MatrixXd markerParametersList, const Eigen::VectorXd fitnessList, const std::size_t& levelsOfStutterRecursion);
+RcppExport SEXP _MPSMixtures_runningParallelEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP convexMarkerImbalanceInterpolationSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP numberOfIterationsSEXP, SEXP numberOfIterationsEqualMinMaxSEXP, SEXP numberOfFittestIndividualsSEXP, SEXP parentSelectionWindowSizeSEXP, SEXP allowParentSurvivalSEXP, SEXP crossoverProbabilitySEXP, SEXP mutationProbabilityLowerLimitSEXP, SEXP mutationDegreesOfFreedomSEXP, SEXP mutationDecaySEXP, SEXP hillClimbingDirectionsSEXP, SEXP hillClimbingIterationsSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP encodedPopulationListSEXP, SEXP sampleParametersListSEXP, SEXP noiseParametersListSEXP, SEXP mixtureParametersListSEXP, SEXP markerParametersListSEXP, SEXP fitnessListSEXP, SEXP levelsOfStutterRecursionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -145,6 +161,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
     Rcpp::traits::input_parameter< const std::vector< std::vector < Eigen::MatrixXd > >& >::type potentialParents(potentialParentsSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type convexMarkerImbalanceInterpolation(convexMarkerImbalanceInterpolationSEXP);
     Rcpp::traits::input_parameter< const double& >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
@@ -165,21 +182,23 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::MatrixXd >::type sampleParametersList(sampleParametersListSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd >::type noiseParametersList(noiseParametersListSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd >::type mixtureParametersList(mixtureParametersListSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd >::type markerParametersList(markerParametersListSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd >::type fitnessList(fitnessListSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
-    rcpp_result_gen = Rcpp::wrap(runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, fitnessList, levelsOfStutterRecursion));
+    rcpp_result_gen = Rcpp::wrap(runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList, levelsOfStutterRecursion));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
-    {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 12},
+    {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
     {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},
+    {"_MPSMixtures_devianceResidualPG1", (DL_FUNC) &_MPSMixtures_devianceResidualPG1, 3},
     {"_MPSMixtures_logPriorGenotypeProbability", (DL_FUNC) &_MPSMixtures_logPriorGenotypeProbability, 6},
-    {"_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm, 27},
-    {"_MPSMixtures_initialisingParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_initialisingParallelEvolutionaryAlgorithm, 15},
-    {"_MPSMixtures_runningParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningParallelEvolutionaryAlgorithm, 31},
+    {"_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm, 28},
+    {"_MPSMixtures_initialisingParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_initialisingParallelEvolutionaryAlgorithm, 16},
+    {"_MPSMixtures_runningParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningParallelEvolutionaryAlgorithm, 33},
     {NULL, NULL, 0}
 };
 

@@ -36,6 +36,27 @@ double devianceResidualPoissonGammaDistribution(const double & x, const double &
     return boost::math::sign(x - mean) * std::pow(2.0 * deviance_ma, 0.5);
 }
 
+//' Deviance residuals of the Poisson-gamma distribution of order 1
+//'
+//' @param x the count.
+//' @param mean the expected count.
+//' @param dispersion the overdispersion.
+//'
+//' @return The deviance residual.
+//[[Rcpp::export]]
+double devianceResidualPG1(const double & x, const double & mean, const double & dispersion)
+{
+    double deviance_ma = (x - mean) * std::log(dispersion + 1) / dispersion - boost::math::lgamma((dispersion * x + mean) / dispersion) +
+        boost::math::lgamma(x * (dispersion + 1) / dispersion);
+    if (x > 0)
+    {
+        deviance_ma += boost::math::lgamma(x / dispersion) - boost::math::lgamma(mean / dispersion);
+    }
+
+    return boost::math::sign(x - mean) * std::pow(2.0 * deviance_ma, 0.5);
+}
+
+
 double logMultinomialCoefficient(const int & totalCounts, const Eigen::VectorXd & counts)
 {
     std::size_t N = counts.size();
@@ -102,10 +123,10 @@ Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, co
         for (std::size_t a = 0; a < numberOfAlleles[m]; a++)
         {
             std::size_t n = partialSumAlleles[m] + a;
-            double mu_ma = referenceMarkerAverage * markerImbalances[n] * expectedContribution[n];
+            double mu_ma = referenceMarkerAverage * markerImbalances[m] * expectedContribution[n];
             if (mu_ma > 0.0)
             {
-                logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, dispersion);
+                logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, mu_ma / dispersion);
             }
         }
 
