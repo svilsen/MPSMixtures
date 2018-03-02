@@ -19,6 +19,8 @@
 #'
 #' @return A matrix with the allele counts of of each contributor.
 genotypeMatrix <- function(coverageTibble, trueProfiles) {
+    all(unique(bind_rows(trueProfiles)$Region) %in% coverageTibble$Region)
+
     markersInProfiles <- sort(as.character(unique(do.call(rbind, trueProfiles)$Marker)))
 
     allelesOnMarker <- coverageTibble %>% ungroup() %>% group_by(Marker) %>% arrange(Marker) %>% summarise(Count = n())
@@ -571,13 +573,20 @@ sampleGenotypesHWE <- function(numberOfContributors, populationLadder, contribut
 #'
 #' @return A joined tibble, having added any regions not seen in the 'coverageTibble' with a coverage set to 0, and a column of allele frequencies from the 'populationLadder'.
 collectSamplePopulation <- function(coverageTibble, populationLadder) {
-    populationLadderCoverageLimited <- (populationLadder %>% mutate(Coverage = 0))[-which(populationLadder$Region %in% coverageTibble$Region), ]
-    columnExtention <- unique(c(which(names(coverageTibble) == "Marker"), which(!(names(coverageTibble) %in% names(populationLadderCoverageLimited)))))
+    markers <- unique(coverageTibble$Marker)
+    res <- vector("list", length(markers))
+    for (mm in seq_along(markers)) {
+        populationLadder_m = populationLadder %>% filter(Marker == markers[mm])
+        coverageTibble_m = coverageTibble %>% filter(Marker == markers[mm])
 
-    res <- bind_rows(coverageTibble, populationLadderCoverageLimited %>%
-                         left_join(coverageTibble %>% select(columnExtention) %>%
-                                       distinct(Marker, .keep_all = TRUE), by = "Marker")) %>%
-        ungroup() %>% arrange(Marker, Allele, Region)
+        populationLadderCoverageLimited <- (populationLadder_m %>% mutate(Coverage = 0))[-which(populationLadder_m$Region %in% coverageTibble_m$Region), ]
+        columnExtention <- unique(c(which(names(coverageTibble_m) == "Marker"), which(!(names(coverageTibble_m) %in% names(populationLadderCoverageLimited)))))
 
-    return(res)
+        res[[mm]] <- bind_rows(coverageTibble_m, populationLadderCoverageLimited %>%
+                             left_join(coverageTibble_m %>% select(columnExtention) %>%
+                                           distinct(Marker, .keep_all = TRUE), by = "Marker")) %>%
+            ungroup() %>% arrange(Marker, Allele, Region)
+    }
+
+    return(bind_rows(res))
 }

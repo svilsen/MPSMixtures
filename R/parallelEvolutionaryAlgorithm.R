@@ -93,7 +93,16 @@
 
         numberOfKeptIndividuals <- max(1, min(numberOfFittestIndividuals, length(fittestIndividuals)))
         sortedFittestIndividuals <- order(unlist(lapply(fittestIndividuals, function(fi) fi$Fitness)), decreasing = TRUE)
+
+        if (length(fittestIndividuals[sortedFittestIndividuals[1:numberOfKeptIndividuals]]) == 1)
+        {
+            cat("Iteration", j, "NRK", numberOfKeptIndividuals, "SFI", length(sortedFittestIndividuals), "FI", length(fittestIndividuals), "\n")
+            stop("...")
+        }
+
+
         topFittestIndividuals <- fittestIndividuals[sortedFittestIndividuals[1:numberOfKeptIndividuals]]
+
 
         ## Updating convergence condition
         populationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) cpl$Fitness))
