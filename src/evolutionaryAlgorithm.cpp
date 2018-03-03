@@ -179,28 +179,26 @@ Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I,
     std::size_t N = ES.Coverage.size();
     boost::math::students_t devianceDistribution(MutationDegreesOfFreedom);
 
-    Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(N);
+    Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(E.size());
     for (std::size_t m = 0; m < MarkerImbalance.size(); m++)
     {
-        for (std::size_t a = 0; a < NumberOfAlleles[m]; a++)
+        const Eigen::VectorXd & E_m = E.segment(2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m, 2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors));
+        for (std::size_t a = 0; a < E_m.size(); a++)
         {
-            std::size_t n = partialSumAlleles[m] + a;
+            std::size_t n = partialSumAlleles[m] + E_m[a];
             double mu_ma;
             if (noiseProfile[n] == 0)
             {
                 mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[n];
                 dispersion = mu_ma / I.SampleParameters[1];
             }
-            else
-            {
-                mu_ma = I.NoiseParameters[0];
-                dispersion = I.NoiseParameters[1];
-            }
 
-            double deviance_n = devianceResidualPG1(Coverage[n], mu_ma, dispersion);
+            double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
             if (std::abs(deviance_n) > MutationDecay_t)
             {
-                mutation[n] = (1.0 - MutationProbabilityLowerLimit) - (1.0 - 2 * MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) / boost::math::pdf(devianceDistribution, 0.0);
+                mutation[2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m + a] =
+                    (1.0 - MutationProbabilityLowerLimit) - (1.0 - 2 * MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) /
+                    boost::math::pdf(devianceDistribution, 0.0);
             }
         }
     }
@@ -245,7 +243,7 @@ Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd & E, ExperimentalSetu
 
     Eigen::VectorXd mutation = CreateMutationProbability(unmutatedIndividual, ES);
 
-    Eigen::VectorXd encodedMutation = EncodeMutationProbability(mutation, unmutatedIndividual, ES);
+    Eigen::VectorXd encodedMutation = mutation;// EncodeMutationProbability(mutation, unmutatedIndividual, ES);
     std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
     for (std::size_t i = 0; i < I.size(); i++)
     {
