@@ -155,7 +155,7 @@ void Individual::EstimateParameters(const ExperimentalSetup & ES)
     Eigen::VectorXd alleleCountReduced = Eigen::VectorXd::Zero(ES.Coverage.size() - noiseProfileSum);
     Eigen::VectorXd coverageAllele = Eigen::VectorXd::Zero(ES.Coverage.size() - noiseProfileSum);
 
-    Eigen::VectorXd numberOfAllelesReduced = Eigen::VectorXd::Zero(ES.NumberOfAlleles.size());
+    VectorXull numberOfAllelesReduced = VectorXull::Zero(ES.NumberOfAlleles.size());
     Eigen::VectorXd coverageNoise = Eigen::VectorXd::Zero(noiseProfileSum);
 
     std::size_t i = 0;
@@ -298,7 +298,7 @@ Rcpp::List Individual::ReturnRcppListSimplified()
 }
 
 //[[Rcpp::export(.setupIndividual)]]
-Rcpp::List setupIndividual(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
+Rcpp::List setupIndividual(const std::size_t & numberOfMarkers, const VectorXull & numberOfAlleles, const std::size_t & numberOfContributors,
                            const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::VectorXd & coverage,
                            const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
                            const double & convexMarkerImbalanceInterpolation, const double & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,

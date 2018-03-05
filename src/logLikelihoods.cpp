@@ -153,11 +153,11 @@ double logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen:
     return logLikelihood;
 }
 
-double logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequencies, const Eigen::MatrixXd & unknownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
+Eigen::VectorXd  logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequencies, const Eigen::MatrixXd & unknownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
     Eigen::VectorXd partialNumberOfAlleles = partialSumEigen(numberOfAlleles);
 
-    double logPriorProbability = 0.0;
+    Eigen::VectorXd logPriorProbability = Eigen::VectorXd::Zero(numberOfMarkers);
     for (std::size_t m = 0; m < numberOfMarkers; m++)
     {
         Eigen::MatrixXd profiles_m = unknownProfiles.block(partialNumberOfAlleles[m], 0, numberOfAlleles[m], unknownProfiles.cols());
@@ -165,20 +165,20 @@ double logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequencies, cons
         Eigen::VectorXd profileCounts_m = profiles_m.rowwise().sum();
         Eigen::VectorXd alleleFractions_m = alleleFrequencies.segment(partialNumberOfAlleles[m], numberOfAlleles[m]);
 
-        logPriorProbability += logDirichletMultinomial(profileCounts_m, alleleFractions_m);
+        logPriorProbability[m] = logDirichletMultinomial(profileCounts_m, alleleFractions_m);
     }
 
     return logPriorProbability;
 }
 
-double logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
+Eigen::VectorXd logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
     Eigen::MatrixXd profiles = bindColumns(knownProfiles, unknownProfiles);
     std::size_t numberOfContributors = profiles.cols();
     std::size_t numberOfKnownContributors = numberOfContributors - unknownProfiles.cols();
 
     Eigen::VectorXd partialNumberOfAlleles = partialSumEigen(numberOfAlleles);
-    double thetaCorrectedProbabilty = 0.0;
+    Eigen::VectorXd thetaCorrectedProbabilty = Eigen::VectorXd::Zero(numberOfMarkers);
     for (std::size_t m = 0; m < numberOfMarkers; m++)
     {
         Eigen::MatrixXd profiles_m = profiles.block(partialNumberOfAlleles[m], 0, numberOfAlleles[m], numberOfContributors);
@@ -199,7 +199,7 @@ double logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & alleleFrequ
             logProbabilty_m -= logProbabilityOfKnownProfiles;
         }
 
-        thetaCorrectedProbabilty += logProbabilty_m;
+        thetaCorrectedProbabilty[m] = logProbabilty_m;
     }
 
     return thetaCorrectedProbabilty;
@@ -208,7 +208,7 @@ double logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & alleleFrequ
 //[[Rcpp::export()]]
 double logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
-    double logPriorProbability = 0.0;
+    Eigen::VectorXd logPriorProbability;
     if (theta == 0.0)
     {
         logPriorProbability = logGenotypeProbabilityHWE(alleleFrequencies, unknownProfiles, numberOfMarkers, numberOfAlleles);
@@ -218,5 +218,6 @@ double logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, co
         logPriorProbability = logGenotypeProbabilityThetaCorrection(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles);
     }
 
-    return logPriorProbability;
+
+    return logPriorProbability.sum();
 }

@@ -217,9 +217,9 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
         LHpNormaliser <- max(sapply(optimalUnknownGenotypesHp_i, function(hh) hh$Fitness))
         LHdNormaliser <- max(sapply(optimalUnknownGenotypesHd_i, function(hh) hh$Fitness))
 
-        parametersLRHp <- optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
+        parametersLRHp <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
                                                             Hp[[i]]$NumberOfContributors, LHpNormaliser)
-        parametersLRHd <- optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
+        parametersLRHd <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
                                                             Hd[[i]]$NumberOfContributors, LHdNormaliser)
 
         logLR = log(parametersLRHp$Likelihood) + LHpNormaliser - log(parametersLRHd$Likelihood) - LHdNormaliser

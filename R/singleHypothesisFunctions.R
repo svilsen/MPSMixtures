@@ -77,3 +77,32 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, num
 
     return(optimalUnknownProfiles)
 }
+
+
+
+sumUnknownsKStepApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, H, k) {
+    optimalCombinationIndex <- which.max(sapply(optimalUnkownProfileCombinationList, function(xx) xx$Fitness))
+    optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
+
+    optimalCombinationLogLikelihoodAlleles <- optimalCombination$LogLikelihoodAlleleCoverage
+    normalisingConstant <- optimalCombination$Fitness
+
+    estimatedParameters <- optimalCombination$Parameters
+    if (length(optimalUnkownProfileCombinationList) > 1) {
+        estimatedParameters <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnkownProfileCombinationList,
+                                                                  H$NumberOfContributors, normalisingConstant)
+    }
+
+    numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(N = n()))$N
+    numberOfUknownContributors = H$NumberOfContributors - H$NumberOfKnownProfiles
+
+    encodedGenotypeSplit <- split(optimalCombination$EncodedUnknownProfiles, rep(1:length(numberOfAlleles), each = 2 * (numberOfUknownContributors)))
+    ecmList <- vector("list", length(encodedGenotypeSplit))
+    for (m in seq_along(encodedGenotypeSplit)) {
+        ecmList[[m]] <- .
+    }
+
+
+
+    return(0)
+}
