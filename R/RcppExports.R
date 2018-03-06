@@ -9,6 +9,10 @@ partialSumEigen <- function(x) {
     .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
 }
 
+.kStepApproximation <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, kStep, markerIndicator, normalisingConstant) {
+    .Call('_MPSMixtures_kStepApproximation', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, kStep, markerIndicator, normalisingConstant)
+}
+
 #' Deviance residuals of the Poisson-gamma distribution
 #'
 #' @param x the count.

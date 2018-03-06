@@ -12,7 +12,7 @@
 #include "encodingScheme.hpp"
 #include "AuxiliaryFunctions.hpp"
 
-ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const VectorXull & numberOfAlleles, const std::size_t & numberOfContributors,
+ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
                                      const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
                                      const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
                                      const double & convexMarkerImbalanceInterpolation,

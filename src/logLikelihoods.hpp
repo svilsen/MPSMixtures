@@ -17,8 +17,8 @@ Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, co
                                             const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & mixtureProportions,
                                             const Eigen::VectorXd & numberOfAlleles, const Eigen::VectorXd & markerImbalances);
 
-double logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen::VectorXd & noiseProfile, const double & noiseLevel, const double & noiseDispersion);
+Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen::VectorXd & noiseProfile, const double & noiseLevel, const double & noiseDispersion, const Eigen::VectorXd & numberOfAlleles);
 
-double logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles);
+Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles);
 
 #endif

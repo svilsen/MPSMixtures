@@ -22,7 +22,12 @@ Individual::Individual(const ExperimentalSetup & ES)
 {
     if ((ES.NumberOfContributors - ES.NumberOfKnownContributors) == 0)
     {
-        EstimateParameters(ES);
+        Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
+        Eigen::MatrixXd expectedContributionProfile = GenerateExpectedContributionProfile(ES, decodedProfile);
+        Eigen::VectorXd noiseProfile = GenerateNoiseProfile(ES, expectedContributionProfile);
+
+        EstimateParameters(ES, decodedProfile, expectedContributionProfile, noiseProfile);
+        CalculateFitness(ES, decodedProfile, expectedContributionProfile, noiseProfile);
     }
     else
     {
@@ -33,7 +38,30 @@ Individual::Individual(const ExperimentalSetup & ES)
 Individual::Individual(const Eigen::VectorXd & encodedGenotype, const ExperimentalSetup & ES)
 {
     EncodedProfile = encodedGenotype;
-    EstimateParameters(ES);
+
+    Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
+    Eigen::MatrixXd expectedContributionProfile = GenerateExpectedContributionProfile(ES, decodedProfile);
+    Eigen::VectorXd noiseProfile = GenerateNoiseProfile(ES, expectedContributionProfile);
+
+    EstimateParameters(ES, decodedProfile, expectedContributionProfile, noiseProfile);
+    CalculateFitness(ES, decodedProfile, expectedContributionProfile, noiseProfile);
+}
+
+Individual::Individual(const Eigen::VectorXd & encodedGenotype, const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & noiseParameters,
+                       const Eigen::VectorXd & mixtureParameters, const Eigen::VectorXd & markerParameters, const ExperimentalSetup & ES)
+{
+    EncodedProfile = encodedGenotype;
+
+    SampleParameters = sampleParameters;
+    MixtureParameters = mixtureParameters;
+    MarkerImbalanceParameters = markerParameters;
+    NoiseParameters = noiseParameters;
+
+    Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
+    Eigen::MatrixXd expectedContributionProfile = GenerateExpectedContributionProfile(ES, decodedProfile);
+    Eigen::VectorXd noiseProfile = GenerateNoiseProfile(ES, expectedContributionProfile);
+
+    CalculateFitness(ES, decodedProfile, expectedContributionProfile, noiseProfile);
 }
 
 Individual::Individual(const Eigen::VectorXd & encodedGenotype, const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & noiseParameters,
@@ -135,16 +163,12 @@ Eigen::VectorXd Individual::GenerateNoiseProfile(const ExperimentalSetup & ES, c
     return identifiedNoise;
 }
 
-void Individual::EstimateParameters(const ExperimentalSetup & ES)
+void Individual::EstimateParameters(const ExperimentalSetup & ES, Eigen::MatrixXd decodedProfile, Eigen::MatrixXd expectedContributionProfile,
+                                    Eigen::VectorXd noiseProfile)
 {
     // Set-up E_c and N matrices
-    Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
     Eigen::MatrixXd genoypeMatrix = bindColumns(ES.KnownProfiles, decodedProfile);
-
     Eigen::VectorXd alleleCount = genoypeMatrix.rowwise().sum();
-
-    Eigen::MatrixXd expectedContributionProfile = GenerateExpectedContributionProfile(ES, decodedProfile);
-    Eigen::VectorXd noiseProfile = GenerateNoiseProfile(ES, expectedContributionProfile);
 
     double noiseProfileSum = noiseProfile.sum();
     Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
@@ -155,7 +179,7 @@ void Individual::EstimateParameters(const ExperimentalSetup & ES)
     Eigen::VectorXd alleleCountReduced = Eigen::VectorXd::Zero(ES.Coverage.size() - noiseProfileSum);
     Eigen::VectorXd coverageAllele = Eigen::VectorXd::Zero(ES.Coverage.size() - noiseProfileSum);
 
-    VectorXull numberOfAllelesReduced = VectorXull::Zero(ES.NumberOfAlleles.size());
+    Eigen::VectorXd numberOfAllelesReduced = Eigen::VectorXd::Zero(ES.NumberOfAlleles.size());
     Eigen::VectorXd coverageNoise = Eigen::VectorXd::Zero(noiseProfileSum);
 
     std::size_t i = 0;
@@ -198,19 +222,27 @@ void Individual::EstimateParameters(const ExperimentalSetup & ES)
     MarkerImbalanceParameters = EPGA.MarkerImbalancesParameters;
 
     NoiseParameters = EPGN.NoiseParameters;
+}
 
+void Individual::CalculateFitness(const ExperimentalSetup & ES, Eigen::MatrixXd decodedProfile, Eigen::MatrixXd expectedContributionProfile,
+                                  Eigen::VectorXd noiseProfile)
+{
     LogLikelihoodAlleleMarker = logLikelihoodAlleleCoverage(ES.Coverage, expectedContributionProfile, SampleParameters, MixtureParameters,
                                                             ES.NumberOfAlleles, MarkerImbalanceParameters);
-    LogLikelihoodAllele = EPGA.LogLikelihood;
-    LogLikelihoodNoise = EPGN.LogLikelihood;
+    LogLikelihoodAllele = LogLikelihoodAlleleMarker.sum();
+
+    LogLikelihoodNoiseMarker = logLikelihoodNoiseCoverage(ES.Coverage, noiseProfile, NoiseParameters[0], NoiseParameters[1], ES.NumberOfAlleles);
+    LogLikelihoodNoise = LogLikelihoodNoiseMarker.sum();
 
     if ((ES.Theta < 0.0) | (ES.AlleleFrequencies.sum() == 0))
     {
+        LogPriorGenotypeProbabilityMarker = Eigen::VectorXd::Zero(ES.NumberOfMarkers);
         LogPriorGenotypeProbability = 0.0;
     }
     else
     {
-        LogPriorGenotypeProbability = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, decodedProfile, ES.AllKnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
+        LogPriorGenotypeProbabilityMarker = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, decodedProfile, ES.AllKnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
+        LogPriorGenotypeProbability = LogPriorGenotypeProbabilityMarker.sum();
     }
 
     Fitness = LogLikelihoodAllele + LogLikelihoodNoise + LogPriorGenotypeProbability;
@@ -259,20 +291,9 @@ Rcpp::List Individual::ReturnRcppList(const ExperimentalSetup & ES)
     Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
     Eigen::MatrixXd expectedContributionProfile = GenerateExpectedContributionProfile(ES, decodedProfile);
 
-    LogLikelihoodAlleleMarker = logLikelihoodAlleleCoverage(ES.Coverage, expectedContributionProfile, SampleParameters, MixtureParameters, ES.NumberOfAlleles, MarkerImbalanceParameters);
-    LogLikelihoodAllele = LogLikelihoodAlleleMarker.sum();
-
     Eigen::VectorXd noiseProfile = GenerateNoiseProfile(ES, expectedContributionProfile);
-    LogLikelihoodNoise = logLikelihoodNoiseCoverage(ES.Coverage, noiseProfile, NoiseParameters[0], NoiseParameters[1]);
 
-    if ((ES.Theta < 0.0) | (ES.AlleleFrequencies.sum() == 0.0))
-    {
-        LogPriorGenotypeProbability = 0.0;
-    }
-    else
-    {
-        LogPriorGenotypeProbability = logPriorGenotypeProbability(ES.AlleleFrequencies, ES.Theta, decodedProfile, ES.KnownProfiles, ES.NumberOfMarkers, ES.NumberOfAlleles);
-    }
+    CalculateFitness(ES, decodedProfile, expectedContributionProfile, noiseProfile);
 
     return Rcpp::List::create(Rcpp::Named("EncodedUnknownProfiles") = EncodedProfile,
                               Rcpp::Named("DecodedUnknownProfiles") = decodedProfile,
@@ -298,11 +319,12 @@ Rcpp::List Individual::ReturnRcppListSimplified()
 }
 
 //[[Rcpp::export(.setupIndividual)]]
-Rcpp::List setupIndividual(const std::size_t & numberOfMarkers, const VectorXull & numberOfAlleles, const std::size_t & numberOfContributors,
+Rcpp::List setupIndividual(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
                            const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::VectorXd & coverage,
                            const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
                            const double & convexMarkerImbalanceInterpolation, const double & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
-                           const std::size_t & levelsOfStutterRecursion) {
+                           const std::size_t & levelsOfStutterRecursion)
+{
 
     const Eigen::MatrixXd allProfilesEmpty;
     const ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allProfilesEmpty, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);

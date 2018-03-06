@@ -136,24 +136,30 @@ Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, co
     return logLikelihood;
 }
 
-double logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen::VectorXd & noiseProfile, const double & noiseLevel, const double & noiseDispersion)
+Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen::VectorXd & noiseProfile,
+                                           const double & noiseLevel, const double & noiseDispersion, const Eigen::VectorXd & numberOfAlleles)
 {
     std::size_t N = coverage.size();
 
-    double logLikelihood = 0.0;
-    for (std::size_t n = 0; n < N; n++)
+    Eigen::VectorXd partialSumAlleles = partialSumEigen(numberOfAlleles);
+    Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(numberOfAlleles.size());
+    for (std::size_t m = 0; m < numberOfAlleles.size(); m++)
     {
-        if (noiseProfile[n] == 1.0)
+        for (std::size_t a = 0; a < numberOfAlleles[m]; a++)
         {
-            logLikelihood += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion) -
-                std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
+            std::size_t n = partialSumAlleles[m] + a;
+            if (noiseProfile[n] == 1.0)
+            {
+                logLikelihood[m] += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion) -
+                    std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
+            }
         }
     }
 
     return logLikelihood;
 }
 
-Eigen::VectorXd  logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequencies, const Eigen::MatrixXd & unknownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
+Eigen::VectorXd logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequencies, const Eigen::MatrixXd & unknownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
     Eigen::VectorXd partialNumberOfAlleles = partialSumEigen(numberOfAlleles);
 
@@ -206,7 +212,7 @@ Eigen::VectorXd logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & al
 }
 
 //[[Rcpp::export()]]
-double logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
+Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
     Eigen::VectorXd logPriorProbability;
     if (theta == 0.0)
@@ -218,6 +224,5 @@ double logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, co
         logPriorProbability = logGenotypeProbabilityThetaCorrection(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles);
     }
 
-
-    return logPriorProbability.sum();
+    return logPriorProbability;
 }

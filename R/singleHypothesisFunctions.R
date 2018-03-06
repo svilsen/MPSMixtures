@@ -80,7 +80,10 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, num
 
 
 
-sumUnknownsKStepApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, H, k) {
+sumUnknownsKStepApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, numberOfContributors, knownProfilesList, theta,
+                                          potentialParentsList, k, levelsOfStutterRecursion) {
+    H <- setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta)[[1]]
+
     optimalCombinationIndex <- which.max(sapply(optimalUnkownProfileCombinationList, function(xx) xx$Fitness))
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
 
@@ -99,10 +102,13 @@ sumUnknownsKStepApproximation <- function(optimalUnkownProfileCombinationList, s
     encodedGenotypeSplit <- split(optimalCombination$EncodedUnknownProfiles, rep(1:length(numberOfAlleles), each = 2 * (numberOfUknownContributors)))
     ecmList <- vector("list", length(encodedGenotypeSplit))
     for (m in seq_along(encodedGenotypeSplit)) {
-        ecmList[[m]] <- .
+        ecmList[[m]] <- MPSMixtures:::.kStepApproximation(optimalCombination$EncodedUnknownProfiles, estimatedParameters$SampleParameters,
+                                           estimatedParameters$NoiseParameters, estimatedParameters$MixtureParameters,
+                                           sampleTibble$Coverage, estimatedParameters$MarkerImbalanceParameters,
+                                           potentialParentsList, H$KnownProfiles, H$KnownProfiles,
+                                           sampleTibble$AlleleFrequencies, H$Theta, H$NumberOfContributors, length(numberOfAlleles), numberOfAlleles,
+                                           levelsOfStutterRecursion, k, m - 1, normalisingConstant)
     }
-
-
 
     return(0)
 }

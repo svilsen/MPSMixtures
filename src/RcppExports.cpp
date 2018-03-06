@@ -40,6 +40,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// kStepApproximation
+double kStepApproximation(const Eigen::VectorXd& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd& coverage, const Eigen::VectorXd markerImbalances, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion, const std::size_t& kStep, const std::size_t& markerIndicator, const double& normalisingConstant);
+RcppExport SEXP _MPSMixtures_kStepApproximation(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP coverageSEXP, SEXP markerImbalancesSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP, SEXP kStepSEXP, SEXP markerIndicatorSEXP, SEXP normalisingConstantSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type encodedProfiles(encodedProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type sampleParameters(sampleParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type noiseParameters(noiseParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type mixtureParameters(mixtureParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const std::vector< std::vector< Eigen::MatrixXd > > >::type potentialParents(potentialParentsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type knownProfiles(knownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type allKnownProfiles(allKnownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfContributors(numberOfContributorsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfMarkers(numberOfMarkersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type kStep(kStepSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type markerIndicator(markerIndicatorSEXP);
+    Rcpp::traits::input_parameter< const double& >::type normalisingConstant(normalisingConstantSEXP);
+    rcpp_result_gen = Rcpp::wrap(kStepApproximation(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, kStep, markerIndicator, normalisingConstant));
+    return rcpp_result_gen;
+END_RCPP
+}
 // devianceResidualPoissonGammaDistribution
 double devianceResidualPoissonGammaDistribution(const double& x, const double& mean, const double& dispersion);
 RcppExport SEXP _MPSMixtures_devianceResidualPoissonGammaDistribution(SEXP xSEXP, SEXP meanSEXP, SEXP dispersionSEXP) {
@@ -67,7 +95,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // logPriorGenotypeProbability
-double logPriorGenotypeProbability(const Eigen::VectorXd& alleleFrequencies, const double& theta, const Eigen::MatrixXd& unknownProfiles, const Eigen::MatrixXd& knownProfiles, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles);
+Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd& alleleFrequencies, const double& theta, const Eigen::MatrixXd& unknownProfiles, const Eigen::MatrixXd& knownProfiles, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles);
 RcppExport SEXP _MPSMixtures_logPriorGenotypeProbability(SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP unknownProfilesSEXP, SEXP knownProfilesSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -193,6 +221,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
     {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
+    {"_MPSMixtures_kStepApproximation", (DL_FUNC) &_MPSMixtures_kStepApproximation, 18},
     {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},
     {"_MPSMixtures_devianceResidualPG1", (DL_FUNC) &_MPSMixtures_devianceResidualPG1, 3},
     {"_MPSMixtures_logPriorGenotypeProbability", (DL_FUNC) &_MPSMixtures_logPriorGenotypeProbability, 6},
