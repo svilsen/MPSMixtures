@@ -39,6 +39,7 @@ Population::Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen:
         Eigen::VectorXd noiseParameters_i = noiseParametersList.col(i);
         Eigen::VectorXd mixtureParameters_i = mixtureParametersList.col(i);
         double fitness_i = fitnessList[i];
+
         Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, markerParameters_i, fitness_i);
         currentIndividuals[i] = I;
     }

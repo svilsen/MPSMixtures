@@ -9,10 +9,6 @@ partialSumEigen <- function(x) {
     .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
 }
 
-.kStepApproximation <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, kStep, markerIndicator, normalisingConstant) {
-    .Call('_MPSMixtures_kStepApproximation', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, kStep, markerIndicator, normalisingConstant)
-}
-
 #' Deviance residuals of the Poisson-gamma distribution
 #'
 #' @param x the count.
@@ -49,5 +45,17 @@ logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfile
 
 .runningParallelEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList, levelsOfStutterRecursion) {
     .Call('_MPSMixtures_runningParallelEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, hillClimbingDirections, hillClimbingIterations, seed, trace, encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList, levelsOfStutterRecursion)
+}
+
+.oneStepApproximationCpp <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion) {
+    .Call('_MPSMixtures_oneStepApproximationCpp', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion)
+}
+
+.EAApproximationCpp <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion) {
+    .Call('_MPSMixtures_EAApproximationCpp', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion)
+}
+
+.samplePosteriorGenotypesGuidedCpp <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, markerParameters, coverage, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfAlleles, levelsOfStutterRecursion, numberOfSimulations, suggestionBool, seed) {
+    .Call('_MPSMixtures_samplePosteriorGenotypesGuidedCpp', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, markerParameters, coverage, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfAlleles, levelsOfStutterRecursion, numberOfSimulations, suggestionBool, seed)
 }
 

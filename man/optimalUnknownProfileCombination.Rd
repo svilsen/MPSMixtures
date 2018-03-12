@@ -4,23 +4,22 @@
 \alias{optimalUnknownProfileCombination}
 \title{Optimal unknown profile combinations.}
 \usage{
-optimalUnknownProfileCombination(sampleTibble, markerImbalances,
-  numberOfContributors, knownProfilesList, theta, potentialParentsList,
-  stutterRatioModel = NULL,
+optimalUnknownProfileCombination(sampleTibble, markerImbalances, H,
+  potentialParentsList, stutterRatioModel = NULL, HArguments = NULL,
   control = optimalUnknownProfileCombination.control())
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}
 
-\item{numberOfContributors}{The total number of contributors to the mixture.}
+\item{markerImbalances}{The prior marker imbalances.}
 
-\item{knownProfilesList}{A list of tibbles containing the alleles of the known contributors.}
-
-\item{theta}{The inbreeding coefficient (Fst).}
+\item{H}{A hypothesis.}
 
 \item{potentialParentsList}{A list containing a list of potential parents for each allele in the sample.}
 
 \item{stutterRatioModel}{An \link{lm}-object modelling the stutter ratio given the BLMM. Note: this is only used if 'potentialParentsList' is NULL, but even then it can be NULL itself, implying no stuttering in the sample.}
+
+\item{HArguments}{If 'H' is 'NULL' a list of arguments passed to the 'setHypothesis' function. It must contain 'numberOfContributors', 'knownProfilesList', and 'theta'.}
 
 \item{control}{An \link{LR.control} object.}
 }

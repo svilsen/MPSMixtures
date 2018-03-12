@@ -15,7 +15,8 @@ optimalUnknownProfileCombination.control(numberOfPopulations = 4,
   hillClimbingDirections = 1, hillClimbingIterations = 1,
   convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-06,
   seed = NULL, trace = TRUE, numberOfThreads = 4,
-  levelsOfStutterRecursion = 2)
+  levelsOfStutterRecursion = 2, numberOfSimulationsMH = 10000,
+  suggestionMH = "guided")
 }
 \value{
 A list of default parameters.

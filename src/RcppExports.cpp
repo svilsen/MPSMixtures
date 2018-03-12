@@ -40,34 +40,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// kStepApproximation
-double kStepApproximation(const Eigen::VectorXd& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd& coverage, const Eigen::VectorXd markerImbalances, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion, const std::size_t& kStep, const std::size_t& markerIndicator, const double& normalisingConstant);
-RcppExport SEXP _MPSMixtures_kStepApproximation(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP coverageSEXP, SEXP markerImbalancesSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP, SEXP kStepSEXP, SEXP markerIndicatorSEXP, SEXP normalisingConstantSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type encodedProfiles(encodedProfilesSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type sampleParameters(sampleParametersSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type noiseParameters(noiseParametersSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type mixtureParameters(mixtureParametersSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd >::type markerImbalances(markerImbalancesSEXP);
-    Rcpp::traits::input_parameter< const std::vector< std::vector< Eigen::MatrixXd > > >::type potentialParents(potentialParentsSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type knownProfiles(knownProfilesSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type allKnownProfiles(allKnownProfilesSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
-    Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfContributors(numberOfContributorsSEXP);
-    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfMarkers(numberOfMarkersSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
-    Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
-    Rcpp::traits::input_parameter< const std::size_t& >::type kStep(kStepSEXP);
-    Rcpp::traits::input_parameter< const std::size_t& >::type markerIndicator(markerIndicatorSEXP);
-    Rcpp::traits::input_parameter< const double& >::type normalisingConstant(normalisingConstantSEXP);
-    rcpp_result_gen = Rcpp::wrap(kStepApproximation(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, kStep, markerIndicator, normalisingConstant));
-    return rcpp_result_gen;
-END_RCPP
-}
 // devianceResidualPoissonGammaDistribution
 double devianceResidualPoissonGammaDistribution(const double& x, const double& mean, const double& dispersion);
 RcppExport SEXP _MPSMixtures_devianceResidualPoissonGammaDistribution(SEXP xSEXP, SEXP meanSEXP, SEXP dispersionSEXP) {
@@ -217,17 +189,96 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// oneStepApproximationCpp
+Rcpp::List oneStepApproximationCpp(const Eigen::VectorXd& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd& coverage, const Eigen::VectorXd markerImbalances, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion);
+RcppExport SEXP _MPSMixtures_oneStepApproximationCpp(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP coverageSEXP, SEXP markerImbalancesSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type encodedProfiles(encodedProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type sampleParameters(sampleParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type noiseParameters(noiseParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type mixtureParameters(mixtureParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const std::vector< std::vector< Eigen::MatrixXd > > >::type potentialParents(potentialParentsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type knownProfiles(knownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type allKnownProfiles(allKnownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfContributors(numberOfContributorsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfMarkers(numberOfMarkersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
+    rcpp_result_gen = Rcpp::wrap(oneStepApproximationCpp(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion));
+    return rcpp_result_gen;
+END_RCPP
+}
+// EAApproximationCpp
+Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd>& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd& coverage, const Eigen::VectorXd markerImbalances, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion);
+RcppExport SEXP _MPSMixtures_EAApproximationCpp(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP coverageSEXP, SEXP markerImbalancesSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<Eigen::VectorXd>& >::type encodedProfiles(encodedProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type sampleParameters(sampleParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type noiseParameters(noiseParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type mixtureParameters(mixtureParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd >::type markerImbalances(markerImbalancesSEXP);
+    Rcpp::traits::input_parameter< const std::vector< std::vector< Eigen::MatrixXd > > >::type potentialParents(potentialParentsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type knownProfiles(knownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type allKnownProfiles(allKnownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfContributors(numberOfContributorsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfMarkers(numberOfMarkersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
+    rcpp_result_gen = Rcpp::wrap(EAApproximationCpp(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion));
+    return rcpp_result_gen;
+END_RCPP
+}
+// samplePosteriorGenotypesGuidedCpp
+std::vector<Eigen::MatrixXd> samplePosteriorGenotypesGuidedCpp(const Eigen::VectorXd& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd markerParameters, const Eigen::VectorXd& coverage, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion, const std::size_t& numberOfSimulations, const bool& suggestionBool, const std::size_t& seed);
+RcppExport SEXP _MPSMixtures_samplePosteriorGenotypesGuidedCpp(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP markerParametersSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP, SEXP numberOfSimulationsSEXP, SEXP suggestionBoolSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type encodedProfiles(encodedProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type sampleParameters(sampleParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type noiseParameters(noiseParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type mixtureParameters(mixtureParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd >::type markerParameters(markerParametersSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type coverage(coverageSEXP);
+    Rcpp::traits::input_parameter< const std::vector< std::vector< Eigen::MatrixXd > > >::type potentialParents(potentialParentsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type knownProfiles(knownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type allKnownProfiles(allKnownProfilesSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
+    Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfContributors(numberOfContributorsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfSimulations(numberOfSimulationsSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type suggestionBool(suggestionBoolSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(samplePosteriorGenotypesGuidedCpp(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, markerParameters, coverage, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfAlleles, levelsOfStutterRecursion, numberOfSimulations, suggestionBool, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
     {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
-    {"_MPSMixtures_kStepApproximation", (DL_FUNC) &_MPSMixtures_kStepApproximation, 18},
     {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},
     {"_MPSMixtures_devianceResidualPG1", (DL_FUNC) &_MPSMixtures_devianceResidualPG1, 3},
     {"_MPSMixtures_logPriorGenotypeProbability", (DL_FUNC) &_MPSMixtures_logPriorGenotypeProbability, 6},
     {"_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm, 28},
     {"_MPSMixtures_initialisingParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_initialisingParallelEvolutionaryAlgorithm, 16},
     {"_MPSMixtures_runningParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningParallelEvolutionaryAlgorithm, 33},
+    {"_MPSMixtures_oneStepApproximationCpp", (DL_FUNC) &_MPSMixtures_oneStepApproximationCpp, 15},
+    {"_MPSMixtures_EAApproximationCpp", (DL_FUNC) &_MPSMixtures_EAApproximationCpp, 15},
+    {"_MPSMixtures_samplePosteriorGenotypesGuidedCpp", (DL_FUNC) &_MPSMixtures_samplePosteriorGenotypesGuidedCpp, 17},
     {NULL, NULL, 0}
 };
 

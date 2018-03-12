@@ -30,7 +30,6 @@
 # REA = optimalUnknownGenotypesHp; normalisingConstant = likelihoodNormaliser
 .optimiseParametersLargeLikelihood <- function(sampleTibble, REA, numberOfContributors, normalisingConstant) {
     coverage <- sampleTibble$Coverage
-    markerImbalances <- sampleTibble$MarkerImbalance
 
     ECMCollected <- lapply(REA, function(rr) rr$ExpectedContributionMatrix)
 
@@ -47,6 +46,8 @@
     initialPars <- c(fittestParameters$SampleParameters, fittestParameters$NoiseParameters,
                      fittestParameters$MixtureParameters)
 
+    markerImbalances = (sampleTibble %>% left_join(sampleTibble %>% distinct(Marker) %>% mutate(MI = fittestParameters$MarkerImbalanceParameters), by = "Marker"))$MI
+
     pars = solnp(initialPars, fun = .LargeLikelihood,
                      LB = lowerBounds, UB = upperBounds, eqfun = eqBounds, eqB = 1,
                      coverage = coverage, markerImbalances = markerImbalances,
@@ -54,7 +55,8 @@
                      logGenotypeProbability = logGenotypeProbability, normalisingConstant = normalisingConstant,
                      control = list(trace = FALSE))
 
-    res <- list(SampleParameters = pars$pars[1:2], NoiseParameters = pars$pars[3:4], MixtureParameters = pars$pars[(5):length(pars$pars)], Likelihood = -pars$values[length(pars$values)])
+    res <- list(SampleParameters = pars$pars[1:2], NoiseParameters = pars$pars[3:4], MixtureParameters = pars$pars[(5):length(pars$pars)],
+                MarkerImbalanceParameters = fittestParameters$MarkerImbalanceParameters, Likelihood = -pars$values[length(pars$values)])
     return(res)
 }
 
