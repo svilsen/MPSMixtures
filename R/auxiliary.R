@@ -138,7 +138,7 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = F
 
                     if (alignedPotentialParents[j]) {
                         if (is.null(entireParentRepeatStructure_m[[whichPotentialParents[j]]])) {
-                            entireParentRepeatStructure_m[[whichPotentialParents[j]]] <- MPSMixtures:::.getEntireRepeatStructure(coverageTibble_m$Region[whichPotentialParents[j]], round(coverageTibble_m$MotifLength[whichPotentialParents[j]]))
+                            entireParentRepeatStructure_m[[whichPotentialParents[j]]] <- .getEntireRepeatStructure(coverageTibble_m$Region[whichPotentialParents[j]], round(coverageTibble_m$MotifLength[whichPotentialParents[j]]))
                         }
                         entireParentRepeatStructure <- entireParentRepeatStructure_m[[whichPotentialParents[j]]]
 
@@ -147,7 +147,7 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = F
                         endingMotif <- entireParentRepeatStructure_k$Motif[which(entireParentRepeatStructure_k$End == (missingRepeatUnitStartPosition + coverageTibble_mi$MotifLength))]
 
                         occurenceInParent <- entireParentRepeatStructure_k$Repeats
-                        motifCycles <- sapply(entireParentRepeatStructure_k$Motif, function(m) MPSMixtures:::.cyclicRotation(endingMotif, m))
+                        motifCycles <- sapply(entireParentRepeatStructure_k$Motif, function(m) .cyclicRotation(endingMotif, m))
 
                         BLMM <- max(occurenceInParent[motifCycles])
                         stutterRatioPotentialParents[j] <- unname(suppressWarnings(predict.lm(stutterRatioModel, newdata = tibble(Marker = m, BlockLengthMissingMotif = BLMM))))
@@ -427,8 +427,8 @@ generateAllelicLadder <- function(markers, regions, frequencies, motifLength = N
 sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stutterRatioModel,
                            alleleCoverageParameters = list(), noiseParameters = list(),
                            p = NULL) {
-    alleleCoverageParameters <- MPSMixtures:::.alleleCoverageParameters.control(nu = alleleCoverageParameters$nu, eta = alleleCoverageParameters$eta, phi = alleleCoverageParameters$phi)
-    noiseParameters <- MPSMixtures:::.noiseParameters.control(psi = noiseParameters$psi, rho = noiseParameters$rho)
+    alleleCoverageParameters <- .alleleCoverageParameters.control(nu = alleleCoverageParameters$nu, eta = alleleCoverageParameters$eta, phi = alleleCoverageParameters$phi)
+    noiseParameters <- .noiseParameters.control(psi = noiseParameters$psi, rho = noiseParameters$rho)
 
     p <- ifelse(is.null(p), 0.025, p)
 
@@ -448,7 +448,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
             distinct(Region, .keep_all = T) %>% mutate(IsAllele = 1, IsStutter = 0)
 
         collectedProfilesStutters <- bind_rows(lapply(1:nrow(collectedProfiles), function(i) {
-            BLMMs_i <- MPSMixtures:::.getEntireRepeatStructure(collectedProfiles$Region[i], collectedProfiles$MotifLength[i])
+            BLMMs_i <- .getEntireRepeatStructure(collectedProfiles$Region[i], collectedProfiles$MotifLength[i])
             possibleStutters_i <- sapply(1:nrow(BLMMs_i), function(j) {
                 paste(str_sub(collectedProfiles$Region[i], start = 1, end = BLMMs_i[j, 2] - 1),
                       str_sub(collectedProfiles$Region[i], start =  BLMMs_i[j, 2] + collectedProfiles$MotifLength[i]),

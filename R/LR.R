@@ -44,7 +44,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
         mutationProbabilityLowerLimit <- ifelse(is.null(control$mutationProbabilityLowerLimit), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$mutationProbabilityLowerLimit)
 
         if (control$numberOfPopulations == 1) {
-            optimalUnknownProfiles <- MPSMixtures:::.runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
+            optimalUnknownProfiles <- .runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
                                                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                    control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
                                                                                    control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
@@ -54,7 +54,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
             optimalUnknownProfiles <- optimalUnknownProfiles[order(sapply(optimalUnknownProfiles, function(oup) oup$Fitness), decreasing = TRUE)]
         }
         else {
-            optimalUnknownProfiles <- MPSMixtures:::.runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
+            optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
                                                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                      control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
                                                                                      control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
@@ -181,7 +181,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     optimalUnknownGenotypesHp <- vector("list", length(Hp))
     for (i in seq_along(Hp)) {
-        optimalUnknownGenotypesHp[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)
+        optimalUnknownGenotypesHp[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)
     }
 
     if ((length(Hp) == 1) & (length(Hd) != 1)) {
@@ -194,7 +194,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     optimalUnknownGenotypesHd <- vector("list", length(Hd))
     for (i in seq_along(Hd)) {
-        optimalUnknownGenotypesHd[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)
+        optimalUnknownGenotypesHd[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)
     }
 
     if ((length(Hd) == 1) & (length(Hp) != 1)) {

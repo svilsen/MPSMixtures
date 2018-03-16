@@ -1,9 +1,13 @@
 library("stringr")
 library("htmltab")
+library("dplyr")
 
-markers <- c("TPOX", "D3S1358", "D5S818", "CSF1PO", "D7S820", "TH01", "VWA", "D13S317", "D16S539", "D18S51")
+markers <- c("TPOX", "D3S1358", "D5S818", "CSF1PO", "D7S820", "TH01", "VWA",
+             "D13S317", "D16S539", "D18S51")
 regions <- lapply(seq_along(markers), function(mm) {
-    htmlTable <- htmltab(doc = paste("http://strbase.nist.gov/str_", markers[mm],".htm", sep = ""), which = 3)
+    htmlTable <- htmltab(doc = paste("https://strbase.nist.gov/str_", markers[mm], ".htm", sep = ""),
+                which = 3)
+
     names(htmlTable) <- str_replace_all(names(htmlTable), fixed(" "), "")
 
     regions_mm <- htmlTable$RepeatStructure[str_detect(htmlTable$RepeatStructure, "\\[")]

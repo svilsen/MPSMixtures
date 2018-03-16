@@ -25,8 +25,8 @@
     migratedPopulation <- currentPopulationList
     for (i in seq_along(currentPopulationList)) {
         migrant_i = which.max(currentPopulationList[[i]]$Fitness)
-        migratedPopulation[[migrationForward[i]]] <- MPSMixtures:::.migration(currentPopulationList[[i]], migratedPopulation[[migrationForward[i]]], migrant_i)
-        migratedPopulation[[migrationBackward[i]]] <- MPSMixtures:::.migration(currentPopulationList[[i]], migratedPopulation[[migrationBackward[i]]], migrant_i)
+        migratedPopulation[[migrationForward[i]]] <- .migration(currentPopulationList[[i]], migratedPopulation[[migrationForward[i]]], migrant_i)
+        migratedPopulation[[migrationBackward[i]]] <- .migration(currentPopulationList[[i]], migratedPopulation[[migrationBackward[i]]], migrant_i)
     }
 
     return(migratedPopulation)
@@ -54,7 +54,7 @@
 
     numberOfThreads <- min(numberOfPopulations, numberOfMaxThreads)
     mutationDecaySplit <- split(mutationDecay, rep(1:numberOfIterations, each = numberOfInnerIterations))
-    currentPopulationList <- mclapply(1:numberOfPopulations, function(i) MPSMixtures:::.initialisingParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
+    currentPopulationList <- mclapply(1:numberOfPopulations, function(i) .initialisingParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                                                                                                                                   coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, seed[i], levelsOfStutterRecursion), mc.cores = numberOfThreads)
     j = 0
     k = 0
@@ -62,11 +62,11 @@
     topFittestIndividuals <- list()
     while (!converged) {
         ## Migration between subpopulations
-        currentPopulationMigratedList <- MPSMixtures:::.parallelPopulationEvolutionaryAlgorithmMigration(currentPopulationList)
+        currentPopulationMigratedList <- .parallelPopulationEvolutionaryAlgorithmMigration(currentPopulationList)
 
         ## Updating subpopulations
         newPopulation <- mclapply(1:numberOfPopulations, function(i) {
-            PEA_i <- MPSMixtures:::.runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
+            PEA_i <- .runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                                                                          coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
                                                                          numberOfInnerIterations, numberOfInnerIterations, populationSize,
                                                                          parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,

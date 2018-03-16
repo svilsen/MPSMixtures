@@ -1,4 +1,4 @@
-prefix=/home/vilsen/AAU/PhD/RPackages/MPSMixturesPackage/MPSMixtures/src/nlopt-2.4.2
+prefix=/home/vilsen/AAU/PhD/RPackages/MPSMixturesPackage/MPSMixtures/nlopt-2.4.2
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include

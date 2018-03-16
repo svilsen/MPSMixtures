@@ -1,3 +1,9 @@
 exportPattern("^[[:alpha:]]+")
-importFrom(Rcpp, evalCpp)
 useDynLib(MPSMixtures)
+
+importFrom("grDevices", "hcl")
+importFrom("stats", "dnbinom", "filter", "predict.lm", "qqnorm",
+           "quantile", "rnbinom", "runif")
+
+importFrom("stringr", "str_sub")
+import("ggplot2")

@@ -23,7 +23,7 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalance, kno
     numberOfContributors = H$NumberOfContributors
     numberOfKnownContributors = H$NumberOfKnownProfiles
 
-    creatingIndividualObject <- MPSMixtures:::.setupIndividual(numberOfMarkers, numberOfAlleles,
+    creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
                                                                numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
                                                                sampleTibble$Coverage, potentialParentsList, markerImbalance,
                                                                convexMarkerImbalanceInterpolation,
@@ -93,7 +93,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     oneStep <- mclapply(seq_along(numberOfAlleles), function(m) {
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        res <- MPSMixtures:::.oneStepApproximationCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
+        res <- .oneStepApproximationCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
                                         estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters, estimatedParameters$MixtureParameters,
                                         sampleTibble$Coverage[markerIndices], estimatedParameters$MarkerImbalanceParameters[m], potentialParentsList[m],
                                         as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
@@ -161,7 +161,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     sampledPosterior <- mclapply(seq_along(numberOfAlleles), function(m) {
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        sampledGenotypes <- MPSMixtures:::.samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
+        sampledGenotypes <- .samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
                                             estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters,
                                             estimatedParameters$MixtureParameters, estimatedParameters$MarkerImbalanceParameters[m],
                                             sampleTibble$Coverage[markerIndices], potentialParentsList[m],
@@ -216,9 +216,9 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
                                                         control = optimalUnknownProfileCombination.control()) {
     method = tolower(method)
     approximationMethod <- switch (method,
-                                   'ea' = MPSMixtures:::.EAApproximation,
-                                   'onestep' = MPSMixtures:::.oneStepApproximation,
-                                   'mh' = MPSMixtures:::.samplePosteriorGenotypes
+                                   'ea' = .EAApproximation,
+                                   'onestep' = .oneStepApproximation,
+                                   'mh' = .samplePosteriorGenotypes
     )
 
     if (is.null(potentialParentsList)) {
@@ -238,7 +238,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
     estimatedParameters <- optimalCombination$Parameters
     if (length(optimalUnkownProfileCombinationList) > 1) {
         normalisingConstant <- optimalCombination$Fitness
-        estimatedParameters <- suppressWarnings(MPSMixtures:::.optimiseParametersLargeLikelihood(sampleTibble, optimalUnkownProfileCombinationList,
+        estimatedParameters <- suppressWarnings(.optimiseParametersLargeLikelihood(sampleTibble, optimalUnkownProfileCombinationList,
                                                                                                  H$NumberOfContributors, normalisingConstant))
     }
 
