@@ -11,8 +11,10 @@ LazyData: TRUE
 LinkingTo: 
     Rcpp,
     RcppEigen,
-    BH
+    BH,
+    RcppNumericalSolvers
 Imports:
     stringr,
-    ggplot2
+    ggplot2,
+    dplyr
 RoxygenNote: 6.0.1

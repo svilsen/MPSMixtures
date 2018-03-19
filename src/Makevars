@@ -1,10 +1,5 @@
-## Added C++11 Flags
 CC = gcc
 CXX = g++
 
 CXX_STD = CXX11
 CXX11_FLAGS = -std=c++0x
-
-PKG_CPPFLAGS =   -I/home/vilsen/AAU/PhD/RPackages/MPSMixturesPackage/MPSMixtures/nlopt-2.4.2/include -DHAVE_NAMESPACES
-PKG_CFLAGS =   -I/home/vilsen/AAU/PhD/RPackages/MPSMixturesPackage/MPSMixtures/nlopt-2.4.2/include
-PKG_LIBS =   -lm /home/vilsen/AAU/PhD/RPackages/MPSMixturesPackage/MPSMixtures/nlopt-2.4.2/lib/libnlopt_cxx.a

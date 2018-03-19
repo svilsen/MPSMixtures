@@ -7,3 +7,4 @@ importFrom("stats", "dnbinom", "filter", "predict.lm", "qqnorm",
 
 importFrom("stringr", "str_sub")
 import("ggplot2")
+import("dplyr")

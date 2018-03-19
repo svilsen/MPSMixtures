@@ -209,19 +209,26 @@ void Individual::EstimateParameters(const ExperimentalSetup & ES, Eigen::MatrixX
     }
 
     // Estimating paramters
-    EstimatePoissonGammaAlleleParameters EPGA(coverageAllele, expectedContributionProfileReduced,
-                                              ES.MarkerImbalances, numberOfAllelesReduced, alleleCountReduced,
-                                              ES.ConvexMarkerImbalanceInterpolation, ES.Tolerance);
-    EstimatePoissonGammaNoiseParameters EPGN(coverageNoise, ES.Tolerance);
+    std::vector<Eigen::VectorXd> EPGA = estimateParametersAlleleCoverage(coverageAllele, expectedContributionProfileReduced,
+                                                                         ES.MarkerImbalances, numberOfAllelesReduced, alleleCountReduced,
+                                                                         ES.ConvexMarkerImbalanceInterpolation, ES.Tolerance);
 
-    estimateParametersAlleleCoverage(EPGA);
-    estimateParametersNoiseCoverage(EPGN);
+    // EstimatePoissonGammaAlleleParameters EPGA(coverageAllele, expectedContributionProfileReduced,
+    //                                           ES.MarkerImbalances, numberOfAllelesReduced, alleleCountReduced,
+    //                                           ES.ConvexMarkerImbalanceInterpolation, ES.Tolerance);
 
-    SampleParameters = EPGA.SampleParameters;
-    MixtureParameters = EPGA.MixtureParameters;
-    MarkerImbalanceParameters = EPGA.MarkerImbalancesParameters;
+    Eigen::VectorXd EPGN = estimateParametersNoiseCoverage(coverageNoise);
 
-    NoiseParameters = EPGN.NoiseParameters;
+    // EstimatePoissonGammaNoiseParameters EPGN(coverageNoise, ES.Tolerance);
+
+    // estimateParametersAlleleCoverage(EPGA);
+    // estimateParametersNoiseCoverage(EPGN);
+
+    SampleParameters = EPGA[0]; // EPGA.SampleParameters;
+    MixtureParameters = EPGA[1]; // EPGA.MixtureParameters;
+    MarkerImbalanceParameters = EPGA[2]; // EPGA.MarkerImbalancesParameters;
+
+    NoiseParameters = EPGN; // EPGN.NoiseParameters; //
 }
 
 void Individual::CalculateFitness(const ExperimentalSetup & ES, Eigen::MatrixXd decodedProfile, Eigen::MatrixXd expectedContributionProfile,
