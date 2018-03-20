@@ -1,0 +1,15 @@
+CC = gcc
+CXX = g++
+
+CXX_STD = CXX11
+CXX11_FLAGS = -std=c++0x
+
+OPT = nlopt
+OPT_VERSION = 2.4.2
+OPT_INCLUDE = ${OPT}-${OPT_VERSION}/include
+OPT_LIBS = ${OPT}-${OPT_VERSION}/lib
+
+PKG_CPPFLAGS = -I./${OPT_INCLUDE} -DHAVE_NAMESPACES
+PKG_CFLAGS = -pipe -I./${OPT_INCLUDE}
+PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` -lm ./${OPT_LIBS}/libnlopt_cxx.a
+
