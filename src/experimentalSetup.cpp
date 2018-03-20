@@ -20,6 +20,7 @@ ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const 
 {
     NumberOfMarkers = numberOfMarkers;
     NumberOfAlleles = numberOfAlleles;
+    PartialSumAlleles = partialSumEigen(numberOfAlleles);
 
     NumberOfContributors = numberOfContributors;
     KnownProfiles = knownProfiles;

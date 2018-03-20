@@ -163,6 +163,58 @@ Eigen::VectorXd Individual::GenerateNoiseProfile(const ExperimentalSetup & ES, c
     return identifiedNoise;
 }
 
+void Individual::CreateReducedElements(const ExperimentalSetup & ES)
+{
+    Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers,
+                                              ES.NumberOfContributors - ES.NumberOfKnownContributors);
+
+    Eigen::MatrixXd expectedContributionProfile = GenerateExpectedContributionProfile(ES, decodedProfile);
+    Eigen::VectorXd noiseProfile = GenerateNoiseProfile(ES, expectedContributionProfile);
+
+    Eigen::MatrixXd genoypeMatrix = bindColumns(ES.KnownProfiles, decodedProfile);
+    std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix(ES.NumberOfMarkers);
+    std::vector<Eigen::VectorXd> reducedAlleleIndex(ES.NumberOfMarkers);
+    std::vector<Eigen::VectorXd> reducedNoiseIndex(ES.NumberOfMarkers);
+
+    std::size_t n = 0;
+    for (std::size_t m = 0; m < ES.NumberOfMarkers; m++)
+    {
+        Eigen::VectorXd noiseProfile_m = noiseProfile.segment(ES.PartialSumAlleles[m], ES.NumberOfAlleles[m]);
+        std::size_t noiseProfileSize_m = noiseProfile_m.size();
+        std::size_t noiseProfileSum_m = noiseProfile_m.sum();
+
+        Eigen::MatrixXd reducedExpectedContributionMatrix_m = Eigen::MatrixXd::Zero(noiseProfileSize_m - noiseProfileSum_m, ES.NumberOfContributors);
+        Eigen::VectorXd reducedAlleleIndex_m = Eigen::VectorXd::Zero(noiseProfileSize_m - noiseProfileSum_m);
+        Eigen::VectorXd reducedNoiseIndex_m = Eigen::VectorXd::Zero(noiseProfileSize_m - noiseProfileSum_m);
+
+        std::size_t i = 0, j = 0;
+        for (std::size_t a = 0; a < ES.NumberOfAlleles[m]; a++)
+        {
+            if (noiseProfile[n] == 0)
+            {
+                reducedExpectedContributionMatrix_m.row(i) = expectedContributionProfile.row(n);
+                reducedAlleleIndex_m[i] = a;
+                i++;
+            }
+            else
+            {
+                reducedNoiseIndex_m[j] = a;
+                j++;
+            }
+
+            n++;
+        }
+
+        reducedExpectedContributionMatrix[m] = reducedExpectedContributionMatrix_m;
+        reducedAlleleIndex[m] = reducedAlleleIndex_m;
+        reducedNoiseIndex[m] = reducedNoiseIndex_m;
+    }
+
+    ReducedExpectedContributionMatrix = reducedExpectedContributionMatrix;
+    ReducedAlleleIndex = reducedAlleleIndex;
+    ReducedNoiseIndex = reducedNoiseIndex;
+}
+
 void Individual::EstimateParameters(const ExperimentalSetup & ES, Eigen::MatrixXd decodedProfile, Eigen::MatrixXd expectedContributionProfile,
                                     Eigen::VectorXd noiseProfile)
 {

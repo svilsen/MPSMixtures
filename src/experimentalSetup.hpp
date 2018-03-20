@@ -11,6 +11,7 @@ class ExperimentalSetup
         // Sample data
         std::size_t NumberOfMarkers;
         Eigen::VectorXd NumberOfAlleles;
+        Eigen::VectorXd PartialSumAlleles;
 
         std::size_t NumberOfContributors;
         Eigen::MatrixXd KnownProfiles;

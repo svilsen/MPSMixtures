@@ -12,6 +12,9 @@ class Individual
     public:
         // Objects
         Eigen::VectorXd EncodedProfile;
+        std::vector<Eigen::MatrixXd> ReducedExpectedContributionMatrix;
+        std::vector<Eigen::VectorXd> ReducedAlleleIndex;
+        std::vector<Eigen::VectorXd> ReducedNoiseIndex;
 
         Eigen::VectorXd SampleParameters;
         Eigen::VectorXd MixtureParameters;
@@ -33,25 +36,35 @@ class Individual
 
         // Constructors
         Individual();
+
         Individual(const ExperimentalSetup & ES);
+
         Individual(const Eigen::VectorXd & encodedGenotype, const ExperimentalSetup & ES);
+
         Individual(const Eigen::VectorXd & encodedGenotype, const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & noiseParameters,
                    const Eigen::VectorXd & mixtureParameters, const Eigen::VectorXd & markerParameters, const double & fitness);
+
         Individual(const Eigen::VectorXd & encodedGenotype, const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & noiseParameters,
                    const Eigen::VectorXd & mixtureParameters, const Eigen::VectorXd & markerParameters, const ExperimentalSetup & ES);
 
-        //
+        Individual(const Eigen::VectorXd & encodedGenotype, const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix,
+                   const ExperimentalSetup & ES);
+
+        // ECM, Genotype, noise, etc. functions
+        void CreateReducedElements(const ExperimentalSetup & ES);
+
         Eigen::MatrixXd GenerateExpectedContributionProfile(const ExperimentalSetup & ES, const Eigen::MatrixXd & decodedProfile);
         Eigen::VectorXd GenerateNoiseProfile(const ExperimentalSetup & ES, const Eigen::MatrixXd & expectedContributionProfile);
 
+        //
         void EstimateParameters(const ExperimentalSetup & ES, Eigen::MatrixXd decodedProfile, Eigen::MatrixXd expectedContributionProfile,
                                 Eigen::VectorXd noiseProfile);
 
         Eigen::VectorXd CalculateResiduals(const ExperimentalSetup & ES, const Eigen::MatrixXd & expectedContributionProfile, const Eigen::VectorXd & noiseProfile);
-
         void CalculateFitness(const ExperimentalSetup & ES, Eigen::MatrixXd decodedProfile, Eigen::MatrixXd expectedContributionProfile,
                               Eigen::VectorXd noiseProfile);
 
+        // R-wrappers
         Rcpp::List ReturnRcppList(const ExperimentalSetup & ES);
         Rcpp::List ReturnRcppListSimplified();
 };
