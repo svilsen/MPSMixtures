@@ -4,7 +4,7 @@ Title: Functions for Handling MPS DNA Mixtures.
 Version: 0.1.4
 Author: Søren B. Vilsen
 Maintainer: Søren B. Vilsen <svilsen@math.aau.dk>
-Description: All necessary functions for DNA mixture deconvolution and the calculation of the weight-of-evidence.
+Description: All necessary functions for DNA mixture deconvolution and the calculation of the weight-of-evidence under two competing hypotheses.
 License: MIT
 Encoding: UTF-8
 LazyData: TRUE
@@ -12,7 +12,6 @@ LinkingTo:
     Rcpp,
     RcppEigen,
     BH,
-    RcppNumericalSolvers
 Imports:
     stringr,
     ggplot2,
