@@ -82,7 +82,7 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
-    Population currentPopulation(encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList);
+    Population currentPopulation(encodedPopulationList, sampleParametersList, noiseParametersList, mixtureParametersList, markerParametersList, fitnessList, ES);
 
     EvolutionaryAlgorithm EA(ES, currentPopulation,
                              numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals,

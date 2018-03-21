@@ -13,11 +13,13 @@ double logMultinomialCoefficient(const int & totalCounts, const Eigen::VectorXd 
 double logDirichletMultinomial(const Eigen::VectorXd & counts, const Eigen::VectorXd & alleleFrequencies);
 double logDirichletMultinomialTheta(const Eigen::VectorXd & counts, const double & theta, const Eigen::VectorXd & alleleFrequencies);
 
-Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, const Eigen::MatrixXd & expectedContributionMatrix,
+Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, const std::vector<Eigen::MatrixXd> & expectedContributionMatrix,
+                                            const std::vector<Eigen::VectorXd> & alleleIndex, const Eigen::VectorXd partialSumAlleles,
                                             const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & mixtureProportions,
-                                            const Eigen::VectorXd & numberOfAlleles, const Eigen::VectorXd & markerImbalances);
+                                            const Eigen::VectorXd & markerImbalances);
 
-Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen::VectorXd & noiseProfile, const double & noiseLevel, const double & noiseDispersion, const Eigen::VectorXd & numberOfAlleles);
+Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
+                                           const Eigen::VectorXd & partialSumAlleles, const double & noiseLevel, const double & noiseDispersion);
 
 Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles);
 

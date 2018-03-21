@@ -12,12 +12,14 @@ class EstimatePoissonGammaAlleleParameters
 {
     public:
         std::size_t NumberOfContributors;
+        std::size_t NumberOfMarkers;
 
         Eigen::VectorXd Coverage;
         Eigen::VectorXd MarkerImbalances;
-        Eigen::MatrixXd ExpectedContributionMatrix;
-        Eigen::VectorXd NumberOfAlleles;
-        Eigen::VectorXd AlleleCount;
+        Eigen::VectorXd PartialSumAlleles;
+
+        std::vector<Eigen::MatrixXd> ExpectedContributionMatrix;
+        std::vector<Eigen::VectorXd> AlleleIndex;
 
         Eigen::VectorXd SampleParameters;
         Eigen::VectorXd MixtureParameters;
@@ -27,14 +29,14 @@ class EstimatePoissonGammaAlleleParameters
 
         double LogLikelihood;
         double ToleranceFRelative;
-        double ToleranceEqualityConstraints;
         unsigned int MaximumNumberOfIterations;
 
         std::size_t Counter;
 
-        EstimatePoissonGammaAlleleParameters(Eigen::VectorXd coverage, Eigen::MatrixXd expectedContributionMatrix,
-                                             Eigen::VectorXd markerImbalances, Eigen::VectorXd numberOfAlleles, Eigen::VectorXd alleleCount,
-                                             double convexMarkerImbalanceInterpolation, double tolerance);
+        EstimatePoissonGammaAlleleParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::MatrixXd> & expectedContributionMatrix,
+                                             const std::vector<Eigen::VectorXd> & alleleIndex,
+                                             const Eigen::VectorXd & markerImbalances, const Eigen::VectorXd & partialSumAlleles,
+                                             const double & convexMarkerImbalanceInterpolation, const double & tolerance);
 
         void initialiseParameters();
 };
@@ -48,7 +50,12 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
 class EstimatePoissonGammaNoiseParameters
 {
     public:
+        std::size_t NumberOfMarkers;
+
         Eigen::VectorXd Coverage;
+        std::vector<Eigen::VectorXd> NoiseIndex;
+        Eigen::VectorXd PartialSumAlleles;
+
         Eigen::VectorXd NoiseParameters;
 
         double LogLikelihood;
@@ -57,13 +64,12 @@ class EstimatePoissonGammaNoiseParameters
 
         std::size_t Counter;
 
-        EstimatePoissonGammaNoiseParameters(Eigen::VectorXd coverage, double tolerance);
+        EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
+                                            const Eigen::VectorXd & partialSumAlleles, const double & tolerance);
         void initialiseParameters();
 };
 
 double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data);
-
 void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN);
-
 
 #endif

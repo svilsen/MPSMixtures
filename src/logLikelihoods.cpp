@@ -17,14 +17,6 @@ double logPoissonGammaDistribution(const double & x, const double & mean, const 
     return logProbability;
 }
 
-//' Deviance residuals of the Poisson-gamma distribution
-//'
-//' @param x the count.
-//' @param mean the expected count.
-//' @param dispersion the overdispersion.
-//'
-//' @return The deviance residual.
-//[[Rcpp::export]]
 double devianceResidualPoissonGammaDistribution(const double & x, const double & mean, const double & dispersion)
 {
     double deviance_ma = (x + dispersion) * (std::log(mean + dispersion) - std::log(x + dispersion));
@@ -36,14 +28,6 @@ double devianceResidualPoissonGammaDistribution(const double & x, const double &
     return boost::math::sign(x - mean) * std::pow(2.0 * deviance_ma, 0.5);
 }
 
-//' Deviance residuals of the Poisson-gamma distribution of order 1
-//'
-//' @param x the count.
-//' @param mean the expected count.
-//' @param dispersion the overdispersion.
-//'
-//' @return The deviance residual.
-//[[Rcpp::export]]
 double devianceResidualPG1(const double & x, const double & mean, const double & dispersion)
 {
     double deviance_ma = (x - mean) * std::log(dispersion + 1) / dispersion - boost::math::lgamma((dispersion * x + mean) / dispersion) +
@@ -104,30 +88,30 @@ double logDirichletMultinomialTheta(const Eigen::VectorXd & counts, const double
     return resLogDirichletMultinomial;
 }
 
-Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, const Eigen::MatrixXd & expectedContributionMatrix,
+Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, const std::vector<Eigen::MatrixXd> & expectedContributionMatrix,
+                                            const std::vector<Eigen::VectorXd> & alleleIndex, const Eigen::VectorXd partialSumAlleles,
                                             const Eigen::VectorXd & sampleParameters, const Eigen::VectorXd & mixtureProportions,
-                                            const Eigen::VectorXd & numberOfAlleles, const Eigen::VectorXd & markerImbalances)
+                                            const Eigen::VectorXd & markerImbalances)
 {
-    std::size_t M = numberOfAlleles.size();
+    const std::size_t & M = alleleIndex.size();
 
-    Eigen::VectorXd expectedContribution = expectedContributionMatrix * mixtureProportions;
+    const double & referenceMarkerAverage = sampleParameters[0];
+    const double & dispersion = sampleParameters[1];
 
-    double referenceMarkerAverage = sampleParameters[0];
-    double dispersion = sampleParameters[1];
-
-    Eigen::VectorXd partialSumAlleles = partialSumEigen(numberOfAlleles);
     Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(M);
     for (std::size_t m = 0; m < M; m++)
     {
+        const Eigen::VectorXd & alleleIndex_m = alleleIndex[m];
+        const Eigen::MatrixXd & expectedContributionMatrix_m = expectedContributionMatrix[m];
+        const Eigen::VectorXd & expectedContribution = expectedContributionMatrix_m * mixtureProportions;
+
         double logLikelihood_m = 0.0;
-        for (std::size_t a = 0; a < numberOfAlleles[m]; a++)
+        for (std::size_t a = 0; a < alleleIndex_m.size(); a++)
         {
-            std::size_t n = partialSumAlleles[m] + a;
-            double mu_ma = referenceMarkerAverage * markerImbalances[m] * expectedContribution[n];
-            if (mu_ma > 0.0)
-            {
-                logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, mu_ma / dispersion);
-            }
+            const std::size_t & n = partialSumAlleles[m] + alleleIndex_m[a];
+
+            const double & mu_ma = referenceMarkerAverage * markerImbalances[m] * expectedContribution[a];
+            logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, mu_ma / dispersion);
         }
 
         logLikelihood[m] = logLikelihood_m;
@@ -136,28 +120,26 @@ Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, co
     return logLikelihood;
 }
 
-Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const Eigen::VectorXd & noiseProfile,
-                                           const double & noiseLevel, const double & noiseDispersion, const Eigen::VectorXd & numberOfAlleles)
+Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
+                                           const Eigen::VectorXd & partialSumAlleles, const double & noiseLevel, const double & noiseDispersion)
 {
-    std::size_t N = coverage.size();
+    const std::size_t & M = noiseIndex.size();
 
-    Eigen::VectorXd partialSumAlleles = partialSumEigen(numberOfAlleles);
-    Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(numberOfAlleles.size());
-    for (std::size_t m = 0; m < numberOfAlleles.size(); m++)
+    Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(M);
+    for (std::size_t m = 0; m < M; m++)
     {
-        for (std::size_t a = 0; a < numberOfAlleles[m]; a++)
+        const Eigen::VectorXd & noiseIndex_m = noiseIndex[m];
+        for (std::size_t a = 0; a < noiseIndex_m.size(); a++)
         {
-            std::size_t n = partialSumAlleles[m] + a;
-            if (noiseProfile[n] == 1.0)
-            {
-                logLikelihood[m] += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion) -
-                    std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
-            }
+            const std::size_t & n = partialSumAlleles[m] + noiseIndex_m[a];
+            logLikelihood[m] += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion) -
+                std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
         }
     }
 
     return logLikelihood;
 }
+
 
 Eigen::VectorXd logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequencies, const Eigen::MatrixXd & unknownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
@@ -176,6 +158,7 @@ Eigen::VectorXd logGenotypeProbabilityHWE(const Eigen::VectorXd & alleleFrequenc
 
     return logPriorProbability;
 }
+
 
 Eigen::VectorXd logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {

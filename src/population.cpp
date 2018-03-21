@@ -26,7 +26,8 @@ Population::Population(std::vector<Individual> I)
 }
 
 Population::Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen::MatrixXd & sampleParametersList, const Eigen::MatrixXd & noiseParametersList,
-                       const Eigen::MatrixXd & mixtureParametersList, const Eigen::MatrixXd & markerParametersList, const Eigen::VectorXd & fitnessList)
+                       const Eigen::MatrixXd & mixtureParametersList, const Eigen::MatrixXd & markerParametersList, const Eigen::VectorXd & fitnessList,
+                       const ExperimentalSetup & ES)
 {
     const std::size_t populationSize = encodedProfilesList.cols();
 
@@ -40,7 +41,7 @@ Population::Population(const Eigen::MatrixXd & encodedProfilesList, const Eigen:
         Eigen::VectorXd mixtureParameters_i = mixtureParametersList.col(i);
         double fitness_i = fitnessList[i];
 
-        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, markerParameters_i, fitness_i);
+        Individual I(encodedProfile_i, sampleParameters_i, noiseParameters_i, mixtureParameters_i, markerParameters_i, fitness_i, ES);
         currentIndividuals[i] = I;
     }
 

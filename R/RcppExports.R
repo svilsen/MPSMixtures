@@ -9,28 +9,6 @@ partialSumEigen <- function(x) {
     .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
 }
 
-#' Deviance residuals of the Poisson-gamma distribution
-#'
-#' @param x the count.
-#' @param mean the expected count.
-#' @param dispersion the overdispersion.
-#'
-#' @return The deviance residual.
-devianceResidualPoissonGammaDistribution <- function(x, mean, dispersion) {
-    .Call('_MPSMixtures_devianceResidualPoissonGammaDistribution', PACKAGE = 'MPSMixtures', x, mean, dispersion)
-}
-
-#' Deviance residuals of the Poisson-gamma distribution of order 1
-#'
-#' @param x the count.
-#' @param mean the expected count.
-#' @param dispersion the overdispersion.
-#'
-#' @return The deviance residual.
-devianceResidualPG1 <- function(x, mean, dispersion) {
-    .Call('_MPSMixtures_devianceResidualPG1', PACKAGE = 'MPSMixtures', x, mean, dispersion)
-}
-
 logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles) {
     .Call('_MPSMixtures_logPriorGenotypeProbability', PACKAGE = 'MPSMixtures', alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles)
 }
