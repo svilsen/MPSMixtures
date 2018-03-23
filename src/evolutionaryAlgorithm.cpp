@@ -88,24 +88,27 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, Population 
 
 void EvolutionaryAlgorithm::RestructingIndividual(Individual & I, const ExperimentalSetup & ES)
 {
-    std::size_t NumberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
+    const std::size_t & NumberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
     // Sorting unknown contributor mixtures
-    Eigen::VectorXd Mixtures = I.MixtureParameters.segment(ES.NumberOfKnownContributors, NumberOfUnknownContributors);
+    const Eigen::VectorXd & Mixtures = I.MixtureParameters.segment(ES.NumberOfKnownContributors, NumberOfUnknownContributors);
 
-    std::vector<int> sortedMixtures = sortedIndex(Mixtures);
+    const std::vector<int> & sortedMixtures = sortedIndex(Mixtures);
     for (std::size_t n = 0; n < NumberOfUnknownContributors; n++)
     {
         I.MixtureParameters[ES.NumberOfKnownContributors + n] = Mixtures[sortedMixtures[n]];
     }
 
     // Sorting unknown genotypes
-    Eigen::VectorXd unsortedEncodedProfile = I.EncodedProfile;
+    const Eigen::VectorXd unsortedEncodedProfile = I.EncodedProfile;
+    const std::vector<Eigen::MatrixXd> unsortedReducedContributionMatrix = I.ReducedExpectedContributionMatrix;
     for (std::size_t m = 0; m < ES.NumberOfMarkers; m++)
     {
+        const Eigen::MatrixXd & unsortedReducedContributionMatrix_m = unsortedReducedContributionMatrix[m];
         for (std::size_t c = 0; c < NumberOfUnknownContributors; c++)
         {
-            std::size_t k = 2 * NumberOfUnknownContributors * m + 2 * c;
+            I.ReducedExpectedContributionMatrix[m].col(c) = unsortedReducedContributionMatrix_m.col(sortedMixtures[c]);
 
+            std::size_t k = 2 * NumberOfUnknownContributors * m + 2 * c;
             std::size_t contributorElement = 2 * NumberOfUnknownContributors * m + 2 * sortedMixtures[c];
 
             if (unsortedEncodedProfile[contributorElement] <= unsortedEncodedProfile[contributorElement + 1]) {
@@ -135,133 +138,6 @@ Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, c
     return P;
 }
 
-Eigen::VectorXd EvolutionaryAlgorithm::Crossover(const Individual & I, const Individual & J, const std::size_t & seed)
-{
-    Eigen::MatrixXd E_IJ = bindColumns(I.EncodedProfile, J.EncodedProfile);
-
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_int_distribution<> uniform01(0, 1);
-    boost::random::uniform_real_distribution<> uniform(0, 1);
-
-    int columnIndex = uniform01(rng);
-
-    std::size_t N = E_IJ.rows();
-    Eigen::VectorXd E = Eigen::VectorXd::Zero(N);
-    for (std::size_t n = 0; n < N; n++)
-    {
-        double p = uniform(rng);
-        if (p < CrossoverProbability)
-        {
-            columnIndex = (columnIndex + 1) % 2;
-        }
-
-        E[n] = E_IJ.row(n)[columnIndex];
-    }
-
-    return E;
-}
-
-Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I, const ExperimentalSetup & ES)
-{
-    const Eigen::VectorXd & E = I.EncodedProfile;
-    const Eigen::MatrixXd decodedProfile = decoding(E, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
-    const Eigen::MatrixXd expectedContributionProfile = I.GenerateExpectedContributionProfile(ES, decodedProfile);
-    const Eigen::VectorXd noiseProfile = I.GenerateNoiseProfile(ES, expectedContributionProfile);
-
-    const double & referenceMarkerAverage = I.SampleParameters[0];
-    double dispersion;
-    const Eigen::VectorXd & Coverage = ES.Coverage;
-    const Eigen::VectorXd & MarkerImbalance = I.MarkerImbalanceParameters;
-    const Eigen::VectorXd & NumberOfAlleles = ES.NumberOfAlleles;
-    const Eigen::VectorXd & partialSumAlleles = partialSumEigen(NumberOfAlleles);
-    const Eigen::VectorXd EC = expectedContributionProfile * I.MixtureParameters;
-
-    std::size_t N = ES.Coverage.size();
-    boost::math::students_t devianceDistribution(MutationDegreesOfFreedom);
-
-    Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(E.size());
-    for (std::size_t m = 0; m < MarkerImbalance.size(); m++)
-    {
-        const Eigen::VectorXd & E_m = E.segment(2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m, 2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors));
-        for (std::size_t a = 0; a < E_m.size(); a++)
-        {
-            std::size_t n = partialSumAlleles[m] + E_m[a];
-            double mu_ma;
-            if (noiseProfile[n] == 0)
-            {
-                mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[n];
-                dispersion = mu_ma / I.SampleParameters[1];
-            }
-
-            double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, dispersion);
-            if (std::abs(deviance_n) > MutationDecay_t)
-            {
-                mutation[2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m + a] =
-                    (1.0 - MutationProbabilityLowerLimit) - (1.0 - 2 * MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) /
-                    boost::math::pdf(devianceDistribution, 0.0);
-            }
-        }
-    }
-
-    return mutation;
-}
-
-Eigen::VectorXd EvolutionaryAlgorithm::EncodeMutationProbability(Eigen::VectorXd & mutationProability, Individual & I, ExperimentalSetup & ES)
-{
-    std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
-    Eigen::MatrixXd profile = decoding(I.EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, numberOfUnknownContributors);
-    std::size_t N = profile.rows();
-
-    Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
-
-    Eigen::VectorXd encodedMutation = Eigen::VectorXd::Zero(2 * numberOfUnknownContributors * ES.NumberOfMarkers);
-    for (std::size_t i = 0; i < ES.NumberOfMarkers; i++)
-    {
-        Eigen::MatrixXd profile_m = profile.block(partialSumAlleles[i], 0, ES.NumberOfAlleles[i], numberOfUnknownContributors);
-        Eigen::VectorXd mutation_m = mutationProability.segment(partialSumAlleles[i], ES.NumberOfAlleles[i]);
-
-        for (std::size_t j = 0; j < numberOfUnknownContributors; j++)
-        {
-            std::size_t k = 2 * numberOfUnknownContributors * i + 2 * j;
-
-            Eigen::Vector2i whichNonZero = nonZeroElementsOfMarker(profile_m.col(j));
-            encodedMutation[k] = mutation_m[whichNonZero[0]];
-            encodedMutation[k + 1] = mutation_m[whichNonZero[1]];
-        }
-    }
-
-    return encodedMutation;
-}
-
-Individual EvolutionaryAlgorithm::Mutation(Eigen::VectorXd & E, ExperimentalSetup & ES, const std::size_t & seed)
-{
-    Individual unmutatedIndividual(E, ES);
-    Eigen::VectorXd I = unmutatedIndividual.EncodedProfile;
-
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_real_distribution<> uniform(0, 1);
-
-    Eigen::VectorXd mutation = CreateMutationProbability(unmutatedIndividual, ES);
-
-    Eigen::VectorXd encodedMutation = mutation;// EncodeMutationProbability(mutation, unmutatedIndividual, ES);
-    std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
-    for (std::size_t i = 0; i < I.size(); i++)
-    {
-        double mutate = uniform(rng);
-        if (mutate < encodedMutation[i])
-        {
-            std::size_t m = std::floor(i / (2 * numberOfUnknownContributors));
-            boost::random::uniform_int_distribution<> uniformMutation(1, ES.NumberOfAlleles[m] - 1);
-            int mutationShift = uniformMutation(rng);
-
-            const double I_k = I[i];
-            I[i] = static_cast<int>(I_k + mutationShift) % static_cast<int>(ES.NumberOfAlleles[m]);
-        }
-    }
-
-    Individual mutatedIndividual(I, ES);
-    return mutatedIndividual;
-}
 
 std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int currentIndividual, const std::size_t & seed)
 {
@@ -304,8 +180,201 @@ std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int curre
     return partnerIndex;
 }
 
+Individual EvolutionaryAlgorithm::Crossover(const Individual & I, const Individual & J, const ExperimentalSetup & ES, const std::size_t & seed)
+{
+    Eigen::MatrixXd E_IJ = bindColumns(I.EncodedProfile, J.EncodedProfile);
+
+    boost::random::mt19937 rng(seed);
+    boost::random::uniform_int_distribution<> uniform01(0, 1);
+    boost::random::uniform_real_distribution<> uniform(0, 1);
+
+    int columnIndex = uniform01(rng);
+
+    std::size_t N = E_IJ.rows();
+    Eigen::VectorXd E = Eigen::VectorXd::Zero(N);
+    for (std::size_t n = 0; n < N; n++)
+    {
+        double p = uniform(rng);
+        if (p < CrossoverProbability)
+        {
+            columnIndex = (columnIndex + 1) % 2;
+        }
+
+        E[n] = E_IJ.row(n)[columnIndex];
+    }
+
+    Individual K(E, ES);
+    RestructingIndividual(K, ES);
+
+    return K;
+}
+
+Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I, const ExperimentalSetup & ES)
+{
+    const Eigen::VectorXd & E = I.EncodedProfile;
+    const double & referenceMarkerAverage = I.SampleParameters[0];
+    const double & dispersion = I.SampleParameters[1];
+
+    const Eigen::VectorXd & Coverage = ES.Coverage;
+    const Eigen::VectorXd & MarkerImbalance = I.MarkerImbalanceParameters;
+    const Eigen::VectorXd & NumberOfAlleles = ES.NumberOfAlleles;
+
+    std::size_t N = ES.Coverage.size();
+    boost::math::students_t devianceDistribution(MutationDegreesOfFreedom);
+
+    Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(E.size());
+    for (std::size_t m = 0; m < MarkerImbalance.size(); m++)
+    {
+        const Eigen::VectorXd & alleleIndex_m = I.ReducedAlleleIndex[m];
+        const std::size_t A = alleleIndex_m.size();
+
+        const Eigen::MatrixXd & expectedContributionProfile_m = I.ReducedExpectedContributionMatrix[m];
+        const Eigen::VectorXd & EC = expectedContributionProfile_m * I.MixtureParameters;
+
+        const Eigen::VectorXd & E_m = E.segment(2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m, 2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors));
+        for (std::size_t i = 0; i < E_m.size(); i++)
+        {
+            const std::size_t & n = ES.PartialSumAlleles[m] + E_m[i];
+            std::size_t a = 0;
+            while ((alleleIndex_m[a] != E_m[i]) & (a < A - 1))
+            {
+                a++;
+            }
+
+            const double & mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[a];
+            const double & deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion);
+
+            mutation[2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m + i] =
+                MutationDecay_t - (MutationDecay_t - MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) /
+                    boost::math::pdf(devianceDistribution, 0.0);
+        }
+    }
+
+    return mutation;
+}
+
+void updateMarkerIndividual(const Eigen::VectorXd & E, std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix, std::vector<Eigen::VectorXd> reducedAlleleIndex,
+                            std::vector<Eigen::VectorXd> reducedNoiseIndex, const std::size_t & m, const ExperimentalSetup & ES)
+{
+    const std::size_t & numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
+
+    // Creating genotype matrix of marker m
+    Eigen::MatrixXd decodedProfile_m = Eigen::MatrixXd::Zero(ES.NumberOfAlleles[m], ES.NumberOfContributors);
+    for (std::size_t i = 0; i < ES.NumberOfAlleles[m]; i++)
+    {
+        for (std::size_t j = 0; j < ES.NumberOfKnownContributors; j++)
+        {
+            decodedProfile_m(i, j) = ES.KnownProfiles(ES.PartialSumAlleles[m] + i, j);
+        }
+    }
+
+    for (std::size_t i = 0; i < numberOfUnknownContributors; i++)
+    {
+        for (std::size_t j = 0; j <= 1; j++)
+        {
+            std::size_t l = 2 * m * numberOfUnknownContributors + 2 * i + j;
+            decodedProfile_m(E[l], i + ES.NumberOfKnownContributors) += 1;
+        }
+    }
+
+    // Creating ECM of row n
+    std::vector<Eigen::MatrixXd> potentialParents_m = ES.PotentialParents[m];
+    Eigen::MatrixXd expectedContributionProfile_m = Eigen::MatrixXd::Zero(ES.NumberOfAlleles[m], ES.NumberOfContributors);
+    for (std::size_t u = 0; u < ES.NumberOfContributors; u++)
+    {
+        Eigen::VectorXd decodedProfile_mu = decodedProfile_m.col(u);
+        Eigen::VectorXd stutterContribution = Eigen::VectorXd::Zero(ES.NumberOfAlleles[m]);
+        for (std::size_t a = 0; a < ES.NumberOfAlleles[m]; a++)
+        {
+            stutterContribution[a] = ParentStutterContribution(a, ES.LevelsOfStutterRecursion, 1, decodedProfile_mu, potentialParents_m, ES.NumberOfAlleles[m]);
+        }
+
+        expectedContributionProfile_m.col(u) = decodedProfile_mu + stutterContribution;
+    }
+
+    double noiseProfileSum_m = 0.0;
+    double noiseProfileSize_m = expectedContributionProfile_m.rows();
+    for (std::size_t i = 0; i < noiseProfileSize_m; i++)
+    {
+        const double & ecps = expectedContributionProfile_m.row(i).sum();
+        if (!(ecps > 2e-16))
+        {
+            noiseProfileSum_m++;
+        }
+    }
+
+    Eigen::MatrixXd reducedExpectedContributionMatrix_m = Eigen::MatrixXd::Zero(noiseProfileSize_m - noiseProfileSum_m, ES.NumberOfContributors);
+    Eigen::VectorXd reducedAlleleIndex_m = Eigen::VectorXd::Zero(noiseProfileSize_m - noiseProfileSum_m);
+    Eigen::VectorXd reducedNoiseIndex_m = Eigen::VectorXd::Zero(noiseProfileSum_m);
+
+    std::size_t n = 0;
+    std::size_t i = 0, j = 0;
+    for (std::size_t a = 0; a < ES.NumberOfAlleles[m]; a++)
+    {
+        const Eigen::VectorXd & expectedContributionProfile_mn = expectedContributionProfile_m.row(n);
+
+        if (expectedContributionProfile_mn.sum() > 0)
+        {
+            reducedExpectedContributionMatrix_m.row(i) = expectedContributionProfile_mn;
+            reducedAlleleIndex_m[i] = a;
+            i++;
+        }
+        else
+        {
+            reducedNoiseIndex_m[j] = a;
+            j++;
+        }
+
+        n++;
+    }
+
+    reducedExpectedContributionMatrix[m] = reducedExpectedContributionMatrix_m;
+    reducedAlleleIndex[m] = reducedAlleleIndex_m;
+    reducedNoiseIndex[m] = reducedNoiseIndex_m;
+}
+
+void EvolutionaryAlgorithm::Mutation(Individual & I, const ExperimentalSetup & ES, const std::size_t & seed)
+{
+    boost::random::mt19937 rng(seed);
+    boost::random::uniform_real_distribution<> uniform(0, 1);
+
+    std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
+
+    Eigen::VectorXd E = I.EncodedProfile;
+    Eigen::VectorXd encodedMutation = CreateMutationProbability(I, ES);
+
+    const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix = I.ReducedExpectedContributionMatrix;
+    const std::vector<Eigen::VectorXd> reducedAlleleIndex = I.ReducedAlleleIndex;
+    const std::vector<Eigen::VectorXd> reducedNoiseIndex = I.ReducedNoiseIndex;
+    for (std::size_t m = 0; m < ES.NumberOfMarkers; m++)
+    {
+        std::size_t j = 0;
+        const std::size_t i = 2 * numberOfUnknownContributors * m;
+        for (std::size_t k = 0; k < 2 * numberOfUnknownContributors; k++)
+        {
+            double mutate = uniform(rng);
+            if (mutate < encodedMutation[i + k])
+            {
+                boost::random::uniform_int_distribution<> uniformMutation(1, ES.NumberOfAlleles[m] - 1);
+                int mutationShift = uniformMutation(rng);
+
+                const double E_k = E[i + k];
+                E[i + k] = static_cast<int>(E_k + mutationShift) % static_cast<int>(ES.NumberOfAlleles[m]);
+                j++;
+            }
+        }
+
+        if (j > 0)
+        {
+            updateMarkerIndividual(E, reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, m, ES);
+        }
+    }
+
+    Individual J(E, reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, ES);
+    I = J;
+}
+
 Eigen::VectorXd expectedContributionMatrixRow(const Eigen::VectorXd & E, const ExperimentalSetup & ES,
-                                              const Eigen::VectorXd & partialSumAlleles,
                                               const int & m, const std::size_t & k, const std::size_t & n)
 {
 
@@ -318,7 +387,7 @@ Eigen::VectorXd expectedContributionMatrixRow(const Eigen::VectorXd & E, const E
     {
         for (std::size_t j = 0; j < ES.NumberOfKnownContributors; j++)
         {
-            decodedProfile_m(i, j) = ES.KnownProfiles(partialSumAlleles[m] + i, j);
+            decodedProfile_m(i, j) = ES.KnownProfiles(ES.PartialSumAlleles[m] + i, j);
         }
     }
 
@@ -353,7 +422,6 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
     boost::random::uniform_int_distribution<> randomContributor(0, numberOfUnknownContributors - 1);
     boost::random::uniform_int_distribution<> randomBinary(0, 1);
 
-    Eigen::VectorXd partialSumAlleles = partialSumEigen(ES.NumberOfAlleles);
     for (std::size_t i = 0; i < HillClimbingIterations; i++)
     {
         int stepMarker = randomMarker(rng);
@@ -362,8 +430,8 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
         std::size_t k = 2 * stepMarker * numberOfUnknownContributors + 2 * stepContributor + stepBinary;
 
         // Create n'th row of the decoded and ecm matrix
-        std::size_t n = partialSumAlleles[stepMarker] + I.EncodedProfile[k];
-        Eigen::VectorXd expectedContributionMatrixRow_n_i = expectedContributionMatrixRow(I.EncodedProfile, ES, partialSumAlleles, stepMarker, k, n);
+        std::size_t n = ES.PartialSumAlleles[stepMarker] + I.EncodedProfile[k];
+        Eigen::VectorXd expectedContributionMatrixRow_n_i = expectedContributionMatrixRow(I.EncodedProfile, ES, stepMarker, k, n);
 
         double I_mu_ma = I.SampleParameters[0] * ES.MarkerImbalances[n] * expectedContributionMatrixRow_n_i.transpose() * I.MixtureParameters;
 
@@ -374,9 +442,9 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
             Eigen::VectorXd I_j = I.EncodedProfile;
 
             I_j[k] = static_cast<int>(I_j[k] + j) % static_cast<int>(ES.NumberOfAlleles[stepMarker]);
-            std::size_t m = partialSumAlleles[stepMarker] + I_j[k];
+            std::size_t m = ES.PartialSumAlleles[stepMarker] + I_j[k];
 
-            Eigen::VectorXd expectedContributionMatrixRow_n_j = expectedContributionMatrixRow(I_j, ES, partialSumAlleles, stepMarker, k, m);
+            Eigen::VectorXd expectedContributionMatrixRow_n_j = expectedContributionMatrixRow(I_j, ES, stepMarker, k, m);
             double J_mu_ma = I.SampleParameters[0] * ES.MarkerImbalances[m] * expectedContributionMatrixRow_n_j.transpose() * I.MixtureParameters;
 
             surroundings[j - 1] = I_j;
@@ -386,7 +454,12 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
         Eigen::MatrixXf::Index minIndex;
         double smallestValue = surroundingResiduals.minCoeff(&minIndex);
 
-        Individual K(surroundings[minIndex], ES);
+        std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix = I.ReducedExpectedContributionMatrix;
+        std::vector<Eigen::VectorXd> reducedAlleleIndex = I.ReducedAlleleIndex;
+        std::vector<Eigen::VectorXd> reducedNoiseIndex = I.ReducedNoiseIndex;
+
+        updateMarkerIndividual(surroundings[minIndex], reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, stepMarker, ES);
+        Individual K(surroundings[minIndex], reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, ES);
         if (K.Fitness > I.Fitness)
         {
             I = K;
@@ -411,11 +484,11 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
 
         // Crossover
         std::size_t seedShift_2 = uniformShift(rng);
-        Eigen::VectorXd crossedParents = Crossover(parent, P.Individuals[partnerIndex], seedShift_2);
+        Individual child = Crossover(parent, P.Individuals[partnerIndex], ES, seedShift_2);
 
         // Mutation
         std::size_t seedShift_3 = uniformShift(rng);
-        Individual mutatedChild = Mutation(crossedParents, ES, seedShift_3);
+        Mutation(child, ES, seedShift_3);
 
         if (AllowParentSurvival)
         {
@@ -427,11 +500,11 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
                 RestructingIndividual(parent, ES);
             }
 
-            if (parent.Fitness < mutatedChild.Fitness)
+            if (parent.Fitness < child.Fitness)
             {
                 // Restructuring
-                RestructingIndividual(mutatedChild, ES);
-                childPopulation[i] = mutatedChild;
+                RestructingIndividual(child, ES);
+                childPopulation[i] = child;
             }
             else
             {
@@ -444,12 +517,12 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
             if (HillClimbingIterations != 0)
             {
                 std::size_t seedShiftHillClimbing = uniformShift(rng);
-                HillClimbing(mutatedChild, ES, seedShiftHillClimbing);
+                HillClimbing(child, ES, seedShiftHillClimbing);
             }
 
             // Restructuring
-            RestructingIndividual(mutatedChild, ES);
-            childPopulation[i] = mutatedChild;
+            RestructingIndividual(child, ES);
+            childPopulation[i] = child;
         }
 
 

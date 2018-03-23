@@ -26,7 +26,7 @@ class EvolutionaryAlgorithm
         // Mutation
         double MutationProbabilityLowerLimit;
         double MutationDegreesOfFreedom;
-        Eigen::VectorXd  MutationDecay;
+        Eigen::VectorXd MutationDecay;
         double MutationDecay_t;
 
         double FittestEnsuredSurvivalFraction;
@@ -40,11 +40,13 @@ class EvolutionaryAlgorithm
         // Constructors
         EvolutionaryAlgorithm();
         EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & seed);
+
         EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & numberOfIterations,
                               const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
                               const int & parentSelectionWindowSize, const bool & allowParentSurvival, const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
                               const double & mutationDegreesOfFreedom, const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
                               const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations, const std::size_t & seed);
+
         EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P, const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
                               const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool & allowParentSurvival,
                               const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
@@ -58,11 +60,10 @@ class EvolutionaryAlgorithm
 
         std::size_t ChoosePartner(const Population & P, int currentIndividual, const std::size_t & seed);
 
-        Eigen::VectorXd Crossover(const Individual & I, const Individual & J, const std::size_t & seed);
+        Individual Crossover(const Individual & I, const Individual & J, const ExperimentalSetup & ES, const std::size_t & seed);
 
         Eigen::VectorXd CreateMutationProbability(Individual & I, const ExperimentalSetup & ES);
-        Eigen::VectorXd EncodeMutationProbability(Eigen::VectorXd & mutationProability, Individual & I, ExperimentalSetup & ES);
-        Individual Mutation(Eigen::VectorXd & E, ExperimentalSetup & ES, const std::size_t & seed);
+        void Mutation(Individual & I, const ExperimentalSetup & ES, const std::size_t & seed);
 
         void HillClimbing(Individual & I, ExperimentalSetup & ES, const std::size_t & seed);
 

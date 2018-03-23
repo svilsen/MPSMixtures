@@ -77,6 +77,20 @@ Individual::Individual(const Eigen::VectorXd & encodedGenotype, const Eigen::Vec
     Fitness = fitness;
 }
 
+Individual::Individual(const Eigen::VectorXd & encodedGenotype, const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix,
+                       const std::vector<Eigen::VectorXd> reducedAlleleIndex, const std::vector<Eigen::VectorXd> reducedNoiseIndex,
+                       const ExperimentalSetup & ES)
+{
+    EncodedProfile = encodedGenotype;
+
+    ReducedExpectedContributionMatrix = reducedExpectedContributionMatrix;
+    ReducedAlleleIndex = reducedAlleleIndex;
+    ReducedNoiseIndex = reducedNoiseIndex;
+
+    Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
+    EstimateParameters(ES);
+    CalculateFitness(ES, decodedProfile);
+}
 
 double ParentStutterContribution(const std::size_t & currentAllele, const std::size_t & stutterRecursion, const double & levelOfRecursion,
                                  const Eigen::VectorXd & decodedProfile_mu, const std::vector<Eigen::MatrixXd> & potentialParents_m, const double & numberOfAlleles_m)

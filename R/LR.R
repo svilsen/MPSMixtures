@@ -33,9 +33,9 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
 
     if ((numberOfContributors - numberOfKnownContributors) == 0) {
         creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
-                                                    numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
-                                                    control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion)
+                                                     numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
+                                                     sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
+                                                     control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion)
 
         optimalUnknownProfiles <- list(creatingIndividualObject)
     }
@@ -43,24 +43,33 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
         crossoverProbability <- ifelse(is.null(control$crossoverProbability), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$crossoverProbability)
         mutationProbabilityLowerLimit <- ifelse(is.null(control$mutationProbabilityLowerLimit), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$mutationProbabilityLowerLimit)
 
+        mutationDecay = control$mutationDecay
         if (control$numberOfPopulations == 1) {
+            if (is.null(mutationDecay)) {
+                mutationDecay <- c(seq(1, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / control$numberOfIterations)), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations - floor(control$mutationDecayRate / control$numberOfIterations)))
+            }
+
             optimalUnknownProfiles <- .runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                   sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
-                                                                                   control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
-                                                                                   control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
-                                                                                   control$mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
-                                                                                   control$seed, control$trace, control$levelsOfStutterRecursion)
+                                                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                                                    control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
+                                                                                    control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
+                                                                                    mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
+                                                                                    control$seed, control$trace, control$levelsOfStutterRecursion)
 
             optimalUnknownProfiles <- optimalUnknownProfiles[order(sapply(optimalUnknownProfiles, function(oup) oup$Fitness), decreasing = TRUE)]
         }
         else {
+            if (is.null(mutationDecay)) {
+                mutationDecay <- c(seq(1, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations * control$numberOfInnerIterations - floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))))
+            }
+
             optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                     sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
-                                                                                     control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
-                                                                                     control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
-                                                                                     control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
-                                                                                     control$mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
-                                                                                     control$seed, control$trace, control$numberOfThreads, control$levelsOfStutterRecursion)
+                                                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                                                      control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
+                                                                                      control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
+                                                                                      control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
+                                                                                      mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
+                                                                                      control$seed, control$trace, control$numberOfThreads, control$levelsOfStutterRecursion)
         }
     }
 
@@ -105,7 +114,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
 LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIterations = 25, numberOfInnerIterations = 10,
                        numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
                        parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
-                       mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
+                       mutationDecayRate = 1 / 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
                        convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
 
     if (numberOfPopulations == 1) {
@@ -116,15 +125,6 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
     }
 
     fractionOfPopulationsMax <- if (is.null(fractionOfPopulationsMax)) max(c(0.05, 1 / numberOfPopulations)) else fractionOfPopulationsMax
-
-    if (is.null(mutationDecay)) {
-        if (numberOfPopulations == 1) {
-            mutationDecay <- seq(0, by = mutationDecayRate * 4 / (numberOfIterations), length.out = numberOfIterations)
-        }
-        else {
-            mutationDecay <- seq(0, by = mutationDecayRate * 4 / (numberOfIterations * numberOfInnerIterations), length.out = numberOfIterations * numberOfInnerIterations)
-        }
-    }
 
     seed <- if(is.null(seed)) sample(1e6, 1) else seed
 
@@ -218,9 +218,9 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
         LHdNormaliser <- max(sapply(optimalUnknownGenotypesHd_i, function(hh) hh$Fitness))
 
         parametersLRHp <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
-                                                            Hp[[i]]$NumberOfContributors, LHpNormaliser)
+                                                             Hp[[i]]$NumberOfContributors, LHpNormaliser)
         parametersLRHd <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
-                                                            Hd[[i]]$NumberOfContributors, LHdNormaliser)
+                                                             Hd[[i]]$NumberOfContributors, LHdNormaliser)
 
         logLR = log(parametersLRHp$Likelihood) + LHpNormaliser - log(parametersLRHd$Likelihood) - LHdNormaliser
 

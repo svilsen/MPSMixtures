@@ -110,8 +110,11 @@ Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, co
         {
             const std::size_t & n = partialSumAlleles[m] + alleleIndex_m[a];
 
-            const double & mu_ma = referenceMarkerAverage * markerImbalances[m] * expectedContribution[a];
-            logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, mu_ma / dispersion);
+            double mu_ma = referenceMarkerAverage * markerImbalances[m] * expectedContribution[a];
+            if (expectedContribution[a] > 0)
+            {
+                logLikelihood_m += logPoissonGammaDistribution(coverage[n], mu_ma, mu_ma / dispersion);
+            }
         }
 
         logLikelihood[m] = logLikelihood_m;

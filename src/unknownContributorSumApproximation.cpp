@@ -132,11 +132,59 @@ struct sampledPriorGenotype {
         encodedGenotype(encodedGenotype_), priorProbability(priorProbability_) {};
 };
 
+Eigen::MatrixXd expectedContributionMarker(const Eigen::MatrixXd & genotype, const std::vector<Eigen::MatrixXd> &potentialParents_m,
+                                           const double & levelsOfStutterRecursion)
+{
+    const std::size_t & N = genotype.rows();
+    const std::size_t & M = genotype.cols();
+
+    Eigen::MatrixXd expectedContributionProfile_m = Eigen::MatrixXd::Zero(N, M);
+    for (std::size_t u = 0; u < M; u++)
+    {
+        Eigen::VectorXd genotype_u = genotype.col(u);
+        Eigen::VectorXd stutterContribution = Eigen::VectorXd::Zero(N);
+        for (std::size_t n = 0; n < N; n++)
+        {
+            stutterContribution[n] = ParentStutterContribution(n, levelsOfStutterRecursion, 1, genotype_u, potentialParents_m, N);
+        }
+
+        expectedContributionProfile_m.col(u) = genotype_u + stutterContribution;
+    }
+
+    return expectedContributionProfile_m;
+}
+
+
+void adjustCoverage(Eigen::VectorXd & adjustedCoverage, const double & sampleParameter, const Eigen::VectorXd & mixtureParamters,
+                    const double & markerParameter, const Eigen::MatrixXd & genotype, const std::vector< Eigen::MatrixXd > & potentialParents_m,
+                    const double & levelsOfStutterRecursion)
+{
+    const std::size_t & N = adjustedCoverage.size();
+    const Eigen::VectorXd & E_c = expectedContributionMarker(genotype, potentialParents_m, levelsOfStutterRecursion);
+    const Eigen::VectorXd & mu_ma = sampleParameter * markerParameter * (E_c * mixtureParamters);
+
+    adjustedCoverage = adjustedCoverage - mu_ma;
+    for (std::size_t n = 0; n < N; n++)
+    {
+        if (adjustedCoverage[n] <= 0.0)
+        {
+            adjustedCoverage[n] = std::exp(adjustedCoverage[n]);
+        }
+
+    }
+}
 
 double calculatePriorProbabiliy(const Eigen::VectorXd & E, const Eigen::MatrixXd &knownProfiles, const Eigen::VectorXd &coverage,
+                                std::vector<Eigen::MatrixXd> potentialParents_m,
                                 const double &sampleParameter, const Eigen::VectorXd &mixtureParameters, const double &markerParameter,
-                                const std::size_t & numberOfContributors, const bool &suggestionBool)
+                                const std::size_t & numberOfContributors, const double & levelsOfStutterRecursion,
+                                const bool &suggestionBool)
 {
+    if (!suggestionBool)
+    {
+        return 0.0;
+    }
+
     const std::size_t numberOfKnownContributors = knownProfiles.cols();
     const std::size_t N = E.size();
     const std::size_t M = coverage.size();
@@ -147,36 +195,43 @@ double calculatePriorProbabiliy(const Eigen::VectorXd & E, const Eigen::MatrixXd
         genotype.col(k) = knownProfiles.col(k);
     }
 
+    Eigen::VectorXd adjustedCoverage = coverage;
+    if (suggestionBool)
+    {
+        adjustCoverage(adjustedCoverage, sampleParameter, mixtureParameters, markerParameter, genotype, potentialParents_m, levelsOfStutterRecursion);
+    }
+    else
+    {
+        adjustedCoverage = Eigen::VectorXd::Ones(M);
+    }
+
     double priorProbability = 0.0;
-    Eigen::VectorXd adjustedCoverage = Eigen::VectorXd::Ones(M);
     for (std::size_t n = 0; n < N; n++)
     {
-        if (suggestionBool)
-        {
-            adjustedCoverage = coverage - (markerParameter * sampleParameter) * (genotype * mixtureParameters);
-            for (std::size_t m = 0; m < M; m++)
-            {
-                if (adjustedCoverage[m] < 0.0)
-                {
-                    adjustedCoverage[m] = 1.0;
-                }
-            }
-        }
-
         std::size_t u = std::floor(n / 2);
         Eigen::VectorXd proportionalProbability = adjustedCoverage / adjustedCoverage.sum();
 
         genotype(E[n], numberOfKnownContributors + u) += 1.0;
-        priorProbability += std::log(proportionalProbability[E[n]]);
 
+        if (suggestionBool)
+        {
+            Eigen::VectorXd singleAllele = Eigen::VectorXd::Zero(M);
+            singleAllele[E[n]] = 1.0;
+
+            priorProbability += std::log(proportionalProbability[E[n]]);
+            adjustCoverage(adjustedCoverage, sampleParameter, mixtureParameters.row(u), markerParameter, singleAllele, potentialParents_m,
+                           levelsOfStutterRecursion);
+        }
     }
 
     return priorProbability;
 }
 
 sampledPriorGenotype samplePriorGenotypeMarker(const Eigen::MatrixXd &knownProfiles, const Eigen::VectorXd &coverage,
+                                               const std::vector<Eigen::MatrixXd> &potentialParents_m,
                                                const double &sampleParameter, const Eigen::VectorXd &mixtureParameters,
-                                               const double &markerParameter, const std::size_t numberOfContributors, const bool & suggestionBool,
+                                               const double &markerParameter, const std::size_t numberOfContributors,
+                                               const double &levelsOfStutterRecursion, const bool & suggestionBool,
                                                const std::size_t &seed)
 {
     boost::random::mt19937 rng(seed);
@@ -185,11 +240,18 @@ sampledPriorGenotype samplePriorGenotypeMarker(const Eigen::MatrixXd &knownProfi
     const std::size_t &N = coverage.size();
     const std::size_t &numberOfKnownContributors = knownProfiles.cols();
     const std::size_t &numberOfUnknownContributors = numberOfContributors - numberOfKnownContributors;
-    Eigen::VectorXd adjustedCoverage = Eigen::VectorXd::Ones(N);
 
     Eigen::MatrixXd sampledGenotype = Eigen::MatrixXd::Zero(N, numberOfContributors);
     for (std::size_t k = 0; k < numberOfKnownContributors; k++)
         sampledGenotype.col(k) = knownProfiles.col(k);
+
+    Eigen::VectorXd adjustedCoverage = Eigen::VectorXd::Ones(N);
+    if (suggestionBool)
+    {
+        adjustedCoverage = coverage;
+        adjustCoverage(adjustedCoverage, sampleParameter, mixtureParameters, markerParameter, sampledGenotype, potentialParents_m,
+                       levelsOfStutterRecursion);
+    }
 
     Eigen::VectorXd sampledGenotypeEncoded = Eigen::VectorXd::Zero(2 * numberOfUnknownContributors);
     double sampledPriorProbability = 0.0;
@@ -197,18 +259,6 @@ sampledPriorGenotype samplePriorGenotypeMarker(const Eigen::MatrixXd &knownProfi
     {
         for (std::size_t i = 0; i < 2; i++)
         {
-            if (suggestionBool)
-            {
-                adjustedCoverage = coverage - (markerParameter * sampleParameter) * (sampledGenotype * mixtureParameters);
-                for (std::size_t n = 0; n < N; n++)
-                {
-                    if (adjustedCoverage[n] < 0.0)
-                    {
-                        adjustedCoverage[n] = 1.0;
-                    }
-                }
-            }
-
             Eigen::VectorXd proportionalProbability = adjustedCoverage / adjustedCoverage.sum();
             Eigen::VectorXd partialSumProportionalProbability = partialSumEigen(proportionalProbability);
             double randomVariate = uniform(rng);
@@ -217,7 +267,16 @@ sampledPriorGenotype samplePriorGenotypeMarker(const Eigen::MatrixXd &knownProfi
                 j++;
 
             sampledGenotype(j, numberOfKnownContributors + u) += 1.0;
-            sampledPriorProbability += std::log(proportionalProbability[j]);
+
+            if (suggestionBool)
+            {
+                Eigen::VectorXd singleAllele = Eigen::VectorXd::Zero(N);
+                singleAllele[j] = 1.0;
+
+                sampledPriorProbability += std::log(proportionalProbability[j]);
+                adjustCoverage(adjustedCoverage, sampleParameter, mixtureParameters.row(u), markerParameter, singleAllele, potentialParents_m,
+                               levelsOfStutterRecursion);
+            }
 
             if (i == 0)
             {
@@ -243,16 +302,16 @@ sampledPriorGenotype samplePriorGenotypeMarker(const Eigen::MatrixXd &knownProfi
 }
 
 //[[Rcpp::export(.samplePosteriorGenotypesGuidedCpp)]]
-std::vector<Eigen::MatrixXd> samplePosteriorGenotypesGuidedCpp(const Eigen::VectorXd & encodedProfiles, const Eigen::VectorXd & sampleParameters,
-                                                               const Eigen::VectorXd & noiseParameters, const Eigen::VectorXd & mixtureParameters,
-                                                               const Eigen::VectorXd markerParameters, const Eigen::VectorXd & coverage,
-                                                               const std::vector< std::vector< Eigen::MatrixXd > > potentialParents,
-                                                               const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
-                                                               const Eigen::VectorXd & alleleFrequencies, const double & theta,
-                                                               const std::size_t & numberOfContributors,  const Eigen::VectorXd & numberOfAlleles,
-                                                               const std::size_t & levelsOfStutterRecursion,
-                                                               const std::size_t &numberOfSimulations, const bool & suggestionBool,
-                                                               const std::size_t &seed)
+Rcpp::List samplePosteriorGenotypesGuidedCpp(const Eigen::VectorXd & encodedProfiles, const Eigen::VectorXd & sampleParameters,
+                                             const Eigen::VectorXd & noiseParameters, const Eigen::VectorXd & mixtureParameters,
+                                             const Eigen::VectorXd markerParameters, const Eigen::VectorXd & coverage,
+                                             const std::vector< std::vector< Eigen::MatrixXd > > potentialParents,
+                                             const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
+                                             const Eigen::VectorXd & alleleFrequencies, const double & theta,
+                                             const std::size_t & numberOfContributors,  const Eigen::VectorXd & numberOfAlleles,
+                                             const std::size_t & levelsOfStutterRecursion,
+                                             const std::size_t &numberOfSimulations, const bool & suggestionBool,
+                                             const std::size_t &seed)
 {
     boost::random::mt19937 rng(seed);
     boost::random::uniform_int_distribution<> seedShift(0, seed);
@@ -260,34 +319,37 @@ std::vector<Eigen::MatrixXd> samplePosteriorGenotypesGuidedCpp(const Eigen::Vect
 
     const std::size_t &numberOfKnownContributors = knownProfiles.cols();
     const std::size_t &numberOfMarkers = numberOfAlleles.size();
-    const Eigen::VectorXd &partialSumAlleles = partialSumEigen(numberOfAlleles);
 
     const ExperimentalSetup ES(1, numberOfAlleles, numberOfContributors, numberOfKnownContributors,
                                knownProfiles, allKnownProfiles, coverage, potentialParents, markerParameters, 0.0,
                                0.0, theta, alleleFrequencies, levelsOfStutterRecursion);
 
     Eigen::VectorXd currentEncodedGenotype = encodedProfiles;
-    double currentPriorProbability = calculatePriorProbabiliy(currentEncodedGenotype, knownProfiles, coverage, sampleParameters[0], mixtureParameters,
-                                                              markerParameters[0], numberOfContributors, suggestionBool);
+    double currentPriorProbability = calculatePriorProbabiliy(currentEncodedGenotype, knownProfiles, coverage,
+                                                              potentialParents[0], sampleParameters[0], mixtureParameters,
+                                                              markerParameters[0], numberOfContributors, levelsOfStutterRecursion,
+                                                              suggestionBool);
 
     Individual currentI(currentEncodedGenotype, sampleParameters, noiseParameters, mixtureParameters, markerParameters, ES);
     double currentLogLikelihood = currentI.Fitness;
 
     std::vector<Eigen::MatrixXd> sampledGenotypeList(numberOfSimulations);
+    double acceptedProposals = 0.0;
     for (std::size_t n = 0; n < numberOfSimulations; n++)
     {
         int seedShift_n = seedShift(rng);
-        sampledPriorGenotype newGenotype = samplePriorGenotypeMarker(knownProfiles, coverage, sampleParameters[0], mixtureParameters,
-                                                                     markerParameters[0], numberOfContributors, suggestionBool,
-                                                                     seed + n + seedShift_n);
+        const sampledPriorGenotype & newGenotype = samplePriorGenotypeMarker(knownProfiles, coverage, potentialParents[0],
+                                                                             sampleParameters[0], mixtureParameters,
+                                                                             markerParameters[0], numberOfContributors, levelsOfStutterRecursion,
+                                                                             suggestionBool, seed + n + seedShift_n);
 
-        Eigen::VectorXd newEncodedGenotype = newGenotype.encodedGenotype;
-        double newPriorProbability = newGenotype.priorProbability;
+        const Eigen::VectorXd & newEncodedGenotype = newGenotype.encodedGenotype;
+        const double & newPriorProbability = newGenotype.priorProbability;
 
-        Individual newI(newEncodedGenotype, sampleParameters, noiseParameters, mixtureParameters, markerParameters, ES);
-        double newLogLikelihood = newI.Fitness;
+        const Individual newI(newEncodedGenotype, sampleParameters, noiseParameters, mixtureParameters, markerParameters, ES);
+        const double & newLogLikelihood = newI.Fitness;
 
-        double logHastingsRatio = newLogLikelihood - currentLogLikelihood + currentPriorProbability - newPriorProbability;
+        const double & logHastingsRatio = newLogLikelihood - currentLogLikelihood + currentPriorProbability - newPriorProbability;
         double acceptProbability = 1.0;
         if (logHastingsRatio < 0)
         {
@@ -300,12 +362,14 @@ std::vector<Eigen::MatrixXd> samplePosteriorGenotypesGuidedCpp(const Eigen::Vect
             currentEncodedGenotype = newEncodedGenotype;
             currentPriorProbability = newPriorProbability;
             currentLogLikelihood = newLogLikelihood;
+            acceptedProposals += 1;
         }
 
-        Eigen::MatrixXd currentDecodedGenotype = decoding(currentEncodedGenotype, numberOfAlleles, 1, numberOfContributors - numberOfKnownContributors);
+        Eigen::MatrixXd currentDecodedGenotype = decoding(currentEncodedGenotype, numberOfAlleles, 1,
+                                                          numberOfContributors - numberOfKnownContributors);
         sampledGenotypeList[n] = currentDecodedGenotype;
     }
 
-    return sampledGenotypeList;
+    return Rcpp::List::create(Rcpp::Named("SampledGenotypes") = sampledGenotypeList,
+                              Rcpp::Named("AcceptedProposals") = acceptedProposals);
 }
-

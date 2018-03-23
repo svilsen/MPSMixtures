@@ -88,7 +88,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 ####################
 
 .oneStepApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
-                                  optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, returnSimplified, numberOfSimulations, suggestionPrior) {
+                                  optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, returnSimplified, potentialParentsList, numberOfSimulations, suggestionPrior) {
 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     oneStep <- mclapply(seq_along(numberOfAlleles), function(m) {
@@ -120,7 +120,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 }
 
 .EAApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
-                             optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, numberOfSimulations, suggestionPrior) {
+                             optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList, numberOfSimulations, suggestionPrior) {
 
     EAApproximation_m <- mclapply(seq_along(numberOfAlleles), function(m) {
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
@@ -152,8 +152,10 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     return(res)
 }
 
+
+# levelsOfStutterRecursion = control$levelsOfStutterRecursion; numberOfThreads = 1; simplifiedReturn = control$simplifiedReturn; numberOfSimulationsMH = control$numberOfSimulationsMH; suggestionMH = control$suggestionMH
 .samplePosteriorGenotypes <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
-                                            optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, numberOfSimulationsMH, suggestionMH) {
+                                            optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList, numberOfSimulationsMH, suggestionMH) {
     suggestionBool = switch(tolower(suggestionMH),
                              "guided" = TRUE,
                              "random" = FALSE)
@@ -161,7 +163,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     sampledPosterior <- mclapply(seq_along(numberOfAlleles), function(m) {
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        sampledGenotypes <- .samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
+        sampledGenotypesAll <- MPSMixtures:::.samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
                                             estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters,
                                             estimatedParameters$MixtureParameters, estimatedParameters$MarkerImbalanceParameters[m],
                                             sampleTibble$Coverage[markerIndices], potentialParentsList[m],
@@ -170,8 +172,9 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
                                             numberOfAlleles[m], levelsOfStutterRecursion,
                                             numberOfSimulationsMH, suggestionBool, sample(1e6, 1))
 
+        sampledGenotypes = sampledGenotypesAll[[1]]
 
-        (uniqueGenotypes = unique(sampledGenotypes))
+        uniqueGenotypes = unique(sampledGenotypes)
         countUniqueGenotypes = rep(NA, length(uniqueGenotypes))
         for (i in seq_along(uniqueGenotypes)) {
             countUniqueGenotypes[i] = sum(sapply(sampledGenotypes, function(xx) all(xx == uniqueGenotypes[[i]])))
@@ -181,7 +184,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
         sorted <- order(posteriorProb, decreasing = T)
 
         res <- list(GenotypeMatrix = sampledGenotypes[sorted], LogUnnormalisedProbabilitySum = NULL, LogUnnormalisedProbability = NULL,
-                    NormalisedProbabilities = posteriorProb[sorted])
+                    NormalisedProbabilities = posteriorProb[sorted], AcceptedProposals = sampledGenotypesAll[[2]], AcceptRate = sampledGenotypesAll[[2]] / numberOfSimulationsMH)
         return(res)
     }, mc.cores = numberOfThreads)
 
@@ -216,9 +219,9 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
                                                         control = optimalUnknownProfileCombination.control()) {
     method = tolower(method)
     approximationMethod <- switch (method,
-                                   'ea' = .EAApproximation,
-                                   'onestep' = .oneStepApproximation,
-                                   'mh' = .samplePosteriorGenotypes
+                                   'ea' = MPSMixtures:::.EAApproximation,
+                                   'onestep' = MPSMixtures:::.oneStepApproximation,
+                                   'mh' = MPSMixtures:::.samplePosteriorGenotypes
     )
 
     if (is.null(potentialParentsList)) {
@@ -248,7 +251,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
 
     res <- approximationMethod(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles,
                                estimatedParameters, optimalCombinationIndex, control$levelsOfStutterRecursion, control$numberOfThreads,
-                               control$simplifiedReturn, control$numberOfSimulationsMH, control$suggestionMH)
+                               control$simplifiedReturn, potentialParentsList, control$numberOfSimulationsMH, control$suggestionMH)
 
     class(res) <- "setOfUnknownGenotypes"
     return(res)
@@ -257,9 +260,25 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
 
 head.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
     res <- vector("list", length(setOfUnknownGenotypesList))
+    argsList <- list(...)
+
+    if (is.null(argsList$outputElements)) {
+        outputElements <- 1:length(setOfUnknownGenotypesList[[1]])
+    }
+    else {
+        outputElements <- which(names(setOfUnknownGenotypesList[[1]]) %in% argsList$outputElements)
+    }
+
+    if (length(argsList$outputElements) != length(outputElements)) {
+        elementsNotFound <- argsList$outputElements[-which(argsList$outputElements %in% names(setOfUnknownGenotypesList[[1]]))]
+        objList <- ifelse(length(elementsNotFound) == 1, paste0(elementsNotFound[length(elementsNotFound)], "."),
+                          paste0(paste(elementsNotFound[-length(elementsNotFound)], collapse = ", " ), ", and ", elementsNotFound[length(elementsNotFound)], "."))
+
+        warning(paste0("The following requested elements were not found in the 'setOfUnknownGenotypesList' object: ", objList))
+    }
 
     for (m in seq_along(setOfUnknownGenotypesList)) {
-        res[[m]] <- lapply(setOfUnknownGenotypesList[[m]], function(xx) xx[1:min(length(xx), n)])
+        res[[m]] <- lapply(setOfUnknownGenotypesList[[m]][outputElements], function(xx) xx[1:min(length(xx), n)])
     }
 
     return(res)
@@ -268,9 +287,25 @@ head.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
 
 tail.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
     res <- vector("list", length(setOfUnknownGenotypesList))
+    argsList <- list(...)
+
+    if (is.null(argsList$outputElements)) {
+        outputElements <- 1:length(setOfUnknownGenotypesList[[1]])
+    }
+    else {
+        outputElements <- which(names(setOfUnknownGenotypesList[[1]]) %in% argsList$outputElements)
+    }
+
+    if (length(argsList$outputElements) != length(outputElements)) {
+        elementsNotFound <- argsList$outputElements[-which(argsList$outputElements %in% names(setOfUnknownGenotypesList[[1]]))]
+        objList <- ifelse(length(elementsNotFound) == 1, paste0(elementsNotFound[length(elementsNotFound)], "."),
+                          paste0(paste(elementsNotFound[-length(elementsNotFound)], collapse = ", " ), ", and ", elementsNotFound[length(elementsNotFound)], "."))
+
+        warning(paste0("The following requested elements were not found in the 'setOfUnknownGenotypesList' object: ", objList))
+    }
 
     for (m in seq_along(setOfUnknownGenotypesList)) {
-        res[[m]] <- lapply(setOfUnknownGenotypesList[[m]], function(xx) xx[max(1, length(xx) - n):length(xx)])
+        res[[m]] <- lapply(setOfUnknownGenotypesList[[m]][outputElements], function(xx) xx[max(1, length(xx) - n):length(xx)])
     }
 
     return(res)

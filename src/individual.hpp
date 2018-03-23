@@ -49,6 +49,7 @@ class Individual
                    const Eigen::VectorXd & mixtureParameters, const Eigen::VectorXd & markerParameters, const ExperimentalSetup & ES);
 
         Individual(const Eigen::VectorXd & encodedGenotype, const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix,
+                   const std::vector<Eigen::VectorXd> reducedAlleleIndex, const std::vector<Eigen::VectorXd> reducedNoiseIndex,
                    const ExperimentalSetup & ES);
 
         // ECM, Genotype, noise, etc. functions
