@@ -12,7 +12,7 @@
 #include "estimatePoissonGammaParameters.hpp"
 #include "AuxiliaryFunctions.hpp"
 
-#include "nlopt.hpp"
+#include "nlopt_mod.hpp"
 
 // Allele coverage
 EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::MatrixXd> & expectedContributionMatrix,
@@ -126,7 +126,12 @@ double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<dou
                 EC_n += (ExpectedContributionMatrix_ma[c] - ExpectedContributionMatrix_ma[C - 1]) * x[S + c];
             }
 
-            const double & mu_ma = referenceMarkerAverage * MarkerImbalances[m] * EC_n;
+            double mu_ma = referenceMarkerAverage * MarkerImbalances[m] * EC_n;
+            if (!(mu_ma > 0.0))
+            {
+                mu_ma += 2e-16;
+            }
+
             logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion);
 
             if (!grad.empty())
@@ -204,6 +209,7 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     individualOptimisation.set_max_objective(logLikelihoodAlleleCoverage, &EPGA);
 
     individualOptimisation.set_ftol_rel(EPGA.ToleranceFRelative);
+    individualOptimisation.set_xtol_abs(100 * EPGA.ToleranceFRelative);
     individualOptimisation.set_maxeval(EPGA.MaximumNumberOfIterations);
 
     double logLikelihood;
@@ -308,6 +314,7 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     individualOptimisation.set_max_objective(logLikelihoodNoiseCoverage, &EPGN);
 
     individualOptimisation.set_ftol_rel(EPGN.ToleranceFRelative);
+    individualOptimisation.set_xtol_abs(100 * EPGN.ToleranceFRelative);
     individualOptimisation.set_maxeval(EPGN.MaximumNumberOfIterations);
 
     double logLikelihood;
