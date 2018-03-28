@@ -15,7 +15,7 @@ LR.control(numberOfPopulations = 4, populationSize = 10,
   hillClimbingIterations = 1, convexMarkerImbalanceInterpolation = 0.8,
   tolerance = 1e-06, seed = NULL, trace = TRUE,
   simplifiedReturn = FALSE, numberOfThreads = 4,
-  levelsOfStutterRecursion = 2)
+  levelsOfStutterRecursion = 2, traceLimit = 100)
 }
 \arguments{
 \item{numberOfPopulations}{The number of sub-populations.}

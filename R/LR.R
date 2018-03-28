@@ -69,7 +69,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
                                                                                       control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
                                                                                       control$parentSelectionWindowSize, control$allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, control$mutationDegreesOfFreedom,
                                                                                       mutationDecay, control$hillClimbingDirections, control$hillClimbingIterations,
-                                                                                      control$seed, control$trace, control$numberOfThreads, control$levelsOfStutterRecursion)
+                                                                                      control$seed, control$trace, control$numberOfThreads, control$levelsOfStutterRecursion, control$traceLimit)
         }
     }
 
@@ -115,7 +115,8 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                        numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
                        parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
                        mutationDecayRate = 1 / 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
-                       convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2) {
+                       convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2,
+                       traceLimit = 100) {
 
     if (numberOfPopulations == 1) {
         numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else min(numberOfFittestIndividuals, populationSize)
@@ -129,17 +130,17 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
     seed <- if(is.null(seed)) sample(1e6, 1) else seed
 
     if (length(tolerance) == 1) {
-        tolerance = c(tolerance, rep(1e-4, 3))
+        tolerance = c(tolerance, -rep(1e-4, 3))
     }
     else if (length(tolerance) == 2) {
-        tolerance = c(tolerance, 1e-4, 1e-4)
+        tolerance = c(tolerance, -1e-4, -1e-4)
     }
     else if (length(tolerance) == 3) {
-        tolerance = c(tolerance, 1e-4)
+        tolerance = c(tolerance, -1e-4)
     }
 
     if (length(tolerance) != 4) {
-        tolerance = c(1e-6, rep(1e-4, 3))
+        tolerance = c(1e-8, -rep(1e-4, 3))
     }
 
     controlList <- list(numberOfPopulations = numberOfPopulations, populationSize = populationSize, numberOfIterations = numberOfIterations,
@@ -148,7 +149,8 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
                         numberOfFittestIndividuals = numberOfFittestIndividuals, parentSelectionWindowSize = parentSelectionWindowSize, allowParentSurvival = allowParentSurvival, crossoverProbability = crossoverProbability,
                         mutationProbabilityLowerLimit = mutationProbabilityLowerLimit, mutationDegreesOfFreedom = mutationDegreesOfFreedom, mutationDecayRate = mutationDecayRate,
                         mutationDecay = mutationDecay, fractionFittestIndividuals = 1.0, hillClimbingDirections = hillClimbingDirections, hillClimbingIterations = hillClimbingIterations,
-                        convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation, tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion)
+                        convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation, tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion,
+                        traceLimit = traceLimit)
     return(controlList)
 }
 

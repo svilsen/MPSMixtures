@@ -178,7 +178,8 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
 
     // Optimiser
     // nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, S + M - 1);
-    nlopt::opt individualOptimisation(nlopt::LD_LBFGS, S + C - 1);
+    // nlopt::opt individualOptimisation(nlopt::LD_LBFGS, S + C - 1);
+    nlopt::opt individualOptimisation(nlopt::LD_SLSQP, S + C - 1);
 
     // Box-constraints
     std::size_t N = EPGA.Coverage.size();
@@ -216,7 +217,6 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     individualOptimisation.set_maxeval(EPGA.MaximumNumberOfIterations);
 
     double logLikelihood;
-
     nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
 
     EPGA.LogLikelihood = logLikelihood;
@@ -305,7 +305,7 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     std::vector<double> parameters = EigenSTD(EPGN.NoiseParameters);
 
     // Optimiser
-    nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, N);
+    nlopt::opt individualOptimisation(nlopt::LN_SBPLX, N);
 
     // Box-constraints
     std::vector<double> lowerBound(N), upperBound(N, HUGE_VAL);

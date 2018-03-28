@@ -38,15 +38,8 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalance, kno
 #'
 #' @return A list of default parameters.
 #' @export
-optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIterations = 25, numberOfInnerIterations = 10,
-                                                     numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
-                                                     parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
-                                                     mutationDecayRate = 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingDirections = 1, hillClimbingIterations = 1,
-                                                     convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, numberOfThreads = 4, levelsOfStutterRecursion = 2,
-                                                     numberOfSimulationsMH = 10000, suggestionMH = "guided") {
-    controlList <- LR.control(numberOfPopulations, populationSize, numberOfIterations, numberOfInnerIterations, numberOfIterationsEqualMinMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
-                              parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecayRate,
-                              mutationDecay, fractionFittestIndividuals, hillClimbingDirections, hillClimbingIterations, convexMarkerImbalanceInterpolation, tolerance, seed, trace, FALSE, numberOfThreads, levelsOfStutterRecursion)
+optimalUnknownProfileCombination.control <- function(..., numberOfSimulationsMH = 10000, suggestionMH = "guided") {
+    controlList <- LR.control(...)
 
     controlList$numberOfSimulationsMH <- numberOfSimulationsMH
     controlList$suggestionMH <- suggestionMH

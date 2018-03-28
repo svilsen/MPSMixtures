@@ -4,18 +4,7 @@
 \alias{optimalUnknownProfileCombination.control}
 \title{Control function for the 'optimalUnknownProfileCombination' function}
 \usage{
-optimalUnknownProfileCombination.control(numberOfPopulations = 4,
-  populationSize = 10, numberOfIterations = 25,
-  numberOfInnerIterations = 10, numberOfIterationsEqualMinMax = 10,
-  fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
-  parentSelectionWindowSize = 5, allowParentSurvival = TRUE,
-  crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL,
-  mutationDegreesOfFreedom = 100, mutationDecayRate = 2,
-  mutationDecay = NULL, fractionFittestIndividuals = 1,
-  hillClimbingDirections = 1, hillClimbingIterations = 1,
-  convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-06,
-  seed = NULL, trace = TRUE, numberOfThreads = 4,
-  levelsOfStutterRecursion = 2, numberOfSimulationsMH = 10000,
+optimalUnknownProfileCombination.control(..., numberOfSimulationsMH = 10000,
   suggestionMH = "guided")
 }
 \value{

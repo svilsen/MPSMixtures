@@ -43,7 +43,7 @@
                                                             numberOfIterationsEqualMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
                                                             parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
                                                             mutationDecay, hillClimbingDirections, hillClimbingIterations,
-                                                            seed, trace, numberOfMaxThreads, levelsOfStutterRecursion) {
+                                                            seed, trace, numberOfMaxThreads, levelsOfStutterRecursion, traceLimit) {
     if (length(seed) == 1) {
         seed = sample(1:1e6, numberOfPopulations)
     }
@@ -112,14 +112,16 @@
         j = j + 1
         converged = (k == numberOfIterationsEqualMax) | (j == numberOfIterations)
 
-        if (trace)
-            cat("\tOuter iteration:", j, "\n",
-                "\t\tFitness:\n",
-                "\t\t  Highest:", max(populationFitness), "\n",
-                "\t\t  Average:", mean(populationFitness), "\n",
-                "\t\t  Lowest:", min(populationFitness), "\n",
-                "\t\tSubpopulations /w unique maxima:", fractionOfUniqueSubpopulationMaxima, "\n",
-                "\t\tTermination counter:", k, "/", numberOfIterationsEqualMax, "\n")
+        if (trace) {
+            if ((j == 1) | converged | ((j %% traceLimit) == 0))
+                cat("\tOuter iteration:", j, "\n",
+                    "\t\tFitness:\n",
+                    "\t\t  Highest:", max(populationFitness), "\n",
+                    "\t\t  Average:", mean(populationFitness), "\n",
+                    "\t\t  Lowest:", min(populationFitness), "\n",
+                    "\t\tSubpopulations /w unique maxima:", fractionOfUniqueSubpopulationMaxima, "\n",
+                    "\t\tTermination counter:", k, "/", numberOfIterationsEqualMax, "\n")
+        }
     }
 
     return(topFittestIndividuals)
