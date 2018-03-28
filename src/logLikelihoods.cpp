@@ -127,6 +127,7 @@ Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, con
                                            const Eigen::VectorXd & partialSumAlleles, const double & noiseLevel, const double & noiseDispersion)
 {
     const std::size_t & M = noiseIndex.size();
+    const double & dispersion = noiseLevel / noiseDispersion;
 
     Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(M);
     for (std::size_t m = 0; m < M; m++)
@@ -135,8 +136,8 @@ Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, con
         for (std::size_t a = 0; a < noiseIndex_m.size(); a++)
         {
             const std::size_t & n = partialSumAlleles[m] + noiseIndex_m[a];
-            logLikelihood[m] += logPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion) -
-                std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
+            logLikelihood[m] += logPoissonGammaDistribution(coverage[n], noiseLevel, dispersion) -
+                std::log(1 - std::exp(dispersion * (std::log(dispersion) - std::log(noiseLevel + dispersion))));
         }
     }
 
