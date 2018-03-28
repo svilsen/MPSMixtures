@@ -281,7 +281,7 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
     std::size_t & Counter = EPGN->Counter;
 
     const double & mu_ma = x[0];
-    const double & dispersion = x[1];
+    const double & dispersion = x[0] / x[1];
     double logeta = std::log(dispersion) - std::log(mu_ma + dispersion);
 
     double logLikelihood = 0.0;
@@ -308,9 +308,9 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, N);
 
     // Box-constraints
-    std::vector<double> lowerBound(N, 2e-8), upperBound(N, HUGE_VAL);
-    // lowerBound[0] = 1.0;
-    // lowerBound[1] = 2e-8;
+    std::vector<double> lowerBound(N), upperBound(N, HUGE_VAL);
+    lowerBound[0] = 1.0;
+    lowerBound[1] = 2e-8;
 
     individualOptimisation.set_lower_bounds(lowerBound);
     individualOptimisation.set_upper_bounds(upperBound);
