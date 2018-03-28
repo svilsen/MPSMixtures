@@ -128,6 +128,20 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
 
     seed <- if(is.null(seed)) sample(1e6, 1) else seed
 
+    if (length(tolerance) == 1) {
+        tolerance = c(tolerance, rep(1e-4, 3))
+    }
+    else if (length(tolerance) == 2) {
+        tolerance = c(tolerance, 1e-4, 1e-4)
+    }
+    else if (length(tolerance) == 3) {
+        tolerance = c(tolerance, 1e-4)
+    }
+
+    if (length(tolerance) != 4) {
+        tolerance = c(1e-6, rep(1e-4, 3))
+    }
+
     controlList <- list(numberOfPopulations = numberOfPopulations, populationSize = populationSize, numberOfIterations = numberOfIterations,
                         numberOfInnerIterations = numberOfInnerIterations, numberOfIterationsEqualMinMax = numberOfIterationsEqualMinMax,
                         fractionOfPopulationsMax = fractionOfPopulationsMax,

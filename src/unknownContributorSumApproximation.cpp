@@ -26,9 +26,11 @@ Rcpp::List oneStepApproximationCpp(const Eigen::VectorXd & encodedProfiles, cons
                                    const std::size_t & levelsOfStutterRecursion)
 {
     const std::size_t numberOfKnownContributors = knownProfiles.cols();
+
+    const Eigen::VectorXd tolerance = Eigen::VectorXd::Zero(4);
     const ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors,
                                knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, 0.8,
-                               1e-6, theta, alleleFrequencies, levelsOfStutterRecursion);
+                               tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
     const std::size_t & N = numberOfAlleles[0] * (numberOfAlleles[0] + 1) / 2.0;
     const std::size_t & numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
@@ -89,9 +91,11 @@ Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd> & encodedProfil
                               const std::size_t & levelsOfStutterRecursion)
 {
     const std::size_t numberOfKnownContributors = knownProfiles.cols();
+
+    const Eigen::VectorXd tolerance = Eigen::VectorXd::Zero(4);
     const ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors,
                                knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, 0.8,
-                               1e-6, theta, alleleFrequencies, levelsOfStutterRecursion);
+                               tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
     const std::size_t & numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
     const std::size_t & N = encodedProfiles.size();
@@ -320,9 +324,10 @@ Rcpp::List samplePosteriorGenotypesGuidedCpp(const Eigen::VectorXd & encodedProf
     const std::size_t &numberOfKnownContributors = knownProfiles.cols();
     const std::size_t &numberOfMarkers = numberOfAlleles.size();
 
+    const Eigen::VectorXd tolerance = Eigen::VectorXd::Zero(4);
     const ExperimentalSetup ES(1, numberOfAlleles, numberOfContributors, numberOfKnownContributors,
                                knownProfiles, allKnownProfiles, coverage, potentialParents, markerParameters, 0.0,
-                               0.0, theta, alleleFrequencies, levelsOfStutterRecursion);
+                               tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
     Eigen::VectorXd currentEncodedGenotype = encodedProfiles;
     double currentPriorProbability = calculatePriorProbabiliy(currentEncodedGenotype, knownProfiles, coverage,

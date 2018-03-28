@@ -12,13 +12,13 @@
 #include "estimatePoissonGammaParameters.hpp"
 #include "AuxiliaryFunctions.hpp"
 
-#include "nlopt_mod.hpp"
+#include "nlopt.hpp"
 
 // Allele coverage
 EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::MatrixXd> & expectedContributionMatrix,
                                                                            const std::vector<Eigen::VectorXd> & alleleIndex, const Eigen::VectorXd & markerImbalances,
                                                                            const Eigen::VectorXd & partialSumAlleles, const double & convexMarkerImbalanceInterpolation,
-                                                                           const double & tolerance)
+                                                                           const Eigen::VectorXd & tolerance)
 {
     Coverage = coverage;
     ExpectedContributionMatrix = expectedContributionMatrix;
@@ -28,7 +28,7 @@ EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(const
     MarkerImbalances = markerImbalances;
 
     ConvexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation;
-    ToleranceFRelative = tolerance;
+    Tolerance = tolerance;
     MaximumNumberOfIterations = 2000;
 
     Counter = 0;
@@ -208,8 +208,11 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     // Objective function
     individualOptimisation.set_max_objective(logLikelihoodAlleleCoverage, &EPGA);
 
-    individualOptimisation.set_ftol_rel(EPGA.ToleranceFRelative);
-    individualOptimisation.set_xtol_abs(100 * EPGA.ToleranceFRelative);
+    individualOptimisation.set_ftol_rel(EPGA.Tolerance[0]);
+    individualOptimisation.set_ftol_abs(EPGA.Tolerance[1]);
+    individualOptimisation.set_xtol_rel(EPGA.Tolerance[2]);
+    individualOptimisation.set_xtol_abs(EPGA.Tolerance[3]);
+
     individualOptimisation.set_maxeval(EPGA.MaximumNumberOfIterations);
 
     double logLikelihood;
@@ -228,7 +231,7 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
 
 // Noise coverage
 EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
-                                                                         const Eigen::VectorXd & partialSumAlleles, const double & tolerance)
+                                                                         const Eigen::VectorXd & partialSumAlleles, const Eigen::VectorXd & tolerance)
 {
     Coverage = coverage;
     NoiseIndex = noiseIndex;
@@ -236,7 +239,7 @@ EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const E
     PartialSumAlleles = partialSumAlleles;
 
     NumberOfMarkers = NoiseIndex.size();
-    ToleranceFRelative = tolerance;
+    Tolerance = tolerance;
     MaximumNumberOfIterations = 2000;
 
     Counter = 0;
@@ -246,25 +249,26 @@ EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const E
 
 void EstimatePoissonGammaNoiseParameters::initialiseParameters()
 {
-    Eigen::VectorXd parameters = Eigen::VectorXd::Ones(2);
+    // Eigen::VectorXd parameters = Eigen::VectorXd::Ones(2);
+    //
+    // double noiseCoverageSum = 0.0;
+    // double noiseCoverageSize = 0.0;
+    // for (std::size_t m = 0; m < NumberOfMarkers; m++)
+    // {
+    //     const Eigen::VectorXd & NoiseIndex_m = NoiseIndex[m];
+    //     for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
+    //     {
+    //         std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
+    //         noiseCoverageSum += Coverage[n];
+    //         noiseCoverageSize++;
+    //     }
+    // }
+    //
+    // double averageNoiseCoverage = noiseCoverageSum / noiseCoverageSize;
+    //
+    // parameters[0] = averageNoiseCoverage;
 
-    double noiseCoverageSum = 0.0;
-    double noiseCoverageSize = 0.0;
-    for (std::size_t m = 0; m < NumberOfMarkers; m++)
-    {
-        const Eigen::VectorXd & NoiseIndex_m = NoiseIndex[m];
-        for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
-        {
-            std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
-            noiseCoverageSum += Coverage[n];
-            noiseCoverageSize++;
-        }
-    }
-
-    double averageNoiseCoverage = noiseCoverageSum / noiseCoverageSize;
-
-    parameters[0] = averageNoiseCoverage;
-    NoiseParameters = parameters;
+    NoiseParameters = Eigen::VectorXd::Ones(2);
 }
 
 double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data)
@@ -304,8 +308,9 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, N);
 
     // Box-constraints
-    std::vector<double> lowerBound(N, 1e-16), upperBound(N, HUGE_VAL);
-    lowerBound[0] = 1.0;
+    std::vector<double> lowerBound(N, 2e-8), upperBound(N, HUGE_VAL);
+    // lowerBound[0] = 1.0;
+    // lowerBound[1] = 2e-8;
 
     individualOptimisation.set_lower_bounds(lowerBound);
     individualOptimisation.set_upper_bounds(upperBound);
@@ -313,8 +318,11 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     // Objective function
     individualOptimisation.set_max_objective(logLikelihoodNoiseCoverage, &EPGN);
 
-    individualOptimisation.set_ftol_rel(EPGN.ToleranceFRelative);
-    individualOptimisation.set_xtol_abs(100 * EPGN.ToleranceFRelative);
+    individualOptimisation.set_ftol_rel(EPGN.Tolerance[0]);
+    individualOptimisation.set_ftol_abs(EPGN.Tolerance[1]);
+    individualOptimisation.set_xtol_rel(EPGN.Tolerance[2]);
+    individualOptimisation.set_xtol_abs(EPGN.Tolerance[3]);
+
     individualOptimisation.set_maxeval(EPGN.MaximumNumberOfIterations);
 
     double logLikelihood;

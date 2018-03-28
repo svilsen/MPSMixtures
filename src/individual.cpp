@@ -340,7 +340,7 @@ Rcpp::List Individual::ReturnRcppListSimplified()
 Rcpp::List setupIndividual(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
                            const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::VectorXd & coverage,
                            const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
-                           const double & convexMarkerImbalanceInterpolation, const double & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
+                           const double & convexMarkerImbalanceInterpolation, const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
                            const std::size_t & levelsOfStutterRecursion)
 {
 

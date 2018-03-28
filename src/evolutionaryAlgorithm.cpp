@@ -606,7 +606,7 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, const std::size_t & seed
         }
 
         // Updates the termination counter
-        if (std::abs(C.Fitness[sortedFitness[0]] - C.Fitness.mean()) / std::abs(C.Fitness[sortedFitness[0]]) < ES.Tolerance)
+        if (std::abs(C.Fitness[sortedFitness[0]] - C.Fitness.mean()) / std::abs(C.Fitness[sortedFitness[0]]) < ES.Tolerance[0])
         {
             terminationCounter++;
         }

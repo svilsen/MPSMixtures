@@ -28,7 +28,7 @@ class EstimatePoissonGammaAlleleParameters
         double ConvexMarkerImbalanceInterpolation;
 
         double LogLikelihood;
-        double ToleranceFRelative;
+        Eigen::VectorXd Tolerance;
         unsigned int MaximumNumberOfIterations;
 
         std::size_t Counter;
@@ -36,7 +36,7 @@ class EstimatePoissonGammaAlleleParameters
         EstimatePoissonGammaAlleleParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::MatrixXd> & expectedContributionMatrix,
                                              const std::vector<Eigen::VectorXd> & alleleIndex,
                                              const Eigen::VectorXd & markerImbalances, const Eigen::VectorXd & partialSumAlleles,
-                                             const double & convexMarkerImbalanceInterpolation, const double & tolerance);
+                                             const double & convexMarkerImbalanceInterpolation, const Eigen::VectorXd & tolerance);
 
         void initialiseParameters();
 };
@@ -59,13 +59,13 @@ class EstimatePoissonGammaNoiseParameters
         Eigen::VectorXd NoiseParameters;
 
         double LogLikelihood;
-        double ToleranceFRelative;
+        Eigen::VectorXd Tolerance;
         unsigned int MaximumNumberOfIterations;
 
         std::size_t Counter;
 
         EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
-                                            const Eigen::VectorXd & partialSumAlleles, const double & tolerance);
+                                            const Eigen::VectorXd & partialSumAlleles, const Eigen::VectorXd & tolerance);
         void initialiseParameters();
 };
 
