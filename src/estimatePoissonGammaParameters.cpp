@@ -217,7 +217,40 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     individualOptimisation.set_maxeval(EPGA.MaximumNumberOfIterations);
 
     double logLikelihood;
-    nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+    try
+    {
+        nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+    }
+    catch (nlopt::roundoff_limited&)
+    {
+        try
+        {
+            nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+        }
+        catch (nlopt::roundoff_limited&)
+        {
+            //
+        }
+        catch (std::runtime_error&)
+        {
+            //
+        }
+    }
+    catch (std::runtime_error&)
+    {
+        try
+        {
+            nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+        }
+        catch (nlopt::roundoff_limited&)
+        {
+            //
+        }
+        catch (std::runtime_error&)
+        {
+            //
+        }
+    }
 
     EPGA.LogLikelihood = logLikelihood;
     Eigen::VectorXd Parameters = STDEigen(parameters);
@@ -326,7 +359,40 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     individualOptimisation.set_maxeval(EPGN.MaximumNumberOfIterations);
 
     double logLikelihood;
-    nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+    try
+    {
+        nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+    }
+    catch (nlopt::roundoff_limited&)
+    {
+        try
+        {
+            nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+        }
+        catch (nlopt::roundoff_limited&)
+        {
+            //
+        }
+        catch (std::runtime_error&)
+        {
+            //
+        }
+    }
+    catch (std::runtime_error&)
+    {
+        try
+        {
+            nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
+        }
+        catch (nlopt::roundoff_limited&)
+        {
+            //
+        }
+        catch (std::runtime_error&)
+        {
+            //
+        }
+    }
 
     EPGN.LogLikelihood = logLikelihood;
     Eigen::VectorXd Parameters = STDEigen(parameters);
