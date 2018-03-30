@@ -314,7 +314,7 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
     std::size_t & Counter = EPGN->Counter;
 
     const double & mu_ma = x[0];
-    const double & dispersion = x[0] / x[1];
+    const double & dispersion = x[1];
     double logeta = std::log(dispersion) - std::log(mu_ma + dispersion);
 
     double logLikelihood = 0.0;
