@@ -40,6 +40,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// devianceResidualPoissonGammaDistribution
+double devianceResidualPoissonGammaDistribution(const double& x, const double& mean, const double& dispersion);
+RcppExport SEXP _MPSMixtures_devianceResidualPoissonGammaDistribution(SEXP xSEXP, SEXP meanSEXP, SEXP dispersionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const double& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double& >::type mean(meanSEXP);
+    Rcpp::traits::input_parameter< const double& >::type dispersion(dispersionSEXP);
+    rcpp_result_gen = Rcpp::wrap(devianceResidualPoissonGammaDistribution(x, mean, dispersion));
+    return rcpp_result_gen;
+END_RCPP
+}
 // logPriorGenotypeProbability
 Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd& alleleFrequencies, const double& theta, const Eigen::MatrixXd& unknownProfiles, const Eigen::MatrixXd& knownProfiles, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles);
 RcppExport SEXP _MPSMixtures_logPriorGenotypeProbability(SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP unknownProfilesSEXP, SEXP knownProfilesSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP) {
@@ -244,6 +257,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
     {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
+    {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},
     {"_MPSMixtures_logPriorGenotypeProbability", (DL_FUNC) &_MPSMixtures_logPriorGenotypeProbability, 6},
     {"_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm, 28},
     {"_MPSMixtures_initialisingParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_initialisingParallelEvolutionaryAlgorithm, 16},

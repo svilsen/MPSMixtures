@@ -80,7 +80,7 @@
             return(PEA_i)
         }, mc.cores = numberOfThreads)
 
-        if (any(sapply(newPopulation, function(np) is.null(np$LastPopulation))))
+        if (any(sapply(newPopulation, function(np) is.null(np))))
             stop("Contact your local support staff: a thread returned a 'NULL' object indicating that the internal 'c++' code crashed.")
 
         currentPopulationList <- lapply(newPopulation, function(np) np$LastPopulation)

@@ -221,32 +221,25 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     {
         nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
     }
-    catch (nlopt::roundoff_limited&)
+    catch (...)
     {
         try
         {
+            if (EPGA.Tolerance[0] > 0)
+                individualOptimisation.set_ftol_rel(std::pow(10, (-2 + std::log10(EPGA.Tolerance[0])) / 2));
+
+            if (EPGA.Tolerance[1] > 0)
+                individualOptimisation.set_ftol_abs(std::pow(10, (-2 + std::log10(EPGA.Tolerance[1])) / 2));
+
+            if (EPGA.Tolerance[2] > 0)
+                individualOptimisation.set_xtol_rel(std::pow(10, (-2 + std::log10(EPGA.Tolerance[2])) / 2));
+
+            if (EPGA.Tolerance[3] > 0)
+                individualOptimisation.set_xtol_abs(std::pow(10, (-2 + std::log10(EPGA.Tolerance[3])) / 2));
+
             nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
         }
-        catch (nlopt::roundoff_limited&)
-        {
-            //
-        }
-        catch (std::runtime_error&)
-        {
-            //
-        }
-    }
-    catch (std::runtime_error&)
-    {
-        try
-        {
-            nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
-        }
-        catch (nlopt::roundoff_limited&)
-        {
-            //
-        }
-        catch (std::runtime_error&)
+        catch (...)
         {
             //
         }
@@ -282,26 +275,25 @@ EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const E
 
 void EstimatePoissonGammaNoiseParameters::initialiseParameters()
 {
-    // Eigen::VectorXd parameters = Eigen::VectorXd::Ones(2);
-    //
-    // double noiseCoverageSum = 0.0;
-    // double noiseCoverageSize = 0.0;
-    // for (std::size_t m = 0; m < NumberOfMarkers; m++)
-    // {
-    //     const Eigen::VectorXd & NoiseIndex_m = NoiseIndex[m];
-    //     for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
-    //     {
-    //         std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
-    //         noiseCoverageSum += Coverage[n];
-    //         noiseCoverageSize++;
-    //     }
-    // }
-    //
-    // double averageNoiseCoverage = noiseCoverageSum / noiseCoverageSize;
-    //
-    // parameters[0] = averageNoiseCoverage;
+    Eigen::VectorXd parameters = Eigen::VectorXd::Ones(2);
 
-    NoiseParameters = Eigen::VectorXd::Ones(2);
+    double noiseCoverageSum = 0.0;
+    double noiseCoverageSize = 0.0;
+    for (std::size_t m = 0; m < NumberOfMarkers; m++)
+    {
+        const Eigen::VectorXd & NoiseIndex_m = NoiseIndex[m];
+        for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
+        {
+            std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
+            noiseCoverageSum += Coverage[n];
+            noiseCoverageSize++;
+        }
+    }
+
+    double averageNoiseCoverage = noiseCoverageSum / noiseCoverageSize;
+
+    parameters[0] = averageNoiseCoverage * (1 - std::exp(logPoissonGammaDistribution(0, averageNoiseCoverage, 1.0)));
+    NoiseParameters = parameters;
 }
 
 double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data)
@@ -341,9 +333,11 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     nlopt::opt individualOptimisation(nlopt::LN_SBPLX, N);
 
     // Box-constraints
-    std::vector<double> lowerBound(N), upperBound(N, HUGE_VAL);
+    std::vector<double> lowerBound(N), upperBound(N);
     lowerBound[0] = 1.0;
     lowerBound[1] = 2e-8;
+    upperBound[0] = EPGN.Coverage.maxCoeff();
+    upperBound[1] = (EPGN.Coverage.size() / (EPGN.Coverage.size() - 1.0)) * std::pow(EPGN.Coverage.maxCoeff(), 2.0);
 
     individualOptimisation.set_lower_bounds(lowerBound);
     individualOptimisation.set_upper_bounds(upperBound);
@@ -363,32 +357,25 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     {
         nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
     }
-    catch (nlopt::roundoff_limited&)
+    catch (...)
     {
         try
         {
+            if (EPGN.Tolerance[0] > 0)
+                individualOptimisation.set_ftol_rel(std::pow(10, (-2 + std::log10(EPGN.Tolerance[0])) / 2));
+
+            if (EPGN.Tolerance[1] > 0)
+                individualOptimisation.set_ftol_abs(std::pow(10, (-2 + std::log10(EPGN.Tolerance[1])) / 2));
+
+            if (EPGN.Tolerance[2] > 0)
+                individualOptimisation.set_xtol_rel(std::pow(10, (-2 + std::log10(EPGN.Tolerance[2])) / 2));
+
+            if (EPGN.Tolerance[3] > 0)
+                individualOptimisation.set_xtol_abs(std::pow(10, (-2 + std::log10(EPGN.Tolerance[3])) / 2));
+
             nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
         }
-        catch (nlopt::roundoff_limited&)
-        {
-            //
-        }
-        catch (std::runtime_error&)
-        {
-            //
-        }
-    }
-    catch (std::runtime_error&)
-    {
-        try
-        {
-            nlopt::result result = individualOptimisation.optimize(parameters, logLikelihood);
-        }
-        catch (nlopt::roundoff_limited&)
-        {
-            //
-        }
-        catch (std::runtime_error&)
+        catch (...)
         {
             //
         }

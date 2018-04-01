@@ -241,8 +241,23 @@ Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I,
                 a++;
             }
 
-            const double & mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[a];
-            const double & deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion);
+            double mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[a];
+            if ((mu_ma == 0) & (Coverage[n] != 0))
+            {
+                mu_ma += 2e-8;
+            }
+
+            double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion);
+            if (std::isnan(deviance_n))
+            {
+                deviance_n = 0.0;
+                Rcpp::warning("Deviance returned 'nan'.");
+            }
+            else if (std::isinf(deviance_n))
+            {
+                deviance_n = HUGE_VAL;
+                Rcpp::warning("Deviance returned 'inf'.");
+            }
 
             mutation[2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m + i] =
                 MutationDecay_t - (MutationDecay_t - MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) /

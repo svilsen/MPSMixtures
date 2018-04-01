@@ -9,6 +9,10 @@ partialSumEigen <- function(x) {
     .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
 }
 
+.devianceResidualPoissonGammaDistribution <- function(x, mean, dispersion) {
+    .Call('_MPSMixtures_devianceResidualPoissonGammaDistribution', PACKAGE = 'MPSMixtures', x, mean, dispersion)
+}
+
 logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles) {
     .Call('_MPSMixtures_logPriorGenotypeProbability', PACKAGE = 'MPSMixtures', alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles)
 }
