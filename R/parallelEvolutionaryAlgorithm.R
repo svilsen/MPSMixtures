@@ -67,16 +67,16 @@
         ## Updating subpopulations
         newPopulation <- mclapply(1:numberOfPopulations, function(i) {
             PEA_i <- .runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
-                                                                         coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
-                                                                         numberOfInnerIterations, numberOfInnerIterations, populationSize,
-                                                                         parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
-                                                                         mutationDecaySplit[[j + 1]], hillClimbingDirections, hillClimbingIterations,
-                                                                         sample(1:1e6, 1), FALSE,
-                                                                         currentPopulationMigratedList[[i]]$EncodedProfiles, currentPopulationMigratedList[[i]]$SampleParameters,
-                                                                         currentPopulationMigratedList[[i]]$NoiseParameters, currentPopulationMigratedList[[i]]$MixtureParameters,
-                                                                         currentPopulationMigratedList[[i]]$MarkerImbalanceParameters,
-                                                                         currentPopulationMigratedList[[i]]$Fitness,
-                                                                         levelsOfStutterRecursion)
+                                                           coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
+                                                           numberOfInnerIterations, numberOfInnerIterations, populationSize,
+                                                           parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
+                                                           mutationDecaySplit[[j + 1]], hillClimbingDirections, hillClimbingIterations,
+                                                           sample(1:1e6, 1), FALSE,
+                                                           currentPopulationMigratedList[[i]]$EncodedProfiles, currentPopulationMigratedList[[i]]$SampleParameters,
+                                                           currentPopulationMigratedList[[i]]$NoiseParameters, currentPopulationMigratedList[[i]]$MixtureParameters,
+                                                           currentPopulationMigratedList[[i]]$MarkerImbalanceParameters,
+                                                           currentPopulationMigratedList[[i]]$Fitness,
+                                                           levelsOfStutterRecursion)
             return(PEA_i)
         }, mc.cores = numberOfThreads)
 
@@ -100,10 +100,13 @@
 
         ## Updating convergence condition
         populationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) cpl$Fitness))
-        uniqueSubpopulationMaxima <- unique.matrix(do.call("cbind", lapply(currentPopulationList, function(cpl) cpl$EncodedProfiles[, which.max(cpl$Fitness)])), MARGIN = 2)
-        fractionOfUniqueSubpopulationMaxima = dim(uniqueSubpopulationMaxima)[2] / numberOfPopulations
+        maxPopulationFitness <- sapply(currentPopulationList, function(cpl) max(cpl$Fitness))
 
-        if (fractionOfUniqueSubpopulationMaxima <= fractionOfPopulationsMax) {
+        # uniqueSubpopulationMaxima <- unique.matrix(do.call("cbind", lapply(currentPopulationList, function(cpl) cpl$EncodedProfiles[, which.max(cpl$Fitness)])), MARGIN = 2)
+        # fractionOfUniqueSubpopulationMaxima = dim(uniqueSubpopulationMaxima)[2] / numberOfPopulations
+
+        # if (fractionOfUniqueSubpopulationMaxima <= fractionOfPopulationsMax) {
+        if ((max(maxPopulationFitness) - min(maxPopulationFitness)) < tolerance[1]) {
             k = k + 1
         } else {
             k = 0
@@ -119,7 +122,7 @@
                     "\t\t  Highest:", max(populationFitness), "\n",
                     "\t\t  Average:", mean(populationFitness), "\n",
                     "\t\t  Lowest:", min(populationFitness), "\n",
-                    "\t\tSubpopulations /w unique maxima:", fractionOfUniqueSubpopulationMaxima, "\n",
+                    "\t\tSubpopulations maxima difference:", (max(maxPopulationFitness) - min(maxPopulationFitness)), "\n", #fractionOfUniqueSubpopulationMaxima, "\n",
                     "\t\tTermination counter:", k, "/", numberOfIterationsEqualMax, "\n")
         }
     }
