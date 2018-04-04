@@ -33,8 +33,8 @@ logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfile
     .Call('_MPSMixtures_oneStepApproximationCpp', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion)
 }
 
-.EAApproximationCpp <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion) {
-    .Call('_MPSMixtures_EAApproximationCpp', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion)
+.EAApproximationCpp <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, type1) {
+    .Call('_MPSMixtures_EAApproximationCpp', PACKAGE = 'MPSMixtures', encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, type1)
 }
 
 .samplePosteriorGenotypesGuidedCpp <- function(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, markerParameters, coverage, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfAlleles, levelsOfStutterRecursion, numberOfSimulations, suggestionBool, seed) {

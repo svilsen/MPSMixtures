@@ -4,8 +4,17 @@
 \alias{optimalUnknownProfileCombination.control}
 \title{Control function for the 'optimalUnknownProfileCombination' function}
 \usage{
-optimalUnknownProfileCombination.control(..., numberOfSimulationsMH = 10000,
-  suggestionMH = "guided")
+optimalUnknownProfileCombination.control(..., EAApproximationType = 1,
+  numberOfSimulationsMH = 10000, suggestionMH = "random")
+}
+\arguments{
+\item{...}{arguments passed to the \link{LR.control} function.}
+
+\item{EAApproximationType}{The type of EA approximation used to find the normalising constant.}
+
+\item{numberOfSimulationsMH}{The number of simulations used for each marker of the Metropolis-Hastings algorithm.}
+
+\item{suggestionMH}{The proposal distribution used in the Metropolis-Hastings algorithm.}
 }
 \value{
 A list of default parameters.

@@ -202,8 +202,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // EAApproximationCpp
-Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd>& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd& coverage, const Eigen::VectorXd markerImbalances, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion);
-RcppExport SEXP _MPSMixtures_EAApproximationCpp(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP coverageSEXP, SEXP markerImbalancesSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP) {
+Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd>& encodedProfiles, const Eigen::VectorXd& sampleParameters, const Eigen::VectorXd& noiseParameters, const Eigen::VectorXd& mixtureParameters, const Eigen::VectorXd& coverage, const Eigen::VectorXd markerImbalances, const std::vector< std::vector< Eigen::MatrixXd > > potentialParents, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& alleleFrequencies, const double& theta, const std::size_t& numberOfContributors, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& levelsOfStutterRecursion, const bool& type1);
+RcppExport SEXP _MPSMixtures_EAApproximationCpp(SEXP encodedProfilesSEXP, SEXP sampleParametersSEXP, SEXP noiseParametersSEXP, SEXP mixtureParametersSEXP, SEXP coverageSEXP, SEXP markerImbalancesSEXP, SEXP potentialParentsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP levelsOfStutterRecursionSEXP, SEXP type1SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -222,7 +222,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t& >::type numberOfMarkers(numberOfMarkersSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
     Rcpp::traits::input_parameter< const std::size_t& >::type levelsOfStutterRecursion(levelsOfStutterRecursionSEXP);
-    rcpp_result_gen = Rcpp::wrap(EAApproximationCpp(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion));
+    Rcpp::traits::input_parameter< const bool& >::type type1(type1SEXP);
+    rcpp_result_gen = Rcpp::wrap(EAApproximationCpp(encodedProfiles, sampleParameters, noiseParameters, mixtureParameters, coverage, markerImbalances, potentialParents, knownProfiles, allKnownProfiles, alleleFrequencies, theta, numberOfContributors, numberOfMarkers, numberOfAlleles, levelsOfStutterRecursion, type1));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -263,7 +264,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_initialisingParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_initialisingParallelEvolutionaryAlgorithm, 16},
     {"_MPSMixtures_runningParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningParallelEvolutionaryAlgorithm, 33},
     {"_MPSMixtures_oneStepApproximationCpp", (DL_FUNC) &_MPSMixtures_oneStepApproximationCpp, 15},
-    {"_MPSMixtures_EAApproximationCpp", (DL_FUNC) &_MPSMixtures_EAApproximationCpp, 15},
+    {"_MPSMixtures_EAApproximationCpp", (DL_FUNC) &_MPSMixtures_EAApproximationCpp, 16},
     {"_MPSMixtures_samplePosteriorGenotypesGuidedCpp", (DL_FUNC) &_MPSMixtures_samplePosteriorGenotypesGuidedCpp, 17},
     {NULL, NULL, 0}
 };

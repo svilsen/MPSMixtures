@@ -24,10 +24,10 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalance, kno
     numberOfKnownContributors = H$NumberOfKnownProfiles
 
     creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
-                                                               numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                               sampleTibble$Coverage, potentialParentsList, markerImbalance,
-                                                               convexMarkerImbalanceInterpolation,
-                                                               tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, levelsOfStutterRecursion)
+                                                 numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
+                                                 sampleTibble$Coverage, potentialParentsList, markerImbalance,
+                                                 convexMarkerImbalanceInterpolation,
+                                                 tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, levelsOfStutterRecursion)
 
     return(creatingIndividualObject)
 }
@@ -36,13 +36,19 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalance, kno
 #'
 #' @details A control function setting default parameters for the \link{optimalUnknownProfileCombination} function. It takes the same parameters as the \link{LR.control} function, with the expection of 'simplifiedReturn'.
 #'
+#' @param ... arguments passed to the \link{LR.control} function.
+#' @param EAApproximationType The type of EA approximation used to find the normalising constant.
+#' @param numberOfSimulationsMH The number of simulations used for each marker of the Metropolis-Hastings algorithm.
+#' @param suggestionMH The proposal distribution used in the Metropolis-Hastings algorithm.
+#'
 #' @return A list of default parameters.
 #' @export
-optimalUnknownProfileCombination.control <- function(..., numberOfSimulationsMH = 10000, suggestionMH = "guided") {
+optimalUnknownProfileCombination.control <- function(..., EAApproximationType = 1, numberOfSimulationsMH = 10000, suggestionMH = "random") {
     controlList <- LR.control(...)
 
     controlList$numberOfSimulationsMH <- numberOfSimulationsMH
     controlList$suggestionMH <- suggestionMH
+    controlList$EAApproximationType <- EAApproximationType
     return(controlList)
 }
 
@@ -81,7 +87,8 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 ####################
 
 .oneStepApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
-                                  optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, returnSimplified, potentialParentsList, numberOfSimulations, suggestionPrior) {
+                                  optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, returnSimplified, potentialParentsList,
+                                  EAApproximationType, numberOfSimulations, suggestionPrior) {
 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     oneStep <- mclapply(seq_along(numberOfAlleles), function(m) {
@@ -113,33 +120,44 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 }
 
 .EAApproximation <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
-                             optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList, numberOfSimulations, suggestionPrior) {
+                             optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList,
+                             EAApproximationType, numberOfSimulations, suggestionPrior) {
 
-    EAApproximation_m <- mclapply(seq_along(numberOfAlleles), function(m) {
-        markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        optimalUnkownProfileCombinationList_m <- unique(lapply(optimalUnkownProfileCombinationList, function(xx) as.matrix(xx$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)])))
-
-        res <- .EAApproximationCpp(optimalUnkownProfileCombinationList_m,
+    if (EAApproximationType == 1) {
+        optimalUnkownProfileCombinationList_ = lapply(optimalUnkownProfileCombinationList, function(xx) as.matrix(xx$EncodedUnknownProfiles))
+        res <- .EAApproximationCpp(optimalUnkownProfileCombinationList_,
                                    estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters, estimatedParameters$MixtureParameters,
-                                   sampleTibble$Coverage[markerIndices], estimatedParameters$MarkerImbalanceParameters[m], potentialParentsList[m],
-                                   as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
-                                   sampleTibble$AlleleFrequencies[markerIndices], H$Theta, H$NumberOfContributors,
-                                   1, numberOfAlleles[m], levelsOfStutterRecursion)
+                                   sampleTibble$Coverage, estimatedParameters$MarkerImbalanceParameters, potentialParentsList,
+                                   H$KnownProfiles, H$KnownProfiles, sampleTibble$AlleleFrequencies, H$Theta, H$NumberOfContributors,
+                                   length(numberOfAlleles), numberOfAlleles, levelsOfStutterRecursion, TRUE)
+    }
+    else if (EAApproximationType == 2) {
+        EAApproximation_m <- mclapply(seq_along(numberOfAlleles), function(m) {
+            markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
+            optimalUnkownProfileCombinationList_m <- unique(lapply(optimalUnkownProfileCombinationList, function(xx) as.matrix(xx$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)])))
 
-        sorting <- order(res$NormalisedProbabilities, decreasing = T)
-        res <- lapply(res, function(xx) {
-            if (length(xx) == 1)
-                return(xx)
-            else
-                xx[sorting]
-        })
+            res <- .EAApproximationCpp(optimalUnkownProfileCombinationList_m,
+                                       estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters, estimatedParameters$MixtureParameters,
+                                       sampleTibble$Coverage[markerIndices], estimatedParameters$MarkerImbalanceParameters[m], potentialParentsList[m],
+                                       as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
+                                       sampleTibble$AlleleFrequencies[markerIndices], H$Theta, H$NumberOfContributors,
+                                       1, numberOfAlleles[m], levelsOfStutterRecursion, FALSE)
 
-        return(res)
-    }, mc.cores = numberOfThreads)
+            sorting <- order(res$NormalisedProbabilities, decreasing = T)
+            res <- lapply(res, function(xx) {
+                if (length(xx) == 1)
+                    return(xx)
+                else
+                    xx[sorting]
+            })
 
-    res <- EAApproximation_m
-    if (simplifiedReturn) {
-        res <- sapply(EAApproximation_m, function(xx) xx$LogUnnormalisedProbabilitySum)
+            return(res)
+        }, mc.cores = numberOfThreads)
+
+        res <- EAApproximation_m
+        if (simplifiedReturn) {
+            res <- sapply(EAApproximation_m, function(xx) xx$LogUnnormalisedProbabilitySum)
+        }
     }
 
     return(res)
@@ -148,36 +166,43 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 
 # levelsOfStutterRecursion = control$levelsOfStutterRecursion; numberOfThreads = 1; simplifiedReturn = control$simplifiedReturn; numberOfSimulationsMH = control$numberOfSimulationsMH; suggestionMH = control$suggestionMH
 .samplePosteriorGenotypes <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
-                                            optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList, numberOfSimulationsMH, suggestionMH) {
+                                      optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList,
+                                      EAApproximationType, numberOfSimulationsMH, suggestionMH) {
     suggestionBool = switch(tolower(suggestionMH),
-                             "guided" = TRUE,
-                             "random" = FALSE)
+                            "guided" = TRUE,
+                            "random" = FALSE)
 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     sampledPosterior <- mclapply(seq_along(numberOfAlleles), function(m) {
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
         sampledGenotypesAll <- MPSMixtures:::.samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
-                                            estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters,
-                                            estimatedParameters$MixtureParameters, estimatedParameters$MarkerImbalanceParameters[m],
-                                            sampleTibble$Coverage[markerIndices], potentialParentsList[m],
-                                            as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
-                                            sampleTibble$AlleleFrequencies[markerIndices], H$Theta, H$NumberOfContributors,
-                                            numberOfAlleles[m], levelsOfStutterRecursion,
-                                            numberOfSimulationsMH, suggestionBool, sample(1e6, 1))
+                                                                                estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters,
+                                                                                estimatedParameters$MixtureParameters, estimatedParameters$MarkerImbalanceParameters[m],
+                                                                                sampleTibble$Coverage[markerIndices], potentialParentsList[m],
+                                                                                as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
+                                                                                sampleTibble$AlleleFrequencies[markerIndices], H$Theta, H$NumberOfContributors,
+                                                                                numberOfAlleles[m], levelsOfStutterRecursion,
+                                                                                numberOfSimulationsMH, suggestionBool, sample(1e6, 1))
 
-        sampledGenotypes = sampledGenotypesAll[[1]]
+        sampledGenotypes = sampledGenotypesAll[["SampledGenotypes"]]
+        sampledLogLikelihoods = sampledGenotypesAll[["UnnormalisedLogLikelihood"]]
 
         uniqueGenotypes = unique(sampledGenotypes)
         countUniqueGenotypes = rep(NA, length(uniqueGenotypes))
+        unnormalisedLogLikelihood = rep(NA, length(uniqueGenotypes))
         for (i in seq_along(uniqueGenotypes)) {
-            countUniqueGenotypes[i] = sum(sapply(sampledGenotypes, function(xx) all(xx == uniqueGenotypes[[i]])))
+            identifiedDuplicates <- sapply(sampledGenotypes, function(xx) all(xx == uniqueGenotypes[[i]]))
+            unnormalisedLogLikelihood[i] = mean(sampledLogLikelihoods[identifiedDuplicates])
+            countUniqueGenotypes[i] = sum(identifiedDuplicates)
         }
 
         posteriorProb = countUniqueGenotypes / sum(countUniqueGenotypes)
         sorted <- order(posteriorProb, decreasing = T)
 
-        res <- list(GenotypeMatrix = sampledGenotypes[sorted], LogUnnormalisedProbabilitySum = NULL, LogUnnormalisedProbability = NULL,
-                    NormalisedProbabilities = posteriorProb[sorted], AcceptedProposals = sampledGenotypesAll[[2]], AcceptRate = sampledGenotypesAll[[2]] / numberOfSimulationsMH)
+        res <- list(GenotypeMatrix = sampledGenotypes[sorted], LogUnnormalisedProbabilitySum = log(sum(exp(unnormalisedLogLikelihood))),
+                    LogUnnormalisedProbability = unnormalisedLogLikelihood[sorted], NormalisedProbabilities = posteriorProb[sorted],
+                    AcceptedProposals = sampledGenotypesAll[["AcceptedProposals"]],
+                    AcceptRate = sampledGenotypesAll[["AcceptedProposals"]] / numberOfSimulationsMH)
         return(res)
     }, mc.cores = numberOfThreads)
 
@@ -235,7 +260,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
     if (length(optimalUnkownProfileCombinationList) > 1) {
         normalisingConstant <- optimalCombination$Fitness
         estimatedParameters <- suppressWarnings(.optimiseParametersLargeLikelihood(sampleTibble, optimalUnkownProfileCombinationList,
-                                                                                                 H$NumberOfContributors, normalisingConstant))
+                                                                                   H$NumberOfContributors, normalisingConstant))
     }
 
     numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(N = n()))$N
@@ -244,7 +269,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
 
     res <- approximationMethod(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles,
                                estimatedParameters, optimalCombinationIndex, control$levelsOfStutterRecursion, control$numberOfThreads,
-                               control$simplifiedReturn, potentialParentsList, control$numberOfSimulationsMH, control$suggestionMH)
+                               control$simplifiedReturn, potentialParentsList, control$EAApproximationType, control$numberOfSimulationsMH, control$suggestionMH)
 
     class(res) <- "setOfUnknownGenotypes"
     return(res)

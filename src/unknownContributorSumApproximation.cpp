@@ -88,7 +88,7 @@ Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd> & encodedProfil
                               const Eigen::VectorXd & alleleFrequencies, const double & theta,
                               const std::size_t & numberOfContributors, const std::size_t & numberOfMarkers,
                               const Eigen::VectorXd & numberOfAlleles,
-                              const std::size_t & levelsOfStutterRecursion)
+                              const std::size_t & levelsOfStutterRecursion, const bool & type1)
 {
     const std::size_t numberOfKnownContributors = knownProfiles.cols();
 
@@ -110,8 +110,15 @@ Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd> & encodedProfil
         Individual I(encodedProfiles_n, sampleParameters, noiseParameters, mixtureParameters, markerImbalances, ES);
 
         genotypeMatrices[n] = decoding(I.EncodedProfile, ES.NumberOfAlleles, 1, numberOfUnknownContributors);
-        estimatedProbability[n] = I.Fitness;
-        estimatedProbabilitySum += std::exp(I.Fitness);
+
+        if (type1) {
+            estimatedProbability[n] = I.Fitness;
+            estimatedProbabilitySum += std::exp(I.Fitness - estimatedProbability[0]);
+        }
+        else {
+            estimatedProbability[n] = I.Fitness;
+            estimatedProbabilitySum += std::exp(I.Fitness);
+        }
 
         if (I.Fitness > maxValue)
             maxValue = I.Fitness;
@@ -120,8 +127,14 @@ Rcpp::List EAApproximationCpp(const std::vector<Eigen::VectorXd> & encodedProfil
 
     Eigen::VectorXd normalisedProbability = (estimatedProbability - maxValue * Eigen::VectorXd::Ones(N)).array().exp();
     normalisedProbability = normalisedProbability / normalisedProbability.sum();
+
+    double logEstimatedProbabilitySum = std::log(estimatedProbabilitySum);
+    if (type1) {
+        logEstimatedProbabilitySum += estimatedProbability[0];
+    }
+
     return Rcpp::List::create(Rcpp::Named("GenotypeMatrix") = genotypeMatrices,
-                              Rcpp::Named("LogUnnormalisedProbabilitySum") = std::log(estimatedProbabilitySum),
+                              Rcpp::Named("LogUnnormalisedProbabilitySum") = logEstimatedProbabilitySum,
                               Rcpp::Named("LogUnnormalisedProbability") = estimatedProbability,
                               Rcpp::Named("NormalisedProbabilities") = normalisedProbability);
 }
@@ -339,6 +352,7 @@ Rcpp::List samplePosteriorGenotypesGuidedCpp(const Eigen::VectorXd & encodedProf
     double currentLogLikelihood = currentI.Fitness;
 
     std::vector<Eigen::MatrixXd> sampledGenotypeList(numberOfSimulations);
+    Eigen::VectorXd unnormalisedLogLikelihood = Eigen::VectorXd::Zero(numberOfSimulations);
     double acceptedProposals = 0.0;
     for (std::size_t n = 0; n < numberOfSimulations; n++)
     {
@@ -373,8 +387,10 @@ Rcpp::List samplePosteriorGenotypesGuidedCpp(const Eigen::VectorXd & encodedProf
         Eigen::MatrixXd currentDecodedGenotype = decoding(currentEncodedGenotype, numberOfAlleles, 1,
                                                           numberOfContributors - numberOfKnownContributors);
         sampledGenotypeList[n] = currentDecodedGenotype;
+        unnormalisedLogLikelihood[n] = currentLogLikelihood;
     }
 
     return Rcpp::List::create(Rcpp::Named("SampledGenotypes") = sampledGenotypeList,
+                              Rcpp::Named("UnnormalisedLogLikelihood") = unnormalisedLogLikelihood,
                               Rcpp::Named("AcceptedProposals") = acceptedProposals);
 }
