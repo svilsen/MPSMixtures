@@ -15,13 +15,13 @@ sampleCoverage(trueProfiles, markerImbalances, populationLadder,
 
 \item{populationLadder}{An allelic ladder containing the possible STR regions of each marker and their allele frequencies.}
 
+\item{stutterRatioModel}{A linear model of the relationship between BLMM and stutter ratio for each marker in the data.}
+
 \item{alleleCoverageParameters}{A list containing the parameters of the allele coverage model.}
 
 \item{noiseParameters}{A list containing the paramters of the noise model.}
 
 \item{p}{A probability threshold for the created stutters.}
-
-\item{numberOfAlleles}{A vector of the total number of alleles per marker.}
 }
 \value{
 A \link{tibble} with the sampled coverage, the marker, and the marker imbalances.

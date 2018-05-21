@@ -6,6 +6,8 @@
 #' @param profileList1 A list containing the expected contribution matrix and the mixture paramters of profile 1.
 #' @param profileList2 A list containing the expected contribution matrix and the mixture paramters of profile 2.
 #' @param plotDifferencesOnly Restrict the returned \link{ggplot}-object to markers where the two profiles mismatch.
+#' @param profileNames Vector of profile names; should have length '2' or be 'NULL'.
+#' @param contributorNames Vector of contributor names; should have the same length as the number of contributors or be 'NULL'.
 #'
 #' @return ggplot2-object.
 ggplotComparingProfiles <- function(sampleTibble, profileList1, profileList2, plotDifferencesOnly = FALSE,
@@ -52,25 +54,27 @@ ggplotComparingProfiles <- function(sampleTibble, profileList1, profileList2, pl
 
     profiles <- list(profile1ECMReweighted, profile2ECMReweighted)
     numberOfProfiles <- c(numberOfProfiles1, numberOfProfiles2)
-    partialSumProfiles <- partialSumEigen(numberOfProfiles)
+    partialSumProfiles <- .partialSumEigen(numberOfProfiles)
+
     plotTibble <- vector("list", sum(numberOfProfiles) + 2)
     for (i in 1:2) {
         for (j in 1:numberOfProfiles[i]) {
             k = partialSumProfiles[i] + j
             plotTibble[[k]] <- sampleTibble %>%
-                mutate(ProfileCoverage = Coverage * profiles[[i]][, j], Profile = paste("Profile:", profileNames[i]),
-                       Contributor = paste0("C", j)) %>%
-                filter(ProfileCoverage != 0)
+                mutate_(ProfileCoverage = ~Coverage * profiles[[i]][, j],
+                       Profile = ~paste("Profile:", profileNames[i]),
+                       Contributor = ~paste0("C", j)) %>%
+                filter_(~ProfileCoverage != 0)
         }
 
-        plotTibble[[length(plotTibble) + i - 1]] <- sampleTibble %>%
-            mutate(ProfileCoverage = Coverage * as.numeric(rowSums(profiles[[i]]) == 0), Profile = paste("Profile:", profileNames[i]),
-                   Contributor = paste0("N")) %>%
-            filter(ProfileCoverage != 0)
+        plotTibble[[sum(numberOfProfiles) + i]] <- sampleTibble %>%
+            mutate_(ProfileCoverage = ~Coverage * as.numeric(rowSums(profiles[[i]]) == 0),
+                    Profile = ~paste("Profile:", profileNames[i]),
+                    Contributor = ~paste0("N")) %>%
+            filter_(~ProfileCoverage != 0)
     }
 
     plotTibble <- bind_rows(plotTibble)
-
     gg_color_hue <- function(n) {
         hues = seq(15, 375, length = n + 1)
         hcl(h = hues, l = 65, c = 100)[1:n]
@@ -78,17 +82,18 @@ ggplotComparingProfiles <- function(sampleTibble, profileList1, profileList2, pl
 
     colours <- gg_color_hue(2)
     if (plotDifferencesOnly) {
+        P1 <- P2 <- NULL
         profileFrame <- tibble(P1 = apply(profileList1$ExpectedContributionMatrix, 1, sum),
                                P2 = apply(profileList2$ExpectedContributionMatrix, 1, sum),
                                Difference = P1 - P2)
         splitMarker <- split(profileFrame, sampleTibble$Marker)
         differenceMarker <- sapply(splitMarker, function(xx) sum(abs(xx[, 3])) != 0)
 
-        plotTibble <- plotTibble %>% filter(Marker %in% names(differenceMarker)[differenceMarker])
+        plotTibble <- plotTibble %>% filter_(~Marker %in% names(differenceMarker)[differenceMarker])
     }
 
     if (dim(plotTibble)[1] > 0) {
-        p.Profile <- ggplot(plotTibble, aes(x = Allele, y = ProfileCoverage, fill = Contributor)) + geom_bar(stat = "identity") +
+        p.Profile <- ggplot(plotTibble, aes_(x = ~Allele, y = ~ProfileCoverage, fill = ~Contributor)) + geom_bar(stat = "identity") +
             facet_grid(Marker ~ Profile, scales = "free_y") + scale_fill_manual(values = c(colours[1], colours[2], "#000000")) +
             theme_bw() + theme(legend.position = "top") + ylab("Coverage") + xlab("Allele length") +
             scale_x_continuous(breaks = seq(min(plotTibble$Allele), max(plotTibble$Allele)))
@@ -109,12 +114,17 @@ ggplotComparingProfiles <- function(sampleTibble, profileList1, profileList2, pl
 #'
 #' @return ggplot2-object.
 ggplotQQPlotProfiles <- function(sampleTibble, profileList){
+    Type = NULL
+
     SP <- profileList$Parameters$SampleParameters
     NP <- profileList$Parameters$NoiseParameters
     MP <- profileList$Parameters$MixtureParameters
+    MIP <- profileList$Parameters$MarkerImbalanceParameters
+
+    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
 
     C <- sampleTibble$Coverage
-    MI <- sampleTibble$MarkerImbalance
+    MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
 
     ECM <- profileList$ExpectedContributionMatrix
     NV <- profileList$NoiseVector
@@ -124,14 +134,14 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList){
 
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         rowwise() %>%
-        mutate(DR = devianceResidualPoissonGammaDistribution(C, MU, D),
+        mutate(DR = .devianceResidualPoissonGammaDistribution(C, MU, D),
                Type = if (NV == 1) "Noise coverage" else if(MU != 0) "Allele coverage" else NA) %>%
         filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
 
     qq_allele <- qqnorm((DRTibble %>% filter(Type == "Allele coverage"))$DR, plot.it = FALSE)
     qq_noise <- qqnorm((DRTibble %>% filter(Type == "Noise coverage"))$DR, plot.it = FALSE)
     p <- ggplot(DRTibble %>% mutate(X = c(qq_allele$x, qq_noise$x), Y = c(qq_allele$y, qq_noise$y)),
-           aes(x = X, y = Y)) +
+           aes_(x = ~X, y = ~Y)) +
         geom_point() + facet_wrap(~Type) + theme_bw() +
         xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
         geom_smooth(method = "lm", se = FALSE)
@@ -156,26 +166,30 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
     NP <- profileList$Parameters$NoiseParameters
     MP <- profileList$Parameters$MixtureParameters
 
+    MIP <- profileList$Parameters$MarkerImbalanceParameters
+    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+    MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
+
     numberOfProfiles <- length(MP)
     if (is.null(contributorNames)) {
         contributorNames <- paste("C", 1:numberOfProfiles, sep = "")
-    }
-    else if (length(contributorNames) == 1) {
+    } else if (length(contributorNames) == 1) {
         contributorNames <- paste(contributorNames, 1:numberOfProfiles, sep = "")
-    }
-    else if (length(contributorNames) > numberOfProfiles) {
+    } else if (length(contributorNames) > numberOfProfiles) {
         stop("The length of 'contributorNames' should be equal to '1' or the number of contributors.")
     }
 
     ECM <- profileList$ExpectedContributionMatrix
     NV <- profileList$NoiseVector
 
-    MU <- c(SP[1] * sampleTibble$MarkerImbalance * (ECM %*% MP) + NP[1] * NV)
+    MU <- c(SP[1] * MI * (ECM %*% MP) + NP[1] * NV)
     D <- SP[2] * (1.0 - NV) + NP[2] * NV
 
-    simulations <- matrix(0, ncol = length(sampleTibble$Coverage), nrow = numberOfSimulations)
+    C <- sampleTibble$Coverage
+
+    simulations <- matrix(0, ncol = length(C), nrow = numberOfSimulations)
     for (N in 1:numberOfSimulations) {
-        simulations[N, ] <- rnbinom(length(sampleTibble$Coverage), mu = MU, size = D)
+        simulations[N, ] <- rnbinom(length(C), mu = MU, size = D)
     }
 
     predictedInterval <- apply(simulations, 2, function(si) quantile(si, probs = predictionInterval))
@@ -193,26 +207,26 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
     plotTibbleList <- vector("list", numberOfProfiles)
     for (j in 1:numberOfProfiles) {
         plotTibbleList[[j]] <- plotTibbleCollected %>%
-            mutate(ProfileCoverage = Coverage * profileECMReweighted[, j],
-                   Contributor = contributorNames[j]) %>%
-            filter(ProfileCoverage != 0)
+            mutate_(ProfileCoverage = ~Coverage * profileECMReweighted[, j],
+                   Contributor = ~contributorNames[j]) %>%
+            filter_(~ProfileCoverage != 0)
     }
 
     plotTibble <- bind_rows(plotTibbleList) %>%
-        group_by(Marker, Allele, Region) %>%
-        summarise(ProfileCoverage = sum(ProfileCoverage),
-                  ExpectedCoverage = unique(ExpectedCoverage),
-                  LowerPI = unique(LowerPI),
-                  UpperPI = unique(UpperPI),
-                  Contributor = paste(Contributor, collapse = "/")) %>%
+        group_by_(~Marker, ~Allele, ~Region) %>%
+        summarise_(ProfileCoverage = ~sum(ProfileCoverage),
+                  ExpectedCoverage = ~unique(ExpectedCoverage),
+                  LowerPI = ~unique(LowerPI),
+                  UpperPI = ~unique(UpperPI),
+                  Contributor = ~paste(Contributor, collapse = "/")) %>%
         ungroup() %>%
-        mutate(Contributor = paste("Contributor:", Contributor))
+        mutate_(Contributor = ~paste("Contributor:", Contributor))
 
-    p <- ggplot(plotTibble, aes(x = Allele)) +
-        geom_bar(aes(y = ProfileCoverage, fill = Contributor), stat = "identity") +
-        geom_point(aes(y = ExpectedCoverage)) +
-        geom_errorbar(aes(ymin = LowerPI, ymax = UpperPI), width = 0.3) +
-        facet_grid(Contributor~Marker, scale = "free_x", space = "free_x") +
+    p <- ggplot(plotTibble, aes_(x = ~Allele)) +
+        geom_bar(aes_(y = ~ProfileCoverage, fill = ~Contributor), stat = "identity") +
+        geom_point(aes_(y = ~ExpectedCoverage)) +
+        geom_errorbar(aes_(ymin = ~LowerPI, ymax = ~UpperPI), width = 0.3) +
+        facet_grid(Contributor~Marker, scales = "free_x", space = "free_x") +
         scale_x_continuous(breaks = seq(min(plotTibble$Allele), max(plotTibble$Allele)),
                            labels = seq(min(plotTibble$Allele), max(plotTibble$Allele))) +
         theme_bw() + xlab("Allele length") + ylab("Coverage") +
@@ -220,5 +234,4 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
 
     return(p)
 }
-
 

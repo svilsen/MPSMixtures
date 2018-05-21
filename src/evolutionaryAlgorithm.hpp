@@ -15,6 +15,7 @@ class EvolutionaryAlgorithm
         std::size_t NumberOfFittestIndividuals;
         std::size_t NumberOfIterations;
         std::size_t NumberOfIterationsEqualMinMax;
+        std::size_t Iteration;
 
         // Parent selection
         int ParentSelectionWindowSize;
@@ -25,13 +26,16 @@ class EvolutionaryAlgorithm
 
         // Mutation
         double MutationProbabilityLowerLimit;
+        std::size_t MutationIterations;
+
         double MutationDegreesOfFreedom;
         Eigen::VectorXd MutationDecay;
         double MutationDecay_t;
 
         double FittestEnsuredSurvivalFraction;
+        double FitnessEnsuredSurvivalFraction;
+        Eigen::VectorXd::Index FittestIndividualIndex;
 
-        std::size_t HillClimbingDirections;
         std::size_t HillClimbingIterations;
 
         Population CurrentPopulation;
@@ -41,17 +45,23 @@ class EvolutionaryAlgorithm
         EvolutionaryAlgorithm();
         EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & seed);
 
-        EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & numberOfIterations,
-                              const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
-                              const int & parentSelectionWindowSize, const bool & allowParentSurvival, const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
-                              const double & mutationDegreesOfFreedom, const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
-                              const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations, const std::size_t & seed);
-
-        EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P, const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
-                              const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool & allowParentSurvival,
-                              const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
+        EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize,
+                              const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
+                              const std::size_t & numberOfFittestIndividuals,
+                              const int & parentSelectionWindowSize, const bool & allowParentSurvival,
+                              const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                              const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom,
                               const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
-                              const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations);
+                              const std::size_t & hillClimbingIterations, const std::size_t & seed);
+
+        EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P,
+                              const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
+                              const std::size_t & numberOfFittestIndividuals,
+                              const int & parentSelectionWindowSize, const bool & allowParentSurvival,
+                              const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                              const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom,
+                              const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
+                              const std::size_t & hillClimbingIterations);
 
         // Functions
         void RestructingIndividual(Individual & I, const ExperimentalSetup & ES);

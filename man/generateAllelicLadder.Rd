@@ -11,20 +11,18 @@ generateAllelicLadder(markers, regions, frequencies, motifLength = NULL)
 
 \item{regions}{A vector, or a list of vectors, of possible STR regions in the population.}
 
-\item{motifLength}{A vector of the motif lengths of the markers.}
+\item{frequencies}{A vector or a list of vectors, of the allele frequencies in the population.}
 
-\item{frequncies}{A vector or a list of vectors, of the allele frequencies in the population.}
+\item{motifLength}{A vector of the motif lengths of the markers.}
 }
 \value{
 A \link{tibble}.
 }
 \description{
-
+Generates an allelic ladder / population data-base given a set of markers, (STR) regions, frequencies, and the motifLengths.
 }
 \details{
-The 'regions' and 'frequencies' list (and/or vectors) should have the same length.
-
-The length of the 'markers' vector should be the length of the regions and frequencies list (or vectors).
+The 'regions', 'frequencies', and marker list/vectors should have the same length.
 
 The regions should be given as either full or compressed STR regions. A compressed region is given as e.g. '[AATG]x[CGTT]y' corresponding to 'AATG' repeated 'x' times followed by 'CGTT' repeated 'y' times.
 Note if the region has motifs which are not repeated e.g. '[AATG]xCTT', the non-repeated regions should also be encapsuled in square brackets, i.e. '[AATG]x[CTT]'.

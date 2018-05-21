@@ -3,29 +3,35 @@
 #' @details Estimates the allele and noise parameters in cases where all contirbutors are assumed known.
 #'
 #' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
+#' @param markerImbalances A vector of the prior marker imbalances.
 #' @param knownProfilesList A list of tibbles containing the alleles of the known contributors.
 #' @param potentialParentsList A list containing a list of potential parents for each allele in the sample.
 #' @param stutterRatioModel An \link{lm}-object modelling the stutter ratio given the BLMM. Note: this is only used if 'potentialParentsList' is NULL, but even then it can be NULL itself, implying no stuttering in the sample.
+#' @param levelsOfStutterRecursion The number of layers used in the stutter recursion.
+#' @param convexMarkerImbalanceInterpolation A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.
 #' @param tolerance The tolerance used for termination in parameter estimation.
+#' @param numberOfThreads The number of threads passed to the \link{potentialParentsMultiCore}-function if applicable.
 #'
 #' @return A list of estimated parameters.
 #' @export
-estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalance, knownProfilesList, potentialParentsList, stutterRatioModel = NULL, levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6) {
+estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, knownProfilesList, potentialParentsList,
+                                              stutterRatioModel = NULL, levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8,
+                                              tolerance = 1e-6, numberOfThreads = 4) {
     if (is.null(potentialParentsList)) {
-        potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, control$numberOfThreads)
+        potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, numberOfThreads)
     }
 
     H <- setHypothesis(sampleTibble, length(knownProfilesList), knownProfilesList, 0)[[1]]
 
-    numberOfMarkers = dim(sampleTibble %>% distinct(Marker))[1]
-    numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(Count = n()))$Count
+    numberOfMarkers = dim(sampleTibble %>% distinct_(~Marker))[1]
+    numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(Count = n()))$Count
 
     numberOfContributors = H$NumberOfContributors
     numberOfKnownContributors = H$NumberOfKnownProfiles
 
     creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
                                                  numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                 sampleTibble$Coverage, potentialParentsList, markerImbalance,
+                                                 sampleTibble$Coverage, potentialParentsList, markerImbalances,
                                                  convexMarkerImbalanceInterpolation,
                                                  tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, levelsOfStutterRecursion)
 
@@ -175,7 +181,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
     sampledPosterior <- mclapply(seq_along(numberOfAlleles), function(m) {
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        sampledGenotypesAll <- MPSMixtures:::.samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
+        sampledGenotypesAll <- .samplePosteriorGenotypesGuidedCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
                                                                                 estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters,
                                                                                 estimatedParameters$MixtureParameters, estimatedParameters$MarkerImbalanceParameters[m],
                                                                                 sampleTibble$Coverage[markerIndices], potentialParentsList[m],
@@ -215,8 +221,6 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 # levelsOfStutterRecursion = control$levelsOfStutterRecursion; numberOfThreads = control$numberOfThreads; simplifiedReturn = control$simplifiedReturn; numberOfSimulationsMH = control$numberOfSimulationsMH; suggestionMH = control$suggestionMH
 # m = 1
 
-setClass("setOfUnknownGenotypes")
-
 #' Approximations for the set of combinations of unknown contributors
 #'
 #' @description Three approximation to the sum over the set of unknown genotype combinations using: (1) a simple one-step approximation, (2) the set of the fittest individuals, and (3) a Metropolis-Hastings sampler.
@@ -237,9 +241,9 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
                                                         control = optimalUnknownProfileCombination.control()) {
     method = tolower(method)
     approximationMethod <- switch (method,
-                                   'ea' = MPSMixtures:::.EAApproximation,
-                                   'onestep' = MPSMixtures:::.oneStepApproximation,
-                                   'mh' = MPSMixtures:::.samplePosteriorGenotypes
+                                   'ea' = .EAApproximation,
+                                   'onestep' = .oneStepApproximation,
+                                   'mh' = .samplePosteriorGenotypes
     )
 
     if (is.null(potentialParentsList)) {
@@ -263,8 +267,8 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
                                                                                    H$NumberOfContributors, normalisingConstant))
     }
 
-    numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(N = n()))$N
-    partialSumAlleles = partialSumEigen(numberOfAlleles)
+    numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(N = n()))$N
+    partialSumAlleles = .partialSumEigen(numberOfAlleles)
     numberOfUnknownContributors = H$NumberOfContributors - H$NumberOfKnownProfiles
 
     res <- approximationMethod(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles,
@@ -275,10 +279,30 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
     return(res)
 }
 
-
-head.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
+#' Head of 'setOfUnknownGenotypes'-object
+#'
+#' @description Returns the most prevalent elements of 'setOfUnknownGenotypes'-object for each entry in the list.
+#'
+#' @param x A list of unknown genotypes, normalised, and unnormalised posterior probabilities.
+#' @param ... Additional arguments: The number of elements, 'n', and the elements of the list to be returned, 'outputElements'.
+#' @return A reduced 'setOfUnknownGenotypesList'-object.
+head.setOfUnknownGenotypes <- function(x, ...) {
+    setOfUnknownGenotypesList <- x
     res <- vector("list", length(setOfUnknownGenotypesList))
     argsList <- list(...)
+
+    if (is.null(argsList$n)) {
+        n = 6L
+    }
+    else {
+        n = argsList$n
+    }
+
+    if (n < 0) {
+        argsList$setOfUnknownGenotypesList = setOfUnknownGenotypesList
+        argsList$n <- -n
+        return(do.call("tail", argsList))
+    }
 
     if (is.null(argsList$outputElements)) {
         outputElements <- 1:length(setOfUnknownGenotypesList[[1]])
@@ -299,13 +323,35 @@ head.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
         res[[m]] <- lapply(setOfUnknownGenotypesList[[m]][outputElements], function(xx) xx[1:min(length(xx), n)])
     }
 
+    class(res) <- "setOfUnknownGenotypesList"
     return(res)
 }
 
-
-tail.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
+#' Head of 'setOfUnknownGenotypes'-object
+#'
+#' @description Returns the least prevalent elements of 'setOfUnknownGenotypes'-object for each entry in the list.
+#'
+#' @param x A list of unknown genotypes, normalised, and unnormalised posterior probabilities.
+#' @param ... Additional arguments: The number of elements, 'n', and the elements of the list to be returned, 'outputElements'.
+#'
+#' @return A reduced 'setOfUnknownGenotypesList'-object.
+tail.setOfUnknownGenotypes <- function(x, ...) {
+    setOfUnknownGenotypesList <- x
     res <- vector("list", length(setOfUnknownGenotypesList))
     argsList <- list(...)
+
+    if (is.null(argsList$n)) {
+        n = 6L
+    }
+    else {
+        n = argsList$n
+    }
+
+    if (n < 0) {
+        argsList$setOfUnknownGenotypesList = setOfUnknownGenotypesList
+        argsList$n <- -n
+        return(do.call("head", argsList))
+    }
 
     if (is.null(argsList$outputElements)) {
         outputElements <- 1:length(setOfUnknownGenotypesList[[1]])
@@ -326,6 +372,7 @@ tail.setOfUnknownGenotypes <- function(setOfUnknownGenotypesList, n = 6L, ...) {
         res[[m]] <- lapply(setOfUnknownGenotypesList[[m]][outputElements], function(xx) xx[max(1, length(xx) - n):length(xx)])
     }
 
+    class(res) <- "setOfUnknownGenotypesList"
     return(res)
 }
 

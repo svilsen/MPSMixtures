@@ -16,6 +16,10 @@ ggplotComparingProfiles(sampleTibble, profileList1, profileList2,
 \item{profileList2}{A list containing the expected contribution matrix and the mixture paramters of profile 2.}
 
 \item{plotDifferencesOnly}{Restrict the returned \link{ggplot}-object to markers where the two profiles mismatch.}
+
+\item{profileNames}{Vector of profile names; should have length '2' or be 'NULL'.}
+
+\item{contributorNames}{Vector of contributor names; should have the same length as the number of contributors or be 'NULL'.}
 }
 \value{
 ggplot2-object.

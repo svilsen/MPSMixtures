@@ -42,10 +42,56 @@ EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(const
 
 void EstimatePoissonGammaAlleleParameters::initialiseParameters()
 {
-    // Initialising mixture parameters
-    double sumCoverage = Coverage.sum();
+    // // Initialising mixture parameters
+    // double sumCoverage = Coverage.sum();
+    //
+    // Eigen::VectorXd mixtureParameters = Eigen::VectorXd::Ones(NumberOfContributors) / NumberOfContributors;
+    // for (std::size_t m = 0; m < NumberOfMarkers; m++)
+    // {
+    //     const Eigen::VectorXd & AlleleIndex_m = AlleleIndex[m];
+    //     const Eigen::MatrixXd & ExpectedContributionMatrix_m = ExpectedContributionMatrix[m];
+    //     for (std::size_t a = 0; a < AlleleIndex_m.size(); a++)
+    //     {
+    //         std::size_t n = PartialSumAlleles[m] + AlleleIndex_m[a];
+    //         for (std::size_t c = 0; c < NumberOfContributors; c++)
+    //         {
+    //             Eigen::VectorXd contributor_c = ExpectedContributionMatrix_m.col(c);
+    //             if (contributor_c[a] >= 1)
+    //             {
+    //                 mixtureParameters[c] += Coverage[n] / contributor_c[a];
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // MixtureParameters = mixtureParameters / mixtureParameters.sum();
+    //
+    // // Initialising average heterozygote parameter
+    // Eigen::VectorXd markerCoverage = Eigen::VectorXd::Zero(NumberOfMarkers);
+    // for (std::size_t m = 0; m < NumberOfMarkers; m++)
+    // {
+    //     const Eigen::VectorXd & AlleleIndex_m = AlleleIndex[m];
+    //     for (std::size_t a = 0; a < AlleleIndex_m.size(); a++)
+    //     {
+    //         std::size_t n = PartialSumAlleles[m] + AlleleIndex_m[a];
+    //         markerCoverage[m] += Coverage[n] / (2 * NumberOfContributors);
+    //     }
+    // }
+    //
+    // SampleParameters = 2.0 * Eigen::VectorXd::Ones(2);
+    // SampleParameters[0] = markerCoverage.sum() / markerCoverage.size();
+    //
+    // // Creating moment estimates of the marker imbalances
+    // Eigen::VectorXd markerImbalancesMoM = markerCoverage / SampleParameters[0];
+    // markerImbalancesMoM = markerImbalancesMoM / markerImbalancesMoM.mean();
+    //
+    // MarkerImbalancesParameters = ConvexMarkerImbalanceInterpolation * markerImbalancesMoM + (1 - ConvexMarkerImbalanceInterpolation) * MarkerImbalances;
 
-    Eigen::VectorXd mixtureParameters = Eigen::VectorXd::Ones(NumberOfContributors) / NumberOfContributors;
+    // Initialising mixture parameters
+    Eigen::VectorXd phiCurrent = Eigen::VectorXd::Ones(NumberOfContributors) / NumberOfContributors;
+    double sumCoverage = 0.0;
+    double sumCount = 0.0;
+    Eigen::VectorXd sumCoverageMarker = Eigen::VectorXd::Zero(NumberOfMarkers);
     for (std::size_t m = 0; m < NumberOfMarkers; m++)
     {
         const Eigen::VectorXd & AlleleIndex_m = AlleleIndex[m];
@@ -53,36 +99,41 @@ void EstimatePoissonGammaAlleleParameters::initialiseParameters()
         for (std::size_t a = 0; a < AlleleIndex_m.size(); a++)
         {
             std::size_t n = PartialSumAlleles[m] + AlleleIndex_m[a];
+            sumCoverageMarker[m] += Coverage[n];
+            sumCount++;
+
             for (std::size_t c = 0; c < NumberOfContributors; c++)
             {
                 Eigen::VectorXd contributor_c = ExpectedContributionMatrix_m.col(c);
                 if (contributor_c[a] >= 1)
                 {
-                    mixtureParameters[c] += Coverage[n] / contributor_c[a];
+                    phiCurrent[c] += Coverage[n] / contributor_c[a];
                 }
             }
         }
+
+        sumCoverage += sumCoverageMarker[m];
     }
 
-    MixtureParameters = mixtureParameters / mixtureParameters.sum();
+    MixtureParameters = phiCurrent / phiCurrent.sum();
 
-    // Initialising average heterozygote parameter
-    Eigen::VectorXd markerCoverage = Eigen::VectorXd::Zero(NumberOfMarkers);
+    // Initialising sample and marker parameters
+    double averageCoverageDenominator = 0.0;
+    Eigen::VectorXd markerImbalancesMoM = sumCoverageMarker;
     for (std::size_t m = 0; m < NumberOfMarkers; m++)
     {
-        const Eigen::VectorXd & AlleleIndex_m = AlleleIndex[m];
-        for (std::size_t a = 0; a < AlleleIndex_m.size(); a++)
-        {
-            std::size_t n = PartialSumAlleles[m] + AlleleIndex_m[a];
-            markerCoverage[m] += Coverage[n] / (2 * NumberOfContributors);
-        }
+        const Eigen::MatrixXd & ExpectedContributionMatrix_m = ExpectedContributionMatrix[m];
+        Eigen::VectorXd EC = ExpectedContributionMatrix_m * MixtureParameters;
+        double ECSum = EC.sum();
+
+        averageCoverageDenominator += ECSum;
+        markerImbalancesMoM[m] = markerImbalancesMoM[m] / ECSum;
     }
 
     SampleParameters = 2.0 * Eigen::VectorXd::Ones(2);
-    SampleParameters[0] = markerCoverage.sum() / markerCoverage.size();
+    SampleParameters[0] = sumCoverage / averageCoverageDenominator;
 
-    // Creating moment estimates of the marker imbalances
-    Eigen::VectorXd markerImbalancesMoM = markerCoverage / SampleParameters[0];
+    markerImbalancesMoM = markerImbalancesMoM / SampleParameters[0];
     markerImbalancesMoM = markerImbalancesMoM / markerImbalancesMoM.mean();
 
     MarkerImbalancesParameters = ConvexMarkerImbalanceInterpolation * markerImbalancesMoM + (1 - ConvexMarkerImbalanceInterpolation) * MarkerImbalances;

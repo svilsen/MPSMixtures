@@ -11,13 +11,12 @@
 Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors, const std::size_t & numberOfKnownContributors,
                                                         const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
                                                         const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
-                                                        const double & convexMarkerImbalanceInterpolation,
-                                                        const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
+                                                        const double & convexMarkerImbalanceInterpolation, const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
                                                         const std::size_t & populationSize, const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
                                                         const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool & allowParentSurvival,
-                                                        const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
-                                                        const Eigen::VectorXd mutationDecay,
-                                                        const std::size_t hillClimbingDirections, const std::size_t hillClimbingIterations,
+                                                        const double & fractionEnsuredSurvival, const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                                                        const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom, const Eigen::VectorXd mutationDecay,
+                                                        const std::size_t hillClimbingIterations,
                                                         const std::size_t & seed, const bool & trace, const std::size_t & levelsOfStutterRecursion)
 {
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
@@ -29,18 +28,21 @@ Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t & numb
     std::size_t seedShift = uniformShift(rngSeed);
 
     EvolutionaryAlgorithm EA(ES, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival,
-                             crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, 1,
-                             hillClimbingDirections, hillClimbingIterations, seed + seedShift);
+                             crossoverProbability, mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom, mutationDecay, fractionEnsuredSurvival,
+                             hillClimbingIterations, seed + seedShift);
 
     std::size_t seedShift2 = uniformShift(rngSeed);
-
     EA.Run(ES, seed + seedShift, trace);
 
     Population FittestIndividuals = EA.FittestMembersOfEntireRun;
     Rcpp::List RL = FittestIndividuals.ReturnRcppList(ES);
-    return RL;
-}
 
+    return Rcpp::List::create(Rcpp::Named("U") = RL,
+                              Rcpp::Named("UMaxSize") = numberOfFittestIndividuals,
+                              Rcpp::Named("NumberOfIterations") = EA.Iteration,
+                              Rcpp::Named("NumberOfIterationsEqualMax") = numberOfIterationsEqualMinMax,
+                              Rcpp::Named("NumberOfPopulations") = 1);
+}
 
 //[[Rcpp::export(.initialisingParallelEvolutionaryAlgorithm)]]
 Rcpp::List initialisingParallelEvolutionaryAlgorithm(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
@@ -70,10 +72,9 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
                                                 const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
                                                 const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
                                                 const std::size_t & numberOfFittestIndividuals, const int & parentSelectionWindowSize, const bool allowParentSurvival,
-                                                const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
-                                                const Eigen::VectorXd & mutationDecay,
-                                                const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations,
-                                                const std::size_t & seed, const bool & trace,
+                                                const double & fractionEnsuredSurvival, const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                                                const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom, const Eigen::VectorXd & mutationDecay,
+                                                const std::size_t & hillClimbingIterations, const std::size_t & seed, const bool & trace,
                                                 const Eigen::MatrixXd encodedPopulationList, const Eigen::MatrixXd sampleParametersList,
                                                 const Eigen::MatrixXd noiseParametersList, const Eigen::MatrixXd mixtureParametersList,
                                                 const Eigen::MatrixXd markerParametersList,
@@ -87,8 +88,8 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
     EvolutionaryAlgorithm EA(ES, currentPopulation,
                              numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals,
                              parentSelectionWindowSize, allowParentSurvival,
-                             crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom, mutationDecay, 1,
-                             hillClimbingDirections, hillClimbingIterations);
+                             crossoverProbability, mutationProbabilityLowerLimit, mutationIterations,
+                             mutationDegreesOfFreedom, mutationDecay, fractionEnsuredSurvival, hillClimbingIterations);
 
     boost::random::mt19937 rngSeed(seed);
     boost::random::uniform_int_distribution<> uniformShift(0, 1e6);

@@ -9,10 +9,11 @@ LR.control(numberOfPopulations = 4, populationSize = 10,
   numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL,
   numberOfFittestIndividuals = 10, parentSelectionWindowSize = 5,
   allowParentSurvival = TRUE, crossoverProbability = NULL,
-  mutationProbabilityLowerLimit = NULL, mutationDegreesOfFreedom = 100,
-  mutationDecayRate = 1/2, mutationDecay = NULL,
-  fractionFittestIndividuals = 1, hillClimbingDirections = 1,
-  hillClimbingIterations = 1, convexMarkerImbalanceInterpolation = 0.8,
+  mutationProbabilityLowerLimit = NULL,
+  mutationProbabilityUpperLimit = NULL, mutationIterations = 2,
+  mutationDegreesOfFreedom = 100, mutationDecayRate = 1/2,
+  mutationDecay = NULL, fractionFittestIndividuals = 1,
+  hillClimbingIterations = 2, convexMarkerImbalanceInterpolation = 0.8,
   tolerance = 1e-06, seed = NULL, trace = TRUE,
   simplifiedReturn = FALSE, numberOfThreads = 4,
   levelsOfStutterRecursion = 2, traceLimit = 100)
@@ -26,6 +27,8 @@ LR.control(numberOfPopulations = 4, populationSize = 10,
 
 \item{numberOfInnerIterations}{The number of inner iterations.}
 
+\item{numberOfIterationsEqualMinMax}{The number of iterations with the number of sub-populations with the same 'largest' individual divided 'numberOfPopulations' less than or equal to 'fractionOfPopulationsMax'.}
+
 \item{fractionOfPopulationsMax}{Fraction of the number of sub-populations with the same maximum needed before convergence counter initiates.}
 
 \item{numberOfFittestIndividuals}{The number of unique individuals stored and returned.}
@@ -36,17 +39,23 @@ LR.control(numberOfPopulations = 4, populationSize = 10,
 
 \item{crossoverProbability}{The cross-over probability.}
 
-\item{mutationProbabilityLowerLimit}{The lower limit to the mutation probability.}
+\item{mutationProbabilityLowerLimit}{The lower limit on the probability of mutation.}
+
+\item{mutationProbabilityUpperLimit}{The upper limit on the probability of mutation.}
+
+\item{mutationIterations}{The number of iterations used in mutation stage.}
 
 \item{mutationDegreesOfFreedom}{The degrees of freedom of the t-distribution used to create the mutation probabilities.}
 
-\item{mutationDecay}{The decay of the mutation probability to the lower limit.}
+\item{mutationDecayRate}{The rate of the decay of the mutation probability. Needed if 'mutationDecay' is 'NULL'.}
 
-\item{hillClimbingDirections}{The number of hill climbing directions (not in use at the moment).}
+\item{mutationDecay}{The decay of the mutation probability to the lower limit.}
 
 \item{hillClimbingIterations}{The number of iterations each child or parent is hill climbed.}
 
-\item{tolerance}{Tolerance of internal log-likelihood maximisation.}
+\item{convexMarkerImbalanceInterpolation}{A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.}
+
+\item{tolerance}{Tolerance of internal log-likelihood maximisation (can be vector of upto size '4').}
 
 \item{seed}{A seed for the c++ implementaion.}
 
@@ -56,7 +65,9 @@ LR.control(numberOfPopulations = 4, populationSize = 10,
 
 \item{numberOfThreads}{The maximum number of threads allowed.}
 
-\item{numberOfIterationsEqualMax}{The number of iterations with the number of sub-populations with the same 'largest' individual divided 'numberOfPopulations' less than or equal to 'fractionOfPopulationsMax'.}
+\item{levelsOfStutterRecursion}{The number of layers used in the stutter recursion.}
+
+\item{traceLimit}{Limits the trace of the parallel implementation.}
 }
 \value{
 A list containing all relevant parameters.

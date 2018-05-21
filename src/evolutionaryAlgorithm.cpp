@@ -26,12 +26,13 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::
 }
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize,
-                                             const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
+                                             const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
+                                             const std::size_t & numberOfFittestIndividuals,
                                              const int & parentSelectionWindowSize, const bool & allowParentSurvival,
-                                             const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
+                                             const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                                             const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom,
                                              const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
-                                             const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations,
-                                             const std::size_t & seed)
+                                             const std::size_t & hillClimbingIterations, const std::size_t & seed)
 {
     PopulationSize = populationSize;
     NumberOfFittestIndividuals = numberOfFittestIndividuals;
@@ -44,24 +45,34 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::
     CrossoverProbability = crossoverProbability;
 
     MutationProbabilityLowerLimit = mutationProbabilityLowerLimit;
+    MutationIterations = mutationIterations;
+
     MutationDegreesOfFreedom = mutationDegreesOfFreedom;
     MutationDecay = mutationDecay;
     MutationDecay_t = MutationDecay[0];
 
     FittestEnsuredSurvivalFraction = fractionFittestIndividuals;
+    FitnessEnsuredSurvivalFraction = -HUGE_VAL;
 
-    HillClimbingDirections = hillClimbingDirections;
     HillClimbingIterations = hillClimbingIterations;
 
     CurrentPopulation = InitialisePopulation(ES, seed);
+    Iteration = 0;
+
+    // Finds maximum fitness index
+    Eigen::VectorXd::Index fittestIndividualIndex;
+    CurrentPopulation.Fitness.maxCoeff(&fittestIndividualIndex);
+    FittestIndividualIndex = fittestIndividualIndex;
 }
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P,
-                                             const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax, const std::size_t & numberOfFittestIndividuals,
+                                             const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
+                                             const std::size_t & numberOfFittestIndividuals,
                                              const int & parentSelectionWindowSize, const bool & allowParentSurvival,
-                                             const double & crossoverProbability, const double & mutationProbabilityLowerLimit, const double & mutationDegreesOfFreedom,
+                                             const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
+                                             const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom,
                                              const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
-                                             const std::size_t & hillClimbingDirections, const std::size_t & hillClimbingIterations)
+                                             const std::size_t & hillClimbingIterations)
 {
     CurrentPopulation = P;
 
@@ -76,14 +87,21 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, Population 
     CrossoverProbability = crossoverProbability;
 
     MutationProbabilityLowerLimit = mutationProbabilityLowerLimit;
+    MutationIterations = mutationIterations;
     MutationDegreesOfFreedom = mutationDegreesOfFreedom;
     MutationDecay = mutationDecay;
     MutationDecay_t = MutationDecay[0];
 
     FittestEnsuredSurvivalFraction = fractionFittestIndividuals;
+    FitnessEnsuredSurvivalFraction = -HUGE_VAL;
 
-    HillClimbingDirections = hillClimbingDirections;
     HillClimbingIterations = hillClimbingIterations;
+    Iteration = 0;
+
+    // Finds maximum fitness index
+    Eigen::VectorXd::Index fittestIndividualIndex;
+    CurrentPopulation.Fitness.maxCoeff(&fittestIndividualIndex);
+    FittestIndividualIndex = fittestIndividualIndex;
 }
 
 void EvolutionaryAlgorithm::RestructingIndividual(Individual & I, const ExperimentalSetup & ES)

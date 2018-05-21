@@ -15,6 +15,8 @@ LR(sampleTibble, Hp, Hd, markerImbalances = NULL,
 
 \item{Hd}{The defence hypothesis.}
 
+\item{markerImbalances}{A vector of prior marker imbalances.}
+
 \item{potentialParentsList}{A list containing a list of potential parents for each allele in the sample. If NULL then a stutterRatioModel should be provided.}
 
 \item{stutterRatioModel}{A linear model of class \link{lm} modelling the relationship between coverage and stutter. Only needed if the potential parents list is not provided.}

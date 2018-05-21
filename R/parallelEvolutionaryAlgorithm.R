@@ -41,8 +41,9 @@
                                                             coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
                                                             numberOfPopulations, populationSize, numberOfIterations, numberOfInnerIterations,
                                                             numberOfIterationsEqualMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
-                                                            parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
-                                                            mutationDecay, hillClimbingDirections, hillClimbingIterations,
+                                                            parentSelectionWindowSize, allowParentSurvival, fractionFittestIndividuals, crossoverProbability,
+                                                            mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom,
+                                                            mutationDecay, hillClimbingIterations,
                                                             seed, trace, numberOfMaxThreads, levelsOfStutterRecursion, traceLimit) {
     if (length(seed) == 1) {
         seed = sample(1:1e6, numberOfPopulations)
@@ -69,8 +70,9 @@
             PEA_i <- .runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                                                            coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
                                                            numberOfInnerIterations, numberOfInnerIterations, populationSize,
-                                                           parentSelectionWindowSize, allowParentSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationDegreesOfFreedom,
-                                                           mutationDecaySplit[[j + 1]], hillClimbingDirections, hillClimbingIterations,
+                                                           parentSelectionWindowSize, allowParentSurvival, fractionFittestIndividuals, crossoverProbability,
+                                                           mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom,
+                                                           mutationDecaySplit[[j + 1]], hillClimbingIterations,
                                                            sample(1:1e6, 1), FALSE,
                                                            currentPopulationMigratedList[[i]]$EncodedProfiles, currentPopulationMigratedList[[i]]$SampleParameters,
                                                            currentPopulationMigratedList[[i]]$NoiseParameters, currentPopulationMigratedList[[i]]$MixtureParameters,
@@ -100,7 +102,7 @@
 
         ## Updating convergence condition
         populationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) cpl$Fitness))
-        maxPopulationFitness <- sapply(currentPopulationList, function(cpl) max(cpl$Fitness))
+        maxPopulationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) max(cpl$Fitness)))
 
         # uniqueSubpopulationMaxima <- unique.matrix(do.call("cbind", lapply(currentPopulationList, function(cpl) cpl$EncodedProfiles[, which.max(cpl$Fitness)])), MARGIN = 2)
         # fractionOfUniqueSubpopulationMaxima = dim(uniqueSubpopulationMaxima)[2] / numberOfPopulations
@@ -127,5 +129,7 @@
         }
     }
 
-    return(topFittestIndividuals)
+    resList <- list(U = topFittestIndividuals, UMaxSize = numberOfFittestIndividuals, NumberOfIterations = j,
+                    NumberOfIterationsEqualMax = numberOfIterationsEqualMax, NumberOfPopulations = numberOfPopulations)
+    return(resList)
 }

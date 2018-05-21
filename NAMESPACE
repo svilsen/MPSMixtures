@@ -2,9 +2,25 @@ exportPattern("^[[:alpha:]]+")
 useDynLib(MPSMixtures)
 
 importFrom("grDevices", "hcl")
-importFrom("stats", "dnbinom", "filter", "predict.lm", "qqnorm",
+importFrom("stats", "dnbinom", "predict.lm", "qqnorm",
            "quantile", "rnbinom", "runif")
 
-importFrom("stringr", "str_sub")
+importFrom("utils", "head", "tail")
+
+importFrom("Rsolnp", "solnp")
+importFrom("parallel", "mclapply")
+
+importFrom("Biostrings", "DNAString", "DNAStringSet", "aligned", "nucleotideSubstitutionMatrix", "oligonucleotideFrequency",
+           "pairwiseAlignment", "gregexpr2")
+importFrom("IRanges", "IRanges", "%within%")
+
+importFrom("stringr", "str_sub", "str_detect", "str_length", "str_split")
+importFrom("tidyr", "unnest")
+importFrom("tibble", "tibble", "enframe")
+
+import("methods")
 import("ggplot2")
 import("dplyr")
+
+S3method("head", "setOfUnknownGenotypes")
+S3method("tail", "setOfUnknownGenotypes")

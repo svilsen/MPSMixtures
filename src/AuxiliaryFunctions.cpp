@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
 
-//[[Rcpp::export()]]
+//[[Rcpp::export(.partialSumEigen)]]
 Eigen::VectorXd partialSumEigen(const Eigen::VectorXd & x)
 {
     const std::size_t N = x.size();

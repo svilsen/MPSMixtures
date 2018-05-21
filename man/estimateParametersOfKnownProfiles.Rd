@@ -4,13 +4,15 @@
 \alias{estimateParametersOfKnownProfiles}
 \title{Estimate parameters}
 \usage{
-estimateParametersOfKnownProfiles(sampleTibble, markerImbalance,
+estimateParametersOfKnownProfiles(sampleTibble, markerImbalances,
   knownProfilesList, potentialParentsList, stutterRatioModel = NULL,
   levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8,
-  tolerance = 1e-06)
+  tolerance = 1e-06, numberOfThreads = 4)
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}
+
+\item{markerImbalances}{A vector of the prior marker imbalances.}
 
 \item{knownProfilesList}{A list of tibbles containing the alleles of the known contributors.}
 
@@ -18,7 +20,13 @@ estimateParametersOfKnownProfiles(sampleTibble, markerImbalance,
 
 \item{stutterRatioModel}{An \link{lm}-object modelling the stutter ratio given the BLMM. Note: this is only used if 'potentialParentsList' is NULL, but even then it can be NULL itself, implying no stuttering in the sample.}
 
+\item{levelsOfStutterRecursion}{The number of layers used in the stutter recursion.}
+
+\item{convexMarkerImbalanceInterpolation}{A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.}
+
 \item{tolerance}{The tolerance used for termination in parameter estimation.}
+
+\item{numberOfThreads}{The number of threads passed to the \link{potentialParentsMultiCore}-function if applicable.}
 }
 \value{
 A list of estimated parameters.
