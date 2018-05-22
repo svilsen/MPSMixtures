@@ -42,11 +42,12 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
     else {
         crossoverProbability <- ifelse(is.null(control$crossoverProbability), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$crossoverProbability)
         mutationProbabilityLowerLimit <- ifelse(is.null(control$mutationProbabilityLowerLimit), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$mutationProbabilityLowerLimit)
+        mutationProbabilityUpperLimit <- ifelse(is.null(control$mutationProbabilityUpperLimit), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$mutationProbabilityUpperLimit)
 
         mutationDecay = control$mutationDecay
         if (control$numberOfPopulations == 1) {
             if (is.null(mutationDecay)) {
-                mutationDecay <- c(seq(control$mutationProbabilityUpperLimit, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / control$numberOfIterations)), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations - floor(control$mutationDecayRate / control$numberOfIterations)))
+                mutationDecay <- c(seq(mutationProbabilityUpperLimit, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / control$numberOfIterations)), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations - floor(control$mutationDecayRate / control$numberOfIterations)))
             }
 
             optimalUnknownProfiles <- .runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
@@ -61,7 +62,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
         }
         else {
             if (is.null(mutationDecay)) {
-                mutationDecay <- c(seq(control$mutationProbabilityUpperLimit, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations * control$numberOfInnerIterations - floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))))
+                mutationDecay <- c(seq(mutationProbabilityUpperLimit, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations * control$numberOfInnerIterations - floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))))
             }
 
             optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
@@ -151,9 +152,6 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
     if (length(tolerance) != 4) {
         tolerance = c(1e-8, -rep(1e-4, 3))
     }
-
-    if (is.null(mutationProbabilityUpperLimit))
-        mutationProbabilityUpperLimit = 0.95
 
     controlList <- list(numberOfPopulations = numberOfPopulations, populationSize = populationSize, numberOfIterations = numberOfIterations,
                         numberOfInnerIterations = numberOfInnerIterations, numberOfIterationsEqualMinMax = numberOfIterationsEqualMinMax,

@@ -241,45 +241,48 @@ Eigen::VectorXd EvolutionaryAlgorithm::CreateMutationProbability(Individual & I,
     boost::math::students_t devianceDistribution(MutationDegreesOfFreedom);
 
     Eigen::VectorXd mutation = MutationProbabilityLowerLimit * Eigen::VectorXd::Ones(E.size());
-    for (std::size_t m = 0; m < MarkerImbalance.size(); m++)
+    if (std::abs(MutationDecay_t - MutationProbabilityLowerLimit) > DBL_EPSILON)
     {
-        const Eigen::VectorXd & alleleIndex_m = I.ReducedAlleleIndex[m];
-        const std::size_t A = alleleIndex_m.size();
-
-        const Eigen::MatrixXd & expectedContributionProfile_m = I.ReducedExpectedContributionMatrix[m];
-        const Eigen::VectorXd & EC = expectedContributionProfile_m * I.MixtureParameters;
-
-        const Eigen::VectorXd & E_m = E.segment(2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m, 2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors));
-        for (std::size_t i = 0; i < E_m.size(); i++)
+        for (std::size_t m = 0; m < MarkerImbalance.size(); m++)
         {
-            const std::size_t & n = ES.PartialSumAlleles[m] + E_m[i];
-            std::size_t a = 0;
-            while ((alleleIndex_m[a] != E_m[i]) & (a < A - 1))
-            {
-                a++;
-            }
+            const Eigen::VectorXd & alleleIndex_m = I.ReducedAlleleIndex[m];
+            const std::size_t A = alleleIndex_m.size();
 
-            double mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[a];
-            if ((mu_ma == 0) & (Coverage[n] != 0))
-            {
-                mu_ma += 2e-8;
-            }
+            const Eigen::MatrixXd & expectedContributionProfile_m = I.ReducedExpectedContributionMatrix[m];
+            const Eigen::VectorXd & EC = expectedContributionProfile_m * I.MixtureParameters;
 
-            double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion);
-            if (std::isnan(deviance_n))
+            const Eigen::VectorXd & E_m = E.segment(2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m, 2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors));
+            for (std::size_t i = 0; i < E_m.size(); i++)
             {
-                deviance_n = 0.0;
-                Rcpp::warning("Deviance returned 'nan'.");
-            }
-            else if (std::isinf(deviance_n))
-            {
-                deviance_n = HUGE_VAL;
-                Rcpp::warning("Deviance returned 'inf'.");
-            }
+                const std::size_t & n = ES.PartialSumAlleles[m] + E_m[i];
+                std::size_t a = 0;
+                while ((alleleIndex_m[a] != E_m[i]) & (a < A - 1))
+                {
+                    a++;
+                }
 
-            mutation[2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m + i] =
-                MutationDecay_t - (MutationDecay_t - MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) /
-                    boost::math::pdf(devianceDistribution, 0.0);
+                double mu_ma = referenceMarkerAverage * MarkerImbalance[m] * EC[a];
+                if ((mu_ma == 0) & (Coverage[n] != 0))
+                {
+                    mu_ma += 2e-8;
+                }
+
+                double deviance_n = devianceResidualPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion);
+                if (std::isnan(deviance_n))
+                {
+                    deviance_n = 0.0;
+                    Rcpp::warning("Deviance returned 'nan'.");
+                }
+                else if (std::isinf(deviance_n))
+                {
+                    deviance_n = HUGE_VAL;
+                    Rcpp::warning("Deviance returned 'inf'.");
+                }
+
+                mutation[2 * (ES.NumberOfContributors - ES.NumberOfKnownContributors) * m + i] =
+                    MutationDecay_t - (MutationDecay_t - MutationProbabilityLowerLimit) * boost::math::pdf(devianceDistribution, deviance_n) /
+                        boost::math::pdf(devianceDistribution, 0.0);
+            }
         }
     }
 
