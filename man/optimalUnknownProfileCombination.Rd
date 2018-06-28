@@ -21,7 +21,7 @@ optimalUnknownProfileCombination(sampleTibble, markerImbalances, H,
 
 \item{HArguments}{If 'H' is 'NULL' a list of arguments passed to the 'setHypothesis' function. It must contain 'numberOfContributors', 'knownProfilesList', and 'theta'.}
 
-\item{control}{An \link{LR.control} object.}
+\item{control}{An \link{optimalUnknownProfileCombination.control} object.}
 }
 \value{
 A list of the unknown profile combinations contributing the most to the probability of the evidence under the provided hypothesis. The size of the list is controlled by 'control$numberOfFittestIndividuals'.

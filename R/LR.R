@@ -80,92 +80,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
 }
 
 
-#' @title LR control function
-#'
-#' @description A function setting all relavent parameters used internally in the \link{LR}-function.
-#'
-#' @param numberOfPopulations The number of sub-populations.
-#' @param populationSize The size of the sub-populations.
-#' @param numberOfIterations The maximum number of (outer) iterations.
-#' @param numberOfInnerIterations The number of inner iterations.
-#' @param numberOfIterationsEqualMinMax The number of iterations with the number of sub-populations with the same 'largest' individual divided 'numberOfPopulations' less than or equal to 'fractionOfPopulationsMax'.
-#' @param fractionOfPopulationsMax Fraction of the number of sub-populations with the same maximum needed before convergence counter initiates.
-#' @param numberOfFittestIndividuals The number of unique individuals stored and returned.
-#' @param parentSelectionWindowSize The size of the parent selecetion window.
-#' @param allowParentSurvival Should parents be allowed to survive from iteration to iteration (TRUE/FALSE).
-#' @param crossoverProbability The cross-over probability.
-#' @param mutationProbabilityLowerLimit The lower limit on the probability of mutation.
-#' @param mutationProbabilityUpperLimit The upper limit on the probability of mutation.
-#' @param mutationIterations The number of iterations used in mutation stage.
-#' @param mutationDegreesOfFreedom The degrees of freedom of the t-distribution used to create the mutation probabilities.
-#' @param mutationDecayRate The rate of the decay of the mutation probability. Needed if 'mutationDecay' is 'NULL'.
-#' @param mutationDecay The decay of the mutation probability to the lower limit.
-#' @param hillClimbingIterations The number of iterations each child or parent is hill climbed.
-#' @param convexMarkerImbalanceInterpolation A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.
-#' @param tolerance Tolerance of internal log-likelihood maximisation (can be vector of upto size '4').
-#' @param seed A seed for the c++ implementaion.
-#' @param trace Show trace (TRUE/FALSE)?
-#' @param traceLimit Limits the trace of the parallel implementation.
-#' @param simplifiedReturn Should the returned list be simplified (TRUE/FALSE)?
-#' @param numberOfThreads The maximum number of threads allowed.
-#' @param levelsOfStutterRecursion The number of layers used in the stutter recursion.
-#'
-#' @details
-#' If 'numberOfFittestIndividuals' is 'NULL' (default), then the number of fittest individuals stored across iterations is ceiling(0.1 * 'populationSize'). If the number of populations is larger than 1, then 'populationSize' refers to the sub-population size. Thus, it is recommended this parameter is set if running multiple populations.
-#'
-#' If 'fractionOfPopulationsMax' is 'NULL' (default), it is set as the maximum of 0.05 and 1 / 'numberOfPopulations'.
-#'
-#' If 'mutationDecay' is 'NULL' (default) and if the number of populations is 1, then it is set as seq(0, by = mutationDecayRate * 4 / (numberOfIterations), length.out = numberOfIterations). If the population size is larger than 1 the parameter 'numberOfIterations' is replaced by 'numberOfIterations * numberOfInnerIterations' i.e. the total number of iterations.
-#'
-#' If 'seed' is 'NULL', then it is sampled from uniformly from [1; 10^6].
-#'
-#' @return A list containing all relevant parameters.
-LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIterations = 25, numberOfInnerIterations = 10,
-                       numberOfIterationsEqualMinMax = 10, fractionOfPopulationsMax = NULL, numberOfFittestIndividuals = 10,
-                       parentSelectionWindowSize = 5, allowParentSurvival = TRUE, crossoverProbability = NULL, mutationProbabilityLowerLimit = NULL, mutationProbabilityUpperLimit = 0.95,
-                       mutationIterations = 2, mutationDegreesOfFreedom = 100,
-                       mutationDecayRate = 1 / 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingIterations = 2,
-                       convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2,
-                       traceLimit = 100) {
-
-    if (numberOfPopulations == 1) {
-        numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else min(numberOfFittestIndividuals, populationSize)
-    }
-    else {
-        numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else numberOfFittestIndividuals
-    }
-
-    fractionOfPopulationsMax <- if (is.null(fractionOfPopulationsMax)) max(c(0.05, 1 / numberOfPopulations)) else fractionOfPopulationsMax
-
-    seed <- if(is.null(seed)) sample(1e6, 1) else seed
-
-    if (length(tolerance) == 1) {
-        tolerance = c(tolerance, -rep(1e-4, 3))
-    }
-    else if (length(tolerance) == 2) {
-        tolerance = c(tolerance, -1e-4, -1e-4)
-    }
-    else if (length(tolerance) == 3) {
-        tolerance = c(tolerance, -1e-4)
-    }
-
-    if (length(tolerance) != 4) {
-        tolerance = c(1e-8, -rep(1e-4, 3))
-    }
-
-    controlList <- list(numberOfPopulations = numberOfPopulations, populationSize = populationSize, numberOfIterations = numberOfIterations,
-                        numberOfInnerIterations = numberOfInnerIterations, numberOfIterationsEqualMinMax = numberOfIterationsEqualMinMax,
-                        fractionOfPopulationsMax = fractionOfPopulationsMax,
-                        numberOfFittestIndividuals = numberOfFittestIndividuals, parentSelectionWindowSize = parentSelectionWindowSize, allowParentSurvival = allowParentSurvival, crossoverProbability = crossoverProbability,
-                        mutationProbabilityLowerLimit = mutationProbabilityLowerLimit, mutationProbabilityUpperLimit = mutationProbabilityUpperLimit,
-                        mutationIterations = mutationIterations, mutationDegreesOfFreedom = mutationDegreesOfFreedom, mutationDecayRate = mutationDecayRate,
-                        mutationDecay = mutationDecay, fractionFittestIndividuals = fractionFittestIndividuals, hillClimbingIterations = hillClimbingIterations,
-                        convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation, tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion,
-                        traceLimit = traceLimit)
-    return(controlList)
-}
-
-# control = LR.control(numberOfPopulations = 12, numberOfIterations = 25, populationSize = 10, numberOfFittestIndividuals = 100, hillClimbingIterations = 2, parentSelectionWindowSize = 2, simplifiedReturn = F, allowParentSurvival = T, trace = T)
+# control = optimalUnknownProfileCombination.control(numberOfPopulations = 12, numberOfIterations = 25, populationSize = 10, numberOfFittestIndividuals = 100, hillClimbingIterations = 2, parentSelectionWindowSize = 2, simplifiedReturn = F, allowParentSurvival = T, trace = T)
 
 #' @title Likelihood ratio
 #'
@@ -177,11 +92,11 @@ LR.control <- function(numberOfPopulations = 4, populationSize = 10, numberOfIte
 #' @param markerImbalances A vector of prior marker imbalances.
 #' @param potentialParentsList A list containing a list of potential parents for each allele in the sample. If NULL then a stutterRatioModel should be provided.
 #' @param stutterRatioModel A linear model of class \link{lm} modelling the relationship between coverage and stutter. Only needed if the potential parents list is not provided.
-#' @param control An \link{LR.control} object.
+#' @param control An \link{optimalUnknownProfileCombination.control} object.
 #'
 #' @return A list of likelihood ratios comparing the two hypotheses (always calculated as Hp / Hd).
 #' @export
-LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsList = NULL, stutterRatioModel = NULL, control = LR.control()) {
+LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsList = NULL, stutterRatioModel = NULL, control = optimalUnknownProfileCombination.control()) {
     ## Set-up
     if (is.null(potentialParentsList)) {
         if (control$trace)

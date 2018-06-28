@@ -6,7 +6,7 @@
 \usage{
 LR(sampleTibble, Hp, Hd, markerImbalances = NULL,
   potentialParentsList = NULL, stutterRatioModel = NULL,
-  control = LR.control())
+  control = optimalUnknownProfileCombination.control())
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}
@@ -21,7 +21,7 @@ LR(sampleTibble, Hp, Hd, markerImbalances = NULL,
 
 \item{stutterRatioModel}{A linear model of class \link{lm} modelling the relationship between coverage and stutter. Only needed if the potential parents list is not provided.}
 
-\item{control}{An \link{LR.control} object.}
+\item{control}{An \link{optimalUnknownProfileCombination.control} object.}
 }
 \value{
 A list of likelihood ratios comparing the two hypotheses (always calculated as Hp / Hd).

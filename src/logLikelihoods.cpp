@@ -204,7 +204,6 @@ Eigen::VectorXd logGenotypeProbabilityThetaCorrection(const Eigen::VectorXd & al
     return thetaCorrectedProbabilty;
 }
 
-//[[Rcpp::export()]]
 Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd & alleleFrequencies, const double & theta, const Eigen::MatrixXd & unknownProfiles, const Eigen::MatrixXd & knownProfiles, const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles)
 {
     Eigen::VectorXd logPriorProbability;

@@ -13,10 +13,6 @@
     .Call('_MPSMixtures_devianceResidualPoissonGammaDistribution', PACKAGE = 'MPSMixtures', x, mean, dispersion)
 }
 
-logPriorGenotypeProbability <- function(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles) {
-    .Call('_MPSMixtures_logPriorGenotypeProbability', PACKAGE = 'MPSMixtures', alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles)
-}
-
 .runningSinglePopulationEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, fractionEnsuredSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom, mutationDecay, hillClimbingIterations, seed, trace, levelsOfStutterRecursion) {
     .Call('_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival, fractionEnsuredSurvival, crossoverProbability, mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom, mutationDecay, hillClimbingIterations, seed, trace, levelsOfStutterRecursion)
 }

@@ -53,22 +53,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// logPriorGenotypeProbability
-Eigen::VectorXd logPriorGenotypeProbability(const Eigen::VectorXd& alleleFrequencies, const double& theta, const Eigen::MatrixXd& unknownProfiles, const Eigen::MatrixXd& knownProfiles, const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles);
-RcppExport SEXP _MPSMixtures_logPriorGenotypeProbability(SEXP alleleFrequenciesSEXP, SEXP thetaSEXP, SEXP unknownProfilesSEXP, SEXP knownProfilesSEXP, SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type alleleFrequencies(alleleFrequenciesSEXP);
-    Rcpp::traits::input_parameter< const double& >::type theta(thetaSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type unknownProfiles(unknownProfilesSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type knownProfiles(knownProfilesSEXP);
-    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfMarkers(numberOfMarkersSEXP);
-    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
-    rcpp_result_gen = Rcpp::wrap(logPriorGenotypeProbability(alleleFrequencies, theta, unknownProfiles, knownProfiles, numberOfMarkers, numberOfAlleles));
-    return rcpp_result_gen;
-END_RCPP
-}
 // runningSinglePopulationEvolutionaryAlgorithm
 Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::MatrixXd& allKnownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& convexMarkerImbalanceInterpolation, const Eigen::VectorXd& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& populationSize, const std::size_t& numberOfIterations, const std::size_t& numberOfIterationsEqualMinMax, const std::size_t& numberOfFittestIndividuals, const int& parentSelectionWindowSize, const bool& allowParentSurvival, const double& fractionEnsuredSurvival, const double& crossoverProbability, const double& mutationProbabilityLowerLimit, const std::size_t& mutationIterations, const double& mutationDegreesOfFreedom, const Eigen::VectorXd mutationDecay, const std::size_t hillClimbingIterations, const std::size_t& seed, const bool& trace, const std::size_t& levelsOfStutterRecursion);
 RcppExport SEXP _MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP allKnownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP convexMarkerImbalanceInterpolationSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP populationSizeSEXP, SEXP numberOfIterationsSEXP, SEXP numberOfIterationsEqualMinMaxSEXP, SEXP numberOfFittestIndividualsSEXP, SEXP parentSelectionWindowSizeSEXP, SEXP allowParentSurvivalSEXP, SEXP fractionEnsuredSurvivalSEXP, SEXP crossoverProbabilitySEXP, SEXP mutationProbabilityLowerLimitSEXP, SEXP mutationIterationsSEXP, SEXP mutationDegreesOfFreedomSEXP, SEXP mutationDecaySEXP, SEXP hillClimbingIterationsSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP levelsOfStutterRecursionSEXP) {
@@ -261,7 +245,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
     {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
     {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},
-    {"_MPSMixtures_logPriorGenotypeProbability", (DL_FUNC) &_MPSMixtures_logPriorGenotypeProbability, 6},
     {"_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm, 29},
     {"_MPSMixtures_initialisingParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_initialisingParallelEvolutionaryAlgorithm, 16},
     {"_MPSMixtures_runningParallelEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningParallelEvolutionaryAlgorithm, 34},

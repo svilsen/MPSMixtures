@@ -8,7 +8,7 @@
   approximationSetUnknownGenotypeCombinations(optimalUnkownProfileCombinationList,
   method = "EA", sampleTibble, H = NULL, potentialParentsList,
   stutterRatioModel = NULL, HArguments = NULL,
-  control = optimalUnknownProfileCombination.control())
+  control = approximationSetUnknownGenotypeCombinations.control())
 }
 \arguments{
 \item{optimalUnkownProfileCombinationList}{An object created by the 'optimalUnknownProfileCombination' function.}
