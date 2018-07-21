@@ -20,7 +20,7 @@ double logPoissonGammaDistribution(const double & x, const double & mean, const 
 //[[Rcpp::export(.devianceResidualPoissonGammaDistribution)]]
 double devianceResidualPoissonGammaDistribution(const double & x, const double & mean, const double & dispersion)
 {
-	if ((x - mean) < 2e-8)
+	if (std::abs(x - mean) < 2e-8)
 	{
 		return 0.0;
 	}

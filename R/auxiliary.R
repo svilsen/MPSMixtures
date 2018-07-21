@@ -425,11 +425,12 @@ generateAllelicLadder <- function(markers, regions, frequencies, motifLength = N
 #' @param alleleCoverageParameters A list containing the parameters of the allele coverage model.
 #' @param noiseParameters A list containing the paramters of the noise model.
 #' @param p A probability threshold for the created stutters.
+#' @param numberOfThreads The number of threads passed to the \link{potentialParentsMultiCore} function.
 #'
 #' @return A \link{tibble} with the sampled coverage, the marker, and the marker imbalances.
 sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stutterRatioModel,
                            alleleCoverageParameters = list(), noiseParameters = list(),
-                           p = NULL) {
+                           p = NULL, numberOfThreads = 4) {
     alleleCoverageParameters <- .alleleCoverageParameters.control(nu = alleleCoverageParameters$nu, eta = alleleCoverageParameters$eta, phi = alleleCoverageParameters$phi)
     noiseParameters <- .noiseParameters.control(psi = noiseParameters$psi, rho = noiseParameters$rho)
 
@@ -462,14 +463,12 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
             possibleStutters_i <- possibleStutters_i[which(!duplicated(possibleStutters_i))]
 
             res <- populationLadder_m[which(populationLadder_m$Region %in% possibleStutters_i), ]
-            if (dim(res)[1] != 0)
-                res %>% mutate_(BlockLengthMissingMotif = BLMMs_i$Repeats[which(possibleStutters_i %in% populationLadder_m$Region)],
-                               IsStutter = 1,
-                               IsAllele =
-                                   ~predict.lm(stutterRatioModel,
-                                              newdata = data.frame(Marker = Marker, BlockLengthMissingMotif = BlockLengthMissingMotif)))
-
-
+            if (dim(res)[1] != 0) {
+                Marker = BlockLengthMissingMotif = NULL
+                res <- res %>% mutate("BlockLengthMissingMotif" = BLMMs_i$Repeats[which(possibleStutters_i %in% populationLadder_m$Region)],
+                                      "IsStutter" = 1,
+                                      "IsAllele" = predict.lm(stutterRatioModel, newdata = data.frame("Marker" = Marker, "BlockLengthMissingMotif" = BlockLengthMissingMotif)))
+            }
         }))
 
         profileStutters <- bind_rows(collectedProfiles, collectedProfilesStutters) %>%
@@ -487,7 +486,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
 
     ## Sample coverage
     profilesMatrix <- genotypeMatrix(sampleTibble, trueProfiles)
-    potentialParentsList <- potentialParents(sampleTibble, stutterRatioModel, simplifiedReturn = FALSE)
+    potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, numberOfThreads)
     ECM <- .expectedContributionMatrix(sampleTibble, profilesMatrix, potentialParentsList)
 
     numberOfAlleles <- (sampleTibble %>% group_by_(~Marker) %>% summarise(Count = n()))$Count
@@ -495,7 +494,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
     expectedAlleleCoverage <- alleleCoverageParameters$nu * markerImbalancesRep * (ECM %*% alleleCoverageParameters$phi)
 
     sampledAllele <- sampleTibble %>%
-        mutate_(Coverage = rnbinom(n(), mu = expectedAlleleCoverage, size = expectedAlleleCoverage / alleleCoverageParameters$eta))
+        mutate("Coverage" = rnbinom(n(), mu = expectedAlleleCoverage, size = expectedAlleleCoverage / alleleCoverageParameters$eta))
 
     sampledNoise <- populationLadder %>% filter_(~!(Region %in% sampleTibble$Region)) %>% group_by_(~Marker) %>%
         mutate(Coverage = rnbinom(n(), mu = noiseParameters$psi, size = noiseParameters$rho)) %>%

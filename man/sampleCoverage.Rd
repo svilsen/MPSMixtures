@@ -6,7 +6,7 @@
 \usage{
 sampleCoverage(trueProfiles, markerImbalances, populationLadder,
   stutterRatioModel, alleleCoverageParameters = list(),
-  noiseParameters = list(), p = NULL)
+  noiseParameters = list(), p = NULL, numberOfThreads = 4)
 }
 \arguments{
 \item{trueProfiles}{A list of \link{tibble}'s containing the true profiles of the mixture.}
@@ -22,6 +22,8 @@ sampleCoverage(trueProfiles, markerImbalances, populationLadder,
 \item{noiseParameters}{A list containing the paramters of the noise model.}
 
 \item{p}{A probability threshold for the created stutters.}
+
+\item{numberOfThreads}{The number of threads passed to the \link{potentialParentsMultiCore} function.}
 }
 \value{
 A \link{tibble} with the sampled coverage, the marker, and the marker imbalances.

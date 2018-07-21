@@ -133,9 +133,10 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList){
     D <- SP[2] * (1.0 - NV) + NP[2] * NV
 
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
+        mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate(DR = .devianceResidualPoissonGammaDistribution(C, MU, D),
-               Type = if (NV == 1) "Noise coverage" else if(MU != 0) "Allele coverage" else NA) %>%
+        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, if (NV == 1) D else MU / D),
+               "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
         filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
 
     qq_allele <- qqnorm((DRTibble %>% filter(Type == "Allele coverage"))$DR, plot.it = FALSE)

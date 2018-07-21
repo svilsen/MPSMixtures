@@ -109,7 +109,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
     if (is.null(markerImbalances)) {
         markerImbalances = rep(1, numberOfMarkers)
     }
-    else if (numberOfMarkers != markerImbalances) {
+    else if (numberOfMarkers != length(markerImbalances)) {
         stop("The length of 'markerImbalances' is not equal to the number of unique markers in 'sampleTibble'.")
     }
 
