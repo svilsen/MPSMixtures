@@ -497,7 +497,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
         mutate("Coverage" = rnbinom(n(), mu = expectedAlleleCoverage, size = expectedAlleleCoverage / alleleCoverageParameters$eta))
 
     sampledNoise <- populationLadder %>% filter_(~!(Region %in% sampleTibble$Region)) %>% group_by_(~Marker) %>%
-        mutate(Coverage = rnbinom(n(), mu = noiseParameters$psi, size = noiseParameters$rho)) %>%
+        mutate(Coverage = rnbinom(n(), mu = noiseParameters$psi, size = noiseParameters$psi / noiseParameters$rho)) %>%
         filter_(~Coverage > 0)
 
     sampledCoverage <- bind_rows(sampledAllele, sampledNoise) %>%

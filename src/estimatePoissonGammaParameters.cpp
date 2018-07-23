@@ -329,6 +329,7 @@ void EstimatePoissonGammaNoiseParameters::initialiseParameters()
     Eigen::VectorXd parameters = Eigen::VectorXd::Ones(2);
 
     double noiseCoverageSum = 0.0;
+    double noiseCoverageSquaredSum = 0.0;
     double noiseCoverageSize = 0.0;
     for (std::size_t m = 0; m < NumberOfMarkers; m++)
     {
@@ -337,13 +338,16 @@ void EstimatePoissonGammaNoiseParameters::initialiseParameters()
         {
             std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
             noiseCoverageSum += Coverage[n];
+            noiseCoverageSquaredSum += std::pow(Coverage[n], 2.0);
             noiseCoverageSize++;
         }
     }
 
     double averageNoiseCoverage = noiseCoverageSum / noiseCoverageSize;
 
-    parameters[0] = averageNoiseCoverage * (1 - std::exp(logPoissonGammaDistribution(0, averageNoiseCoverage, 1.0)));
+    parameters[0] = averageNoiseCoverage * (1 - std::exp(logPoissonGammaDistribution(0, averageNoiseCoverage, averageNoiseCoverage)));
+    parameters[1] = std::abs((noiseCoverageSquaredSum / noiseCoverageSize - std::pow(parameters[0], 2.0)) / parameters[0] - 1.0);
+
     NoiseParameters = parameters;
 }
 
@@ -351,14 +355,17 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
 {
     EstimatePoissonGammaNoiseParameters *EPGN = reinterpret_cast<EstimatePoissonGammaNoiseParameters*>(data);
     const Eigen::VectorXd & Coverage = EPGN->Coverage;
-    const std::vector<Eigen::VectorXd> NoiseIndex = EPGN->NoiseIndex;
+    const std::vector<Eigen::VectorXd> & NoiseIndex = EPGN->NoiseIndex;
     const Eigen::VectorXd & PartialSumAlleles = EPGN->PartialSumAlleles;
     const std::size_t & NumberOfMarkers = EPGN->NumberOfMarkers;
     std::size_t & Counter = EPGN->Counter;
 
     const double & mu_ma = x[0];
     const double & dispersion = x[1];
-    double logeta = std::log(dispersion) - std::log(mu_ma + dispersion);
+
+    const double & gamma = mu_ma / dispersion;
+    const double & zero_truncation = -std::log(1 + dispersion);
+    // const double & logeta = std::log(dispersion) - std::log(mu_ma + dispersion);
 
     double logLikelihood = 0.0;
     for (std::size_t m = 0; m < NumberOfMarkers; m++)
@@ -367,7 +374,8 @@ double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<doub
         for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
         {
             std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
-            logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, dispersion) - std::log(1 - std::exp(dispersion * logeta));
+            logLikelihood += logPoissonGammaDistribution(Coverage[n], mu_ma, gamma) -
+                std::log(1.0 - std::exp(gamma * zero_truncation)); //std::log(1 - std::exp(dispersion * logeta));
         }
     }
 
@@ -385,7 +393,7 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
 
     // Box-constraints
     std::vector<double> lowerBound(N), upperBound(N);
-    lowerBound[0] = 1.0;
+    lowerBound[0] = 2e-8;
     lowerBound[1] = 2e-8;
     upperBound[0] = EPGN.Coverage.maxCoeff();
     upperBound[1] = (EPGN.Coverage.size() / (EPGN.Coverage.size() - 1.0)) * std::pow(EPGN.Coverage.maxCoeff(), 2.0);

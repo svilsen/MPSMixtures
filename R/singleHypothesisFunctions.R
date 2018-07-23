@@ -69,6 +69,7 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, kn
 #' @param simplifiedReturn Should the returned list be simplified (TRUE/FALSE)?
 #' @param numberOfThreads The maximum number of threads allowed.
 #' @param levelsOfStutterRecursion The number of layers used in the stutter recursion.
+#' @param numberOfSimulationsMH The number of simulations used for each marker of the Metropolis-Hastings algorithm.
 #'
 #' @details
 #' If 'numberOfFittestIndividuals' is 'NULL' (default), then the number of fittest individuals stored across iterations is ceiling(0.1 * 'populationSize'). If the number of populations is larger than 1, then 'populationSize' refers to the sub-population size. Thus, it is recommended this parameter is set if running multiple populations.
@@ -238,7 +239,8 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 
 
 # levelsOfStutterRecursion = control$levelsOfStutterRecursion; numberOfThreads = 1; simplifiedReturn = control$simplifiedReturn; numberOfSimulationsMH = control$numberOfSimulationsMH; suggestionMH = control$suggestionMH
-.samplePosteriorGenotypes <- function(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
+.samplePosteriorGenotypes <- function(optimalUnkownProfileCombinationList, sampleTibble, H,
+                                      numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
                                       optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList,
                                       EAApproximationType, numberOfSimulationsMH, suggestionMH) {
     suggestionBool = switch(tolower(suggestionMH),
@@ -264,7 +266,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
         countUniqueGenotypes = rep(NA, length(uniqueGenotypes))
         unnormalisedLogLikelihood = rep(NA, length(uniqueGenotypes))
         for (i in seq_along(uniqueGenotypes)) {
-            identifiedDuplicates <- sapply(sampledGenotypes, function(xx) all(xx == uniqueGenotypes[[i]]))
+            identifiedDuplicates <- sapply(sampledGenotypes, function(xx) sum(xx != uniqueGenotypes[[i]]) == 0)
             unnormalisedLogLikelihood[i] = mean(sampledLogLikelihoods[identifiedDuplicates])
             countUniqueGenotypes[i] = sum(identifiedDuplicates)
         }
@@ -272,7 +274,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
         posteriorProb = countUniqueGenotypes / sum(countUniqueGenotypes)
         sorted <- order(posteriorProb, decreasing = T)
 
-        res <- list(GenotypeMatrix = sampledGenotypes[sorted], LogUnnormalisedProbabilitySum = log(sum(exp(unnormalisedLogLikelihood))),
+        res <- list(GenotypeMatrix = uniqueGenotypes[sorted], LogUnnormalisedProbabilitySum = log(sum(exp(unnormalisedLogLikelihood))),
                     LogUnnormalisedProbability = unnormalisedLogLikelihood[sorted], NormalisedProbabilities = posteriorProb[sorted],
                     AcceptedProposals = sampledGenotypesAll[["AcceptedProposals"]],
                     AcceptRate = sampledGenotypesAll[["AcceptedProposals"]] / numberOfSimulationsMH)
@@ -296,7 +298,8 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 #' @param simplifiedReturn Should the returned list be simplified (TRUE/FALSE)?
 #'
 #' @return A list of default parameters.
-approximationSetUnknownGenotypeCombinations.control <- function(simplifiedReturn = FALSE, levelsOfStutterRecursion = 2, numberOfThreads = 4, trace = FALSE, EAApproximationType = 1, numberOfSimulationsMH = 10000, suggestionMH = "random") {
+approximationSetUnknownGenotypeCombinations.control <- function(simplifiedReturn = FALSE, levelsOfStutterRecursion = 2, numberOfThreads = 4, trace = FALSE,
+                                                                EAApproximationType = 2, numberOfSimulationsMH = 10000, suggestionMH = "random") {
     res = list(simplifiedReturn = simplifiedReturn, levelsOfStutterRecursion = levelsOfStutterRecursion, numberOfThreads = numberOfThreads,
                trace = trace, EAApproximationType = EAApproximationType, numberOfSimulationsMH = numberOfSimulationsMH, suggestionMH = suggestionMH)
     return(res)
@@ -350,7 +353,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
     }
 
     numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(N = n()))$N
-    partialSumAlleles = .partialSumEigen(numberOfAlleles)
+    partialSumAlleles = MPSMixtures:::.partialSumEigen(numberOfAlleles)
     numberOfUnknownContributors = H$NumberOfContributors - H$NumberOfKnownProfiles
 
     res <- approximationMethod(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles,
@@ -388,6 +391,7 @@ head.setOfUnknownGenotypes <- function(x, ...) {
 
     if (is.null(argsList$outputElements)) {
         outputElements <- 1:length(setOfUnknownGenotypesList[[1]])
+        argsList$outputElements <- outputElements
     }
     else {
         outputElements <- which(names(setOfUnknownGenotypesList[[1]]) %in% argsList$outputElements)
@@ -409,7 +413,7 @@ head.setOfUnknownGenotypes <- function(x, ...) {
     return(res)
 }
 
-#' Head of 'setOfUnknownGenotypes'-object
+#' Tail of 'setOfUnknownGenotypes'-object
 #'
 #' @description Returns the least prevalent elements of 'setOfUnknownGenotypes'-object for each entry in the list.
 #'
@@ -419,7 +423,7 @@ head.setOfUnknownGenotypes <- function(x, ...) {
 #' @return A reduced 'setOfUnknownGenotypesList'-object.
 tail.setOfUnknownGenotypes <- function(x, ...) {
     setOfUnknownGenotypesList <- x
-    res <- vector("list", length(setOfUnknownGenotypesList))
+    res <- vector("list", length(setOfUnknownGenotypesList[[1]]))
     argsList <- list(...)
 
     if (is.null(argsList$n)) {

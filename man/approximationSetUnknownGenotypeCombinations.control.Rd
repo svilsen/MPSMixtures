@@ -6,7 +6,7 @@
 \usage{
 approximationSetUnknownGenotypeCombinations.control(simplifiedReturn = FALSE,
   levelsOfStutterRecursion = 2, numberOfThreads = 4, trace = FALSE,
-  EAApproximationType = 1, numberOfSimulationsMH = 10000,
+  EAApproximationType = 2, numberOfSimulationsMH = 10000,
   suggestionMH = "random")
 }
 \arguments{

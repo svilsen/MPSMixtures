@@ -16,10 +16,13 @@
         EC = (ECMCollected[[i]] %*% phi)
         mu_ma = heterozygoteAverage * markerImbalances * EC
 
-        ll_allele_coverage <- ifelse(EC != 0, dnbinom(coverage, mu = mu_ma, size = mu_ma / dispersion, log = T), 0.0)
-        ll_noise <- ifelse(EC == 0, dnbinom(coverage, mu = noiseAverage, size = noiseDispersion, log = T), 0.0)
+        alleles <- EC != 0
 
-        ll[i] <- sum(ll_allele_coverage + ll_noise) + logGenotypeProbability[i]
+        ll_allele_coverage <- dnbinom(coverage[alleles], mu = mu_ma[alleles], size = mu_ma[alleles] / dispersion, log = T)
+        ll_noise <- dnbinom(coverage[!alleles], mu = noiseAverage, size = noiseDispersion, log = T) -
+            log(1 - dnbinom(0.0, mu = noiseAverage, size = noiseDispersion, log = F))
+
+        ll[i] <- sum(ll_allele_coverage) + sum(ll_noise) + logGenotypeProbability[i]
     }
 
 
@@ -34,6 +37,7 @@
     ECMCollected <- lapply(REA, function(rr) rr$ExpectedContributionMatrix)
 
     lowerBounds = c(rep(0, times = 4), rep(0, times = numberOfContributors))
+    lowerBounds[3] = 1.0
     upperBounds = c(rep(Inf, times = 4), rep(1, times = numberOfContributors))
 
     eqBounds <- function(pars, coverage, markerImbalances, ECMCollected, numberOfContributors, logGenotypeProbability, normalisingConstant) {
@@ -49,11 +53,11 @@
     markerImbalances = (sampleTibble %>% left_join(sampleTibble %>% distinct_(~Marker) %>% mutate(MI = fittestParameters$MarkerImbalanceParameters), by = "Marker"))$MI
 
     pars = solnp(initialPars, fun = .LargeLikelihood,
-                     LB = lowerBounds, UB = upperBounds, eqfun = eqBounds, eqB = 1,
-                     coverage = coverage, markerImbalances = markerImbalances,
-                     ECMCollected = ECMCollected, numberOfContributors = numberOfContributors,
-                     logGenotypeProbability = logGenotypeProbability, normalisingConstant = normalisingConstant,
-                     control = list(trace = FALSE))
+                 LB = lowerBounds, UB = upperBounds, eqfun = eqBounds, eqB = 1,
+                 coverage = coverage, markerImbalances = markerImbalances,
+                 ECMCollected = ECMCollected, numberOfContributors = numberOfContributors,
+                 logGenotypeProbability = logGenotypeProbability, normalisingConstant = normalisingConstant,
+                 control = list(trace = FALSE))
 
     res <- list(SampleParameters = pars$pars[1:2], NoiseParameters = pars$pars[3:4], MixtureParameters = pars$pars[(5):length(pars$pars)],
                 MarkerImbalanceParameters = fittestParameters$MarkerImbalanceParameters, Likelihood = -pars$values[length(pars$values)])

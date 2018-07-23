@@ -70,6 +70,8 @@ optimalUnknownProfileCombination.control(numberOfPopulations = 4,
 \item{levelsOfStutterRecursion}{The number of layers used in the stutter recursion.}
 
 \item{traceLimit}{Limits the trace of the parallel implementation.}
+
+\item{numberOfSimulationsMH}{The number of simulations used for each marker of the Metropolis-Hastings algorithm.}
 }
 \value{
 A list containing all relevant parameters.

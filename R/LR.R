@@ -37,7 +37,7 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
                                                      control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion)
 
-        optimalUnknownProfiles <- list(creatingIndividualObject)
+        optimalUnknownProfiles <- list(U = list(creatingIndividualObject))
     }
     else {
         crossoverProbability <- ifelse(is.null(control$crossoverProbability), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$crossoverProbability)
@@ -108,8 +108,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
     numberOfMarkers = length(unique(sampleTibble$Marker))
     if (is.null(markerImbalances)) {
         markerImbalances = rep(1, numberOfMarkers)
-    }
-    else if (numberOfMarkers != length(markerImbalances)) {
+    } else if (numberOfMarkers != length(markerImbalances)) {
         stop("The length of 'markerImbalances' is not equal to the number of unique markers in 'sampleTibble'.")
     }
 
@@ -149,28 +148,43 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
         cat("Optimising parameters and calculating LR's.\n")
 
 
+    pairwiseComparisons <- expand.grid("Hp" = seq_along(Hp), "Hd" = seq_along(Hd))
     pairwiseComparisonResults <- vector("list", length(Hp))
-    for (i in seq_along(pairwiseComparisonResults)) {
+    for (i in 1:dim(pairwiseComparisons)[1]) {
         if (control$trace)
             cat("  Comparison:", i, "\n")
 
-        optimalUnknownGenotypesHp_i <- optimalUnknownGenotypesHp[[i]][sapply(optimalUnknownGenotypesHp[[i]], function(hh) !is.null(hh$Fitness))]
-        optimalUnknownGenotypesHd_i <- optimalUnknownGenotypesHd[[i]][sapply(optimalUnknownGenotypesHd[[i]], function(hh) !is.null(hh$Fitness))]
+        pairwiseComparisons_i <- as.numeric(pairwiseComparisons[i, ])
+        optimalUnknownGenotypesHp_i <- optimalUnknownGenotypesHp[[pairwiseComparisons_i[1]]][sapply(optimalUnknownGenotypesHp[[pairwiseComparisons_i[1]]], function(hh) !is.null(hh$Fitness))]
+        optimalUnknownGenotypesHd_i <- optimalUnknownGenotypesHd[[pairwiseComparisons_i[2]]][sapply(optimalUnknownGenotypesHd[[pairwiseComparisons_i[2]]], function(hh) !is.null(hh$Fitness))]
 
         LHpNormaliser <- max(sapply(optimalUnknownGenotypesHp_i, function(hh) hh$Fitness))
         LHdNormaliser <- max(sapply(optimalUnknownGenotypesHd_i, function(hh) hh$Fitness))
 
         parametersLRHp <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
-                                                             Hp[[i]]$NumberOfContributors, LHpNormaliser)
+                                                             Hp[[pairwiseComparisons_i[1]]]$NumberOfContributors, LHpNormaliser)
         parametersLRHd <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
-                                                             Hd[[i]]$NumberOfContributors, LHdNormaliser)
+                                                             Hd[[pairwiseComparisons_i[2]]]$NumberOfContributors, LHdNormaliser)
 
         logLR = log(parametersLRHp$Likelihood) + LHpNormaliser - log(parametersLRHd$Likelihood) - LHdNormaliser
 
-        resultsList <- list(LR = exp(logLR), Log10LR = logLR * log10(exp(1)), Hp = Hp[[i]], Hd = Hd[[i]])
+        resultsList <- list(LR = exp(logLR), Log10LR = logLR * log10(exp(1L)), Hp = Hp[[pairwiseComparisons_i[1]]], Hd = Hd[[pairwiseComparisons_i[2]]])
         if (!control$simplifiedReturn) {
-            resultsList$HpOptimalUnknownGenotypes = optimalUnknownGenotypesHp[[i]]
-            resultsList$HdOptimalUnknownGenotypes = optimalUnknownGenotypesHd[[i]]
+            resultsList$HpOptimalUnknownGenotypes = approximationSetUnknownGenotypeCombinations(optimalUnknownGenotypesHp[[pairwiseComparisons_i[1]]], method = "mh",
+                                                                                                sampleTibble, Hp[[pairwiseComparisons_i[1]]],
+                                                                                                potentialParentsList, stutterRatioModel,
+                                                                                                control = approximationSetUnknownGenotypeCombinations.control(
+                                                                                                    levelsOfStutterRecursion = control$levelsOfStutterRecursion,
+                                                                                                    numberOfThreads = control$numberOfThreads, trace = control$trace,
+                                                                                                    numberOfSimulationsMH = control$numberOfSimulationsMH))
+
+            resultsList$HdOptimalUnknownGenotypes = approximationSetUnknownGenotypeCombinations(optimalUnknownGenotypesHd[[pairwiseComparisons_i[2]]], method = "mh",
+                                                                                                sampleTibble, Hd[[pairwiseComparisons_i[2]]],
+                                                                                                potentialParentsList, stutterRatioModel,
+                                                                                                control = approximationSetUnknownGenotypeCombinations.control(
+                                                                                                    levelsOfStutterRecursion = control$levelsOfStutterRecursion,
+                                                                                                    numberOfThreads = control$numberOfThreads, trace = control$trace,
+                                                                                                    numberOfSimulationsMH = control$numberOfSimulationsMH))
 
             resultsList$HpParameterEstimates <- parametersLRHp
             resultsList$HdParameterEstimates <- parametersLRHd
@@ -182,7 +196,9 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     resList <- list(AllPairwiseComparisonData = pairwiseComparisonResults)
 
-    comparisonTable <- data.frame(Hp = sapply(Hp, function(H) H$NumberOfContributors), Hd = sapply(Hd, function(H) H$NumberOfContributors))
+    comparisonTable <- data.frame(Hp = sapply(Hp, function(H) H$NumberOfContributors)[pairwiseComparisons[, 1]],
+                                  Hd = sapply(Hd, function(H) H$NumberOfContributors)[pairwiseComparisons[, 2]])
+
     comparisonTable$Log10LR <- sapply(pairwiseComparisonResults, function(L) L$Log10LR)
 
     resList$ComparisonTable <- comparisonTable

@@ -2,7 +2,7 @@
 % Please edit documentation in R/singleHypothesisFunctions.R
 \name{tail.setOfUnknownGenotypes}
 \alias{tail.setOfUnknownGenotypes}
-\title{Head of 'setOfUnknownGenotypes'-object}
+\title{Tail of 'setOfUnknownGenotypes'-object}
 \usage{
 \method{tail}{setOfUnknownGenotypes}(x, ...)
 }

@@ -135,7 +135,7 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList){
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, if (NV == 1) D else MU / D),
+        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, MU / D),
                "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
         filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
 
