@@ -22,17 +22,12 @@ Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t & numb
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
-    boost::random::mt19937 rngSeed(seed);
-    boost::random::uniform_int_distribution<> uniformShift(0, 1e6);
-
-    std::size_t seedShift = uniformShift(rngSeed);
-
     EvolutionaryAlgorithm EA(ES, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival,
                              crossoverProbability, mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom, mutationDecay, fractionEnsuredSurvival,
-                             hillClimbingIterations, seed + seedShift);
+                             hillClimbingIterations, seed);
 
-    std::size_t seedShift2 = uniformShift(rngSeed);
-    EA.Run(ES, seed + seedShift, trace);
+    RandomVariates RV(numberOfAlleles, numberOfContributors - numberOfKnownContributors, seed + 1);
+    EA.Run(ES, RV, trace);
 
     Population FittestIndividuals = EA.FittestMembersOfEntireRun;
     Rcpp::List RL = FittestIndividuals.ReturnRcppList(ES);
@@ -54,11 +49,7 @@ Rcpp::List initialisingParallelEvolutionaryAlgorithm(const std::size_t & numberO
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
-    boost::random::mt19937 rngSeed(seed);
-    boost::random::uniform_int_distribution<> uniformShift(0, 1e6);
-
-    std::size_t seedShift = uniformShift(rngSeed);
-    EvolutionaryAlgorithm EA(ES, populationSize, seed + seedShift);
+    EvolutionaryAlgorithm EA(ES, populationSize, seed);
 
     Rcpp::List RL = EA.CurrentPopulation.ReturnCompressedRcppList();
     return RL;
@@ -91,12 +82,9 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
                              crossoverProbability, mutationProbabilityLowerLimit, mutationIterations,
                              mutationDegreesOfFreedom, mutationDecay, fractionEnsuredSurvival, hillClimbingIterations);
 
-    boost::random::mt19937 rngSeed(seed);
-    boost::random::uniform_int_distribution<> uniformShift(0, 1e6);
 
-    std::size_t seedShift = uniformShift(rngSeed);
-
-    EA.Run(ES, seed + seedShift, trace);
+    RandomVariates RV(numberOfAlleles, numberOfContributors - numberOfKnownContributors, seed);
+    EA.Run(ES, RV, trace);
 
     Population FittestIndividuals = EA.FittestMembersOfEntireRun;
 

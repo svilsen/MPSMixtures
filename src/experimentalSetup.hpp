@@ -14,6 +14,27 @@
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 
+struct RandomVariates
+{
+    typedef boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > interval_uniform_generator;
+
+    std::size_t M;
+    boost::mt19937 rng;
+
+    boost::random::uniform_real_distribution<> uniform_real;
+    boost::random::uniform_int_distribution<> uniform_01;
+    boost::random::uniform_int_distribution<> uniform_marker;
+    boost::random::uniform_int_distribution<> uniform_unknown_contributor;
+
+    boost::variate_generator<boost::mt19937 &, boost::random::uniform_real_distribution<> > generate_uniform_real;
+    boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > generate_uniform_binary;
+    boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > generate_uniform_marker;
+    boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > generate_uniform_unknown_contributor;
+    std::vector< interval_uniform_generator > generate_uniform_mutation;
+
+    RandomVariates(const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfUnknownContributors, const std::size_t & seed);
+};
+
 class ExperimentalSetup
 {
     public:
@@ -41,7 +62,6 @@ class ExperimentalSetup
         double ConvexMarkerImbalanceInterpolation;
         std::size_t LevelsOfStutterRecursion;
 
-
         ExperimentalSetup(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
                           const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
                           const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents,
@@ -50,34 +70,6 @@ class ExperimentalSetup
 
         Eigen::VectorXd GenerateUnknownGenotype(const std::size_t & seed);
 
-};
-
-struct RandomVariates
-{
-    typedef boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > interval_uniform_generator;
-
-    std::size_t M;
-    boost::mt19937 rng;
-
-    boost::random::uniform_real_distribution<> uniform_real;
-    boost::random::uniform_int_distribution<> uniform_01;
-
-    boost::variate_generator<boost::mt19937 &, boost::random::uniform_real_distribution<> > generate_uniform_real;
-    boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > generate_uniform_binary;
-    std::vector< interval_uniform_generator > generate_uniform_interval;
-
-    RandomVariates(const Eigen::VectorXd & numberOfAlleles, const std::size_t & seed) :
-        rng(seed), M(numberOfAlleles.size()),
-        uniform_real(0.0, 1.0), generate_uniform_real(rng, uniform_real),
-        uniform_01(0, 1), generate_uniform_binary(rng, uniform_01)
-    {
-        for (std::size_t m = 0; m < M; m++)
-        {
-            boost::random::uniform_int_distribution<> uniform_interval_m(0, numberOfAlleles[m] - 1);
-            interval_uniform_generator uniform_interval_vector_m(rng, uniform_interval_m);
-            generate_uniform_interval.push_back(uniform_interval_vector_m);
-        }
-    };
 };
 
 #endif

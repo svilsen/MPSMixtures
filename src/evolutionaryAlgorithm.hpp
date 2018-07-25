@@ -68,19 +68,18 @@ class EvolutionaryAlgorithm
 
         Population InitialisePopulation(ExperimentalSetup & ES, const std::size_t & seed);
 
-        std::size_t ChoosePartner(const Population & P, int currentIndividual, const std::size_t & seed);
+        std::size_t ChoosePartner(const Population & P, int currentIndividual, RandomVariates & RV);
 
-        Individual Crossover(const Individual & I, const Individual & J, const ExperimentalSetup & ES, const std::size_t & seed);
+        Individual Crossover(const Individual & I, const Individual & J, const ExperimentalSetup & ES, RandomVariates & RV);
 
         Eigen::VectorXd CreateMutationProbability(Individual & I, const ExperimentalSetup & ES);
-        void Mutation(Individual & I, const ExperimentalSetup & ES, const std::size_t & seed);
+        void Mutation(Individual & I, const ExperimentalSetup & ES, RandomVariates & RV);
 
-        void HillClimbing(Individual & I, ExperimentalSetup & ES, const std::size_t & seed);
+        void HillClimbing(Individual & I, ExperimentalSetup & ES, RandomVariates & RV);
 
-        Population SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, const std::size_t & seed);
+        Population SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, RandomVariates & RV);
 
-        void Run(ExperimentalSetup & ES, const std::size_t & seed, const bool & trace);
+        void Run(ExperimentalSetup & ES, RandomVariates & RV, const bool & trace);
 };
-
 
 #endif

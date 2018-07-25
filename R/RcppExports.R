@@ -5,6 +5,10 @@
     .Call('_MPSMixtures_partialSumEigen', PACKAGE = 'MPSMixtures', x)
 }
 
+.testing_rv_struct <- function(numberOfAlleles, numberOfUnknownContributors, seed, numberOfSimulations) {
+    .Call('_MPSMixtures_testing_rv_struct', PACKAGE = 'MPSMixtures', numberOfAlleles, numberOfUnknownContributors, seed, numberOfSimulations)
+}
+
 .setupIndividual <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion) {
     .Call('_MPSMixtures_setupIndividual', PACKAGE = 'MPSMixtures', numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion)
 }

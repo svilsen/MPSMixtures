@@ -17,6 +17,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// testing_rv_struct
+Eigen::MatrixXd testing_rv_struct(const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfUnknownContributors, const std::size_t& seed, const std::size_t& numberOfSimulations);
+RcppExport SEXP _MPSMixtures_testing_rv_struct(SEXP numberOfAllelesSEXP, SEXP numberOfUnknownContributorsSEXP, SEXP seedSEXP, SEXP numberOfSimulationsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type numberOfAlleles(numberOfAllelesSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfUnknownContributors(numberOfUnknownContributorsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< const std::size_t& >::type numberOfSimulations(numberOfSimulationsSEXP);
+    rcpp_result_gen = Rcpp::wrap(testing_rv_struct(numberOfAlleles, numberOfUnknownContributors, seed, numberOfSimulations));
+    return rcpp_result_gen;
+END_RCPP
+}
 // setupIndividual
 Rcpp::List setupIndividual(const std::size_t& numberOfMarkers, const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfContributors, const std::size_t& numberOfKnownContributors, const Eigen::MatrixXd& knownProfiles, const Eigen::VectorXd& coverage, const std::vector< std::vector < Eigen::MatrixXd > >& potentialParents, const Eigen::VectorXd& markerImbalances, const double& convexMarkerImbalanceInterpolation, const Eigen::VectorXd& tolerance, const double& theta, const Eigen::VectorXd& alleleFrequencies, const std::size_t& levelsOfStutterRecursion);
 RcppExport SEXP _MPSMixtures_setupIndividual(SEXP numberOfMarkersSEXP, SEXP numberOfAllelesSEXP, SEXP numberOfContributorsSEXP, SEXP numberOfKnownContributorsSEXP, SEXP knownProfilesSEXP, SEXP coverageSEXP, SEXP potentialParentsSEXP, SEXP markerImbalancesSEXP, SEXP convexMarkerImbalanceInterpolationSEXP, SEXP toleranceSEXP, SEXP thetaSEXP, SEXP alleleFrequenciesSEXP, SEXP levelsOfStutterRecursionSEXP) {
@@ -243,6 +257,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
+    {"_MPSMixtures_testing_rv_struct", (DL_FUNC) &_MPSMixtures_testing_rv_struct, 4},
     {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
     {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},
     {"_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm", (DL_FUNC) &_MPSMixtures_runningSinglePopulationEvolutionaryAlgorithm, 29},

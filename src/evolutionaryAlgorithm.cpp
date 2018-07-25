@@ -146,7 +146,7 @@ Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, c
     std::vector<Individual> I(PopulationSize);
     for (std::size_t n = 0; n < PopulationSize; n++)
     {
-        Eigen::VectorXd U = ES.GenerateUnknownGenotype(seed + n);
+        Eigen::VectorXd U = ES.GenerateUnknownGenotype(seed);
         Individual I_n = Individual(U, ES);
         RestructingIndividual(I_n, ES);
         I[n] = I_n;
@@ -157,10 +157,8 @@ Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, c
 }
 
 
-std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int currentIndividual, const std::size_t & seed)
+std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int currentIndividual, RandomVariates & RV)
 {
-    boost::random::mt19937 rng(seed);
-
     int lowerWindow = std::round(std::max(0.0, static_cast<double>(currentIndividual - ParentSelectionWindowSize)));
     int upperWindow = std::round(std::min(currentIndividual + ParentSelectionWindowSize, static_cast<int>(PopulationSize - 1)));
 
@@ -186,8 +184,7 @@ std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int curre
 
     Eigen::VectorXd windowProbabilities = partialSumEigen(neighbourhoodFitness / neighbourhoodFitness.sum());
 
-    boost::random::uniform_real_distribution<> uniform(0, 1);
-    double u = uniform(rng);
+    double u = RV.generate_uniform_real();
 
     int h = 0;
     while ((u > windowProbabilities[h + 1])) {
@@ -198,21 +195,17 @@ std::size_t EvolutionaryAlgorithm::ChoosePartner(const Population & P, int curre
     return partnerIndex;
 }
 
-Individual EvolutionaryAlgorithm::Crossover(const Individual & I, const Individual & J, const ExperimentalSetup & ES, const std::size_t & seed)
+Individual EvolutionaryAlgorithm::Crossover(const Individual & I, const Individual & J, const ExperimentalSetup & ES, RandomVariates & RV)
 {
     Eigen::MatrixXd E_IJ = bindColumns(I.EncodedProfile, J.EncodedProfile);
 
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_int_distribution<> uniform01(0, 1);
-    boost::random::uniform_real_distribution<> uniform(0, 1);
-
-    int columnIndex = uniform01(rng);
+    int columnIndex = RV.generate_uniform_binary();
 
     std::size_t N = E_IJ.rows();
     Eigen::VectorXd E = Eigen::VectorXd::Zero(N);
     for (std::size_t n = 0; n < N; n++)
     {
-        double p = uniform(rng);
+        double p = RV.generate_uniform_real();
         if (p < CrossoverProbability)
         {
             columnIndex = (columnIndex + 1) % 2;
@@ -369,11 +362,8 @@ void updateMarkerIndividual(const Eigen::VectorXd & E, std::vector<Eigen::Matrix
     reducedNoiseIndex[m] = reducedNoiseIndex_m;
 }
 
-void EvolutionaryAlgorithm::Mutation(Individual & I, const ExperimentalSetup & ES, const std::size_t & seed)
+void EvolutionaryAlgorithm::Mutation(Individual & I, const ExperimentalSetup & ES, RandomVariates & RV)
 {
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_real_distribution<> uniform(0, 1);
-
     std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
 
     Eigen::VectorXd E = I.EncodedProfile;
@@ -388,11 +378,17 @@ void EvolutionaryAlgorithm::Mutation(Individual & I, const ExperimentalSetup & E
         const std::size_t i = 2 * numberOfUnknownContributors * m;
         for (std::size_t k = 0; k < 2 * numberOfUnknownContributors; k++)
         {
-            double mutate = uniform(rng);
+            double mutate = RV.generate_uniform_real();
             if (mutate < encodedMutation[i + k])
             {
-                boost::random::uniform_int_distribution<> uniformMutation(1, ES.NumberOfAlleles[m] - 1);
-                int mutationShift = uniformMutation(rng);
+                int mutationShift = 0;
+                if (ES.NumberOfAlleles[m] > 1)
+                {
+                    while(mutationShift == 0)
+                    {
+                        mutationShift += RV.generate_uniform_mutation[m]();
+                    }
+                }
 
                 const double E_k = E[i + k];
                 E[i + k] = static_cast<int>(E_k + mutationShift) % static_cast<int>(ES.NumberOfAlleles[m]);
@@ -450,19 +446,15 @@ Eigen::VectorXd expectedContributionMatrixRow(const Eigen::VectorXd & E, const E
     return ECM_n;
 }
 
-void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES, const std::size_t & seed)
+void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES, RandomVariates & RV)
 {
     std::size_t numberOfUnknownContributors = ES.NumberOfContributors - ES.NumberOfKnownContributors;
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_int_distribution<> randomMarker(0, ES.NumberOfMarkers - 1);
-    boost::random::uniform_int_distribution<> randomContributor(0, numberOfUnknownContributors - 1);
-    boost::random::uniform_int_distribution<> randomBinary(0, 1);
 
     for (std::size_t i = 0; i < HillClimbingIterations; i++)
     {
-        int stepMarker = randomMarker(rng);
-        int stepContributor = randomContributor(rng);
-        int stepBinary = randomBinary(rng);
+        int stepMarker = RV.generate_uniform_marker();
+        int stepContributor = RV.generate_uniform_unknown_contributor();
+        int stepBinary = RV.generate_uniform_binary();
         std::size_t k = 2 * stepMarker * numberOfUnknownContributors + 2 * stepContributor + stepBinary;
 
         // Create n'th row of the decoded and ecm matrix
@@ -504,11 +496,8 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
     }
 }
 
-Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, const std::size_t & seed)
+Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & P, ExperimentalSetup & ES, RandomVariates & RV)
 {
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_int_distribution<> uniformShift(0, 1e6);
-
     // Creating new child population
     std::vector<Individual> childPopulation(PopulationSize);
     for (std::size_t i = 0; i < PopulationSize; i++)
@@ -516,24 +505,20 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
         Individual parent = P.Individuals[i];
 
         // Parent partner selection
-        std::size_t seedShift_1 = uniformShift(rng);
-        std::size_t partnerIndex = ChoosePartner(P, i, seedShift_1);
+        std::size_t partnerIndex = ChoosePartner(P, i, RV);
 
         // Crossover
-        std::size_t seedShift_2 = uniformShift(rng);
-        Individual child = Crossover(parent, P.Individuals[partnerIndex], ES, seedShift_2);
+        Individual child = Crossover(parent, P.Individuals[partnerIndex], ES, RV);
 
         // Mutation
-        std::size_t seedShift_3 = uniformShift(rng);
-        Mutation(child, ES, seedShift_3);
+        Mutation(child, ES, RV);
 
         if (AllowParentSurvival)
         {
             // Hill-climbing
             if (HillClimbingIterations != 0)
             {
-                std::size_t seedShiftHillClimbing = uniformShift(rng);
-                HillClimbing(parent, ES, seedShiftHillClimbing);
+                HillClimbing(parent, ES, RV);
                 RestructingIndividual(parent, ES);
             }
 
@@ -553,8 +538,7 @@ Population EvolutionaryAlgorithm::SelectionCrossoverMutation(const Population & 
             // Hill-climbing
             if (HillClimbingIterations != 0)
             {
-                std::size_t seedShiftHillClimbing = uniformShift(rng);
-                HillClimbing(child, ES, seedShiftHillClimbing);
+                HillClimbing(child, ES, RV);
             }
 
             // Restructuring
@@ -575,11 +559,8 @@ bool individualsEqual(Individual & I, Individual & J)
     return (K.sum() < 2e-16);
 }
 
-void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, const std::size_t & seed, const bool & trace)
+void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, RandomVariates & RV, const bool & trace)
 {
-    boost::random::mt19937 rng(seed);
-    boost::random::uniform_int_distribution<> uniformShift(1, 1e6);
-
     std::vector<Individual> TI(NumberOfFittestIndividuals);
     std::vector<double> TF(NumberOfFittestIndividuals, -HUGE_VAL);
 
@@ -591,7 +572,7 @@ void EvolutionaryAlgorithm::Run(ExperimentalSetup & ES, const std::size_t & seed
         // Updating current population
         MutationDecay_t = MutationDecay[n];
 
-        Population C = SelectionCrossoverMutation(CurrentPopulation, ES, seed + uniformShift(rng));
+        Population C = SelectionCrossoverMutation(CurrentPopulation, ES, RV);
         CurrentPopulation = C;
 
         // Updating the list of fittest individuals
