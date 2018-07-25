@@ -379,9 +379,9 @@ void EvolutionaryAlgorithm::Mutation(Individual & I, const ExperimentalSetup & E
     Eigen::VectorXd E = I.EncodedProfile;
     Eigen::VectorXd encodedMutation = CreateMutationProbability(I, ES);
 
-    const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix = I.ReducedExpectedContributionMatrix;
-    const std::vector<Eigen::VectorXd> reducedAlleleIndex = I.ReducedAlleleIndex;
-    const std::vector<Eigen::VectorXd> reducedNoiseIndex = I.ReducedNoiseIndex;
+    // const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix = I.ReducedExpectedContributionMatrix;
+    // const std::vector<Eigen::VectorXd> reducedAlleleIndex = I.ReducedAlleleIndex;
+    // const std::vector<Eigen::VectorXd> reducedNoiseIndex = I.ReducedNoiseIndex;
     for (std::size_t m = 0; m < ES.NumberOfMarkers; m++)
     {
         std::size_t j = 0;
@@ -400,13 +400,13 @@ void EvolutionaryAlgorithm::Mutation(Individual & I, const ExperimentalSetup & E
             }
         }
 
-        if (j > 0)
-        {
-            updateMarkerIndividual(E, reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, m, ES);
-        }
+        // if (j > 0)
+        // {
+        //     updateMarkerIndividual(E, reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, m, ES);
+        // }
     }
 
-    Individual J(E, reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, ES);
+    Individual J(E, ES); // J(E, reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, ES);
     I = J;
 }
 
@@ -490,12 +490,13 @@ void EvolutionaryAlgorithm::HillClimbing(Individual & I, ExperimentalSetup & ES,
         Eigen::MatrixXf::Index minIndex;
         double smallestValue = surroundingResiduals.minCoeff(&minIndex);
 
-        std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix = I.ReducedExpectedContributionMatrix;
-        std::vector<Eigen::VectorXd> reducedAlleleIndex = I.ReducedAlleleIndex;
-        std::vector<Eigen::VectorXd> reducedNoiseIndex = I.ReducedNoiseIndex;
+        // std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix = I.ReducedExpectedContributionMatrix;
+        // std::vector<Eigen::VectorXd> reducedAlleleIndex = I.ReducedAlleleIndex;
+        // std::vector<Eigen::VectorXd> reducedNoiseIndex = I.ReducedNoiseIndex;
+        //
+        // updateMarkerIndividual(surroundings[minIndex], reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, stepMarker, ES);
 
-        updateMarkerIndividual(surroundings[minIndex], reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, stepMarker, ES);
-        Individual K(surroundings[minIndex], reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, ES);
+        Individual K(surroundings[minIndex], ES); // K(surroundings[minIndex], reducedExpectedContributionMatrix, reducedAlleleIndex, reducedNoiseIndex, ES);
         if (K.Fitness > I.Fitness)
         {
             I = K;

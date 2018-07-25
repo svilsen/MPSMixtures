@@ -17,6 +17,25 @@ double logPoissonGammaDistribution(const double & x, const double & mean, const 
     return logProbability;
 }
 
+double logInflatedTruncatedPoissonGammaDistribution(const double & x, const double & mean, const double & dispersion,
+                                                    const double & p, const double & inflation, const double & truncation)
+{
+    const double logTruncatedProbability = (logPoissonGammaDistribution(x, mean, dispersion) -
+        std::log(1.0 - std::exp(dispersion * (std::log(dispersion) - std::log(mean + dispersion)))));
+
+    double logProbability;
+    if (x == inflation)
+    {
+        logProbability = std::log(p + std::exp(std::log(1.0 - p) + logTruncatedProbability));
+    }
+    else
+    {
+        logProbability = std::log(1.0 - p) + logTruncatedProbability;
+    }
+
+    return logProbability;
+}
+
 //[[Rcpp::export(.devianceResidualPoissonGammaDistribution)]]
 double devianceResidualPoissonGammaDistribution(const double & x, const double & mean, const double & dispersion)
 {
@@ -130,11 +149,10 @@ Eigen::VectorXd logLikelihoodAlleleCoverage(const Eigen::VectorXd & coverage, co
 }
 
 Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
-                                           const Eigen::VectorXd & partialSumAlleles, const double & noiseLevel, const double & noiseDispersion)
+                                           const Eigen::VectorXd & partialSumAlleles,
+                                           const double & noiseLevel, const double & noiseDispersion, const double & p)
 {
     const std::size_t & M = noiseIndex.size();
-    const double & gamma = noiseLevel / noiseDispersion;
-    const double & zero_truncation = -std::log(1 + noiseDispersion);
 
     Eigen::VectorXd logLikelihood = Eigen::VectorXd::Zero(M);
     for (std::size_t m = 0; m < M; m++)
@@ -143,9 +161,7 @@ Eigen::VectorXd logLikelihoodNoiseCoverage(const Eigen::VectorXd & coverage, con
         for (std::size_t a = 0; a < noiseIndex_m.size(); a++)
         {
             const std::size_t & n = partialSumAlleles[m] + noiseIndex_m[a];
-            logLikelihood[m] += logPoissonGammaDistribution(coverage[n], noiseLevel, gamma) -
-                - std::log(1.0 - std::exp(gamma * zero_truncation));
-                // std::log(1 - std::exp(noiseDispersion * (std::log(noiseDispersion) - std::log(noiseLevel + noiseDispersion))));
+            logLikelihood[m] += logInflatedTruncatedPoissonGammaDistribution(coverage[n], noiseLevel, noiseDispersion, p, 1.0, 0.0);
         }
     }
 

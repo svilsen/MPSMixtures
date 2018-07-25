@@ -41,7 +41,7 @@ class EstimatePoissonGammaAlleleParameters
         void initialiseParameters();
 };
 
-double logLikelihoodAlleleCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data);
+double logLikelihoodAlleleCoverageNLopt(const std::vector<double> &x, std::vector<double> &grad, void *data);
 double linearConstraintsLoglikelihoodAlleleCoverage(const std::vector<double>&x, std::vector<double> &grad, void *data);
 
 void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA);
@@ -69,7 +69,7 @@ class EstimatePoissonGammaNoiseParameters
         void initialiseParameters();
 };
 
-double logLikelihoodNoiseCoverage(const std::vector<double> &x, std::vector<double> &grad, void *data);
+double logLikelihoodNoiseCoverageNLopt(const std::vector<double> &x, std::vector<double> &grad, void *data);
 void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN);
 
 #endif

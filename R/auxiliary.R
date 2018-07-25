@@ -328,8 +328,9 @@ potentialParentsMultiCore <- function(coverageTibble, stutterRatioModel, numberO
     return(list(nu = ifelse(is.null(nu), 1000, nu), eta = ifelse(is.null(eta), 2, eta), phi = if(is.null(phi)) c(0.7, 0.3) else phi))
 }
 
-.noiseParameters.control <- function(psi, rho) {
-    return(list(psi = ifelse(is.null(psi), 2, psi), rho = ifelse(is.null(rho), 2, rho)))
+.noiseParameters.control <- function(psi, rho, pi, maxElements) {
+    return(list(psi = ifelse(is.null(psi), 3, psi), rho = ifelse(is.null(rho), 2, rho),
+                pi = ifelse(is.null(pi), 0.5, pi), maxElements = ifelse(is.null(maxElements), 200, maxElements)))
 }
 
 
@@ -432,7 +433,8 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
                            alleleCoverageParameters = list(), noiseParameters = list(),
                            p = NULL, numberOfThreads = 4) {
     alleleCoverageParameters <- .alleleCoverageParameters.control(nu = alleleCoverageParameters$nu, eta = alleleCoverageParameters$eta, phi = alleleCoverageParameters$phi)
-    noiseParameters <- .noiseParameters.control(psi = noiseParameters$psi, rho = noiseParameters$rho)
+    noiseParameters <- .noiseParameters.control(psi = noiseParameters$psi, rho = noiseParameters$rho,
+                                                pi = noiseParameters$pi, maxElements = noiseParameters$maxElements)
 
     p <- ifelse(is.null(p), 0.025, p)
 
@@ -452,7 +454,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
             distinct_(~Region, .keep_all = T) %>% mutate(IsAllele = 1, IsStutter = 0)
 
         collectedProfilesStutters <- bind_rows(lapply(1:nrow(collectedProfiles), function(i) {
-            BLMMs_i <- .getEntireRepeatStructure(collectedProfiles$Region[i], collectedProfiles$MotifLength[i])
+            BLMMs_i <- MPSMixtures:::.getEntireRepeatStructure(collectedProfiles$Region[i], collectedProfiles$MotifLength[i])
             possibleStutters_i <- sapply(1:nrow(BLMMs_i), function(j) {
                 paste(str_sub(collectedProfiles$Region[i], start = 1, end = BLMMs_i[j, 2] - 1),
                       str_sub(collectedProfiles$Region[i], start =  BLMMs_i[j, 2] + collectedProfiles$MotifLength[i]),
@@ -487,7 +489,7 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
     ## Sample coverage
     profilesMatrix <- genotypeMatrix(sampleTibble, trueProfiles)
     potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, numberOfThreads)
-    ECM <- .expectedContributionMatrix(sampleTibble, profilesMatrix, potentialParentsList)
+    ECM <- MPSMixtures:::.expectedContributionMatrix(sampleTibble, profilesMatrix, potentialParentsList)
 
     numberOfAlleles <- (sampleTibble %>% group_by_(~Marker) %>% summarise(Count = n()))$Count
     markerImbalancesRep <- rep(markerImbalances, times = numberOfAlleles)
@@ -497,8 +499,13 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
         mutate("Coverage" = rnbinom(n(), mu = expectedAlleleCoverage, size = expectedAlleleCoverage / alleleCoverageParameters$eta))
 
     sampledNoise <- populationLadder %>% filter_(~!(Region %in% sampleTibble$Region)) %>% group_by_(~Marker) %>%
-        mutate(Coverage = rnbinom(n(), mu = noiseParameters$psi, size = noiseParameters$psi / noiseParameters$rho)) %>%
-        filter_(~Coverage > 0)
+        mutate(Coverage = MPSMixtures:::.rtnbinom(n(), tau = 0, mu = noiseParameters$psi, theta = noiseParameters$rho))
+
+    if (dim(sampledNoise)[1] > noiseParameters$maxElements) {
+        sampledNoise <- sampledNoise[sample(1:dim(sampledNoise)[1], noiseParameters$maxElements), ]
+    }
+
+    # sampledNoise[sample(1:dim(sampledNoise)[1], floor(noiseParameters$pi * dim(sampledNoise)[1])), ] <- 1.0
 
     sampledCoverage <- bind_rows(sampledAllele, sampledNoise) %>%
         arrange_(~Marker, ~Allele, ~Region) %>%

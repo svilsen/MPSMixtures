@@ -135,7 +135,7 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList){
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, MU / D),
+        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
                "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
         filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
 
@@ -190,7 +190,7 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
 
     simulations <- matrix(0, ncol = length(C), nrow = numberOfSimulations)
     for (N in 1:numberOfSimulations) {
-        simulations[N, ] <- rnbinom(length(C), mu = MU, size = D)
+        simulations[N, ] <- rnbinom(length(C), mu = MU, size = ifelse(NV == 1.0, D, MU / D))
     }
 
     predictedInterval <- apply(simulations, 2, function(si) quantile(si, probs = predictionInterval))

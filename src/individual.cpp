@@ -74,7 +74,8 @@ Individual::Individual(const Eigen::VectorXd & encodedGenotype, const Eigen::Vec
     Eigen::MatrixXd decodedProfile = decoding(EncodedProfile, ES.NumberOfAlleles, ES.NumberOfMarkers, ES.NumberOfContributors - ES.NumberOfKnownContributors);
     CreateReducedElements(ES, decodedProfile);
 
-    Fitness = fitness;
+    CalculateFitness(ES, decodedProfile);
+    // Fitness = fitness;
 }
 
 Individual::Individual(const Eigen::VectorXd & encodedGenotype, const std::vector<Eigen::MatrixXd> reducedExpectedContributionMatrix,
@@ -251,7 +252,7 @@ void Individual::CalculateFitness(const ExperimentalSetup & ES, const Eigen::Mat
                                                             MarkerImbalanceParameters);
     LogLikelihoodAllele = LogLikelihoodAlleleMarker.sum();
 
-    LogLikelihoodNoiseMarker = logLikelihoodNoiseCoverage(ES.Coverage, ReducedNoiseIndex, ES.PartialSumAlleles, NoiseParameters[0], NoiseParameters[1]);
+    LogLikelihoodNoiseMarker = logLikelihoodNoiseCoverage(ES.Coverage, ReducedNoiseIndex, ES.PartialSumAlleles, NoiseParameters[0], NoiseParameters[1], NoiseParameters[2]);
     LogLikelihoodNoise = LogLikelihoodNoiseMarker.sum();
 
     if ((ES.Theta < 0.0) | (ES.AlleleFrequencies.sum() == 0))
