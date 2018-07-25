@@ -12,6 +12,19 @@
 #include "encodingScheme.hpp"
 #include "AuxiliaryFunctions.hpp"
 
+
+InitialPopulationRandomVariates::InitialPopulationRandomVariates(const Eigen::VectorXd & numberOfAlleles, const std::size_t & seed) :
+    rng(seed), M(numberOfAlleles.size())
+{
+    for (std::size_t m = 0; m < M; m++)
+    {
+        boost::random::uniform_int_distribution<> uniform_interval_m(0, numberOfAlleles[m] - 1);
+        interval_uniform_generator uniform_interval_vector_m(rng, uniform_interval_m);
+        generate_uniform_interval.push_back(uniform_interval_vector_m);
+    }
+}
+
+
 RandomVariates::RandomVariates(const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfUnknownContributors,
                                const std::size_t & seed) :
     rng(seed), M(numberOfAlleles.size()),
@@ -83,7 +96,7 @@ ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const 
 }
 
 
-Eigen::VectorXd ExperimentalSetup::GenerateUnknownGenotype(const std::size_t & seed)
+Eigen::VectorXd ExperimentalSetup::GenerateUnknownGenotype(InitialPopulationRandomVariates & RV)
 {
     const Eigen::VectorXd partialSumAlleles = partialSumEigen(NumberOfAlleles);
     std::size_t NumberOfUnknownContributors = (NumberOfContributors - NumberOfKnownContributors);
@@ -95,8 +108,8 @@ Eigen::VectorXd ExperimentalSetup::GenerateUnknownGenotype(const std::size_t & s
         for (std::size_t j = 0; j < 2 * NumberOfUnknownContributors; j++)
         {
             std::size_t k = 2 * NumberOfUnknownContributors * i + j;
-            boost::random::mt19937 rng(seed + k);
-            double d = uniform(rng);
+
+            double d = RV.generate_uniform_interval[i]();
 
             individual(k) = d;
         }

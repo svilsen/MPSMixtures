@@ -19,10 +19,10 @@
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm() { }
 
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & seed)
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, InitialPopulationRandomVariates & RV)
 {
     PopulationSize = populationSize;
-    CurrentPopulation = InitialisePopulation(ES, seed);
+    CurrentPopulation = InitialisePopulation(ES, RV);
 }
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize,
@@ -32,7 +32,7 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::
                                              const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
                                              const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom,
                                              const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
-                                             const std::size_t & hillClimbingIterations, const std::size_t & seed)
+                                             const std::size_t & hillClimbingIterations, InitialPopulationRandomVariates & RV)
 {
     PopulationSize = populationSize;
     NumberOfFittestIndividuals = numberOfFittestIndividuals;
@@ -56,7 +56,7 @@ EvolutionaryAlgorithm::EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::
 
     HillClimbingIterations = hillClimbingIterations;
 
-    CurrentPopulation = InitialisePopulation(ES, seed);
+    CurrentPopulation = InitialisePopulation(ES, RV);
     Iteration = 0;
 
     // Finds maximum fitness index
@@ -141,12 +141,12 @@ void EvolutionaryAlgorithm::RestructingIndividual(Individual & I, const Experime
     }
 }
 
-Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, const std::size_t & seed)
+Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, InitialPopulationRandomVariates & RV)
 {
     std::vector<Individual> I(PopulationSize);
     for (std::size_t n = 0; n < PopulationSize; n++)
     {
-        Eigen::VectorXd U = ES.GenerateUnknownGenotype(seed);
+        Eigen::VectorXd U = ES.GenerateUnknownGenotype(RV);
         Individual I_n = Individual(U, ES);
         RestructingIndividual(I_n, ES);
         I[n] = I_n;

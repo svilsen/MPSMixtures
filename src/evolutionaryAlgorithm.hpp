@@ -43,7 +43,7 @@ class EvolutionaryAlgorithm
 
         // Constructors
         EvolutionaryAlgorithm();
-        EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, const std::size_t & seed);
+        EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize, InitialPopulationRandomVariates & RV);
 
         EvolutionaryAlgorithm(ExperimentalSetup & ES, const std::size_t & populationSize,
                               const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
@@ -52,7 +52,7 @@ class EvolutionaryAlgorithm
                               const double & crossoverProbability, const double & mutationProbabilityLowerLimit,
                               const std::size_t & mutationIterations, const double & mutationDegreesOfFreedom,
                               const Eigen::VectorXd & mutationDecay, const double & fractionFittestIndividuals,
-                              const std::size_t & hillClimbingIterations, const std::size_t & seed);
+                              const std::size_t & hillClimbingIterations, InitialPopulationRandomVariates & RV);
 
         EvolutionaryAlgorithm(ExperimentalSetup & ES, Population & P,
                               const std::size_t & numberOfIterations, const std::size_t & numberOfIterationsEqualMinMax,
@@ -66,7 +66,7 @@ class EvolutionaryAlgorithm
         // Functions
         void RestructingIndividual(Individual & I, const ExperimentalSetup & ES);
 
-        Population InitialisePopulation(ExperimentalSetup & ES, const std::size_t & seed);
+        Population InitialisePopulation(ExperimentalSetup & ES, InitialPopulationRandomVariates & RV);
 
         std::size_t ChoosePartner(const Population & P, int currentIndividual, RandomVariates & RV);
 

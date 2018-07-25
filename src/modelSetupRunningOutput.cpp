@@ -22,9 +22,11 @@ Rcpp::List runningSinglePopulationEvolutionaryAlgorithm(const std::size_t & numb
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
+    InitialPopulationRandomVariates InitialRV(numberOfAlleles, seed);
+
     EvolutionaryAlgorithm EA(ES, populationSize, numberOfIterations, numberOfIterationsEqualMinMax, numberOfFittestIndividuals, parentSelectionWindowSize, allowParentSurvival,
                              crossoverProbability, mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom, mutationDecay, fractionEnsuredSurvival,
-                             hillClimbingIterations, seed);
+                             hillClimbingIterations, InitialRV);
 
     RandomVariates RV(numberOfAlleles, numberOfContributors - numberOfKnownContributors, seed + 1);
     EA.Run(ES, RV, trace);
@@ -49,7 +51,8 @@ Rcpp::List initialisingParallelEvolutionaryAlgorithm(const std::size_t & numberO
     ExperimentalSetup ES(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
                          coverage, potentialParents, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies, levelsOfStutterRecursion);
 
-    EvolutionaryAlgorithm EA(ES, populationSize, seed);
+    InitialPopulationRandomVariates InitialRV(numberOfAlleles, seed);
+    EvolutionaryAlgorithm EA(ES, populationSize, InitialRV);
 
     Rcpp::List RL = EA.CurrentPopulation.ReturnCompressedRcppList();
     return RL;

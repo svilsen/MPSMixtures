@@ -14,6 +14,18 @@
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 
+struct InitialPopulationRandomVariates
+{
+    typedef boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > interval_uniform_generator;
+
+    std::size_t M;
+    boost::mt19937 rng;
+
+    std::vector< interval_uniform_generator > generate_uniform_interval;
+
+    InitialPopulationRandomVariates(const Eigen::VectorXd & numberOfAlleles, const std::size_t & seed);
+};
+
 struct RandomVariates
 {
     typedef boost::variate_generator<boost::mt19937 &, boost::random::uniform_int_distribution<> > interval_uniform_generator;
@@ -68,8 +80,7 @@ class ExperimentalSetup
                           const Eigen::VectorXd & markerImbalances, const double & convexMarkerImbalanceInterpolation, const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
                           const std::size_t & levelsOfStutterRecursion);
 
-        Eigen::VectorXd GenerateUnknownGenotype(const std::size_t & seed);
-
+        Eigen::VectorXd GenerateUnknownGenotype(InitialPopulationRandomVariates & RV);
 };
 
 #endif
