@@ -16,7 +16,8 @@ optimalUnknownProfileCombination.control(numberOfPopulations = 4,
   hillClimbingIterations = 2, convexMarkerImbalanceInterpolation = 0.8,
   tolerance = 1e-06, seed = NULL, trace = TRUE,
   simplifiedReturn = FALSE, numberOfThreads = 4,
-  levelsOfStutterRecursion = 2, traceLimit = 100)
+  levelsOfStutterRecursion = 2, traceLimit = 100,
+  numberOfSimulationsMH = 10000)
 }
 \arguments{
 \item{numberOfPopulations}{The number of sub-populations.}

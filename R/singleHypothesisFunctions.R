@@ -87,7 +87,7 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
                                                      mutationIterations = 2, mutationDegreesOfFreedom = 100,
                                                      mutationDecayRate = 1 / 2, mutationDecay = NULL, fractionFittestIndividuals = 1, hillClimbingIterations = 2,
                                                      convexMarkerImbalanceInterpolation = 0.8, tolerance = 1e-6, seed = NULL, trace = TRUE, simplifiedReturn = FALSE, numberOfThreads = 4, levelsOfStutterRecursion = 2,
-                                                     traceLimit = 100) {
+                                                     traceLimit = 100, numberOfSimulationsMH = 10000) {
 
     if (numberOfPopulations == 1) {
         numberOfFittestIndividuals <- if (is.null(numberOfFittestIndividuals)) ceiling(0.1 * populationSize) else min(numberOfFittestIndividuals, populationSize)
@@ -122,7 +122,7 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
                         mutationIterations = mutationIterations, mutationDegreesOfFreedom = mutationDegreesOfFreedom, mutationDecayRate = mutationDecayRate,
                         mutationDecay = mutationDecay, fractionFittestIndividuals = fractionFittestIndividuals, hillClimbingIterations = hillClimbingIterations,
                         convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation, tolerance = tolerance, seed = seed, trace = trace, simplifiedReturn = simplifiedReturn, numberOfThreads = numberOfThreads, levelsOfStutterRecursion = levelsOfStutterRecursion,
-                        traceLimit = traceLimit)
+                        traceLimit = traceLimit, numberOfSimulationsMH = numberOfSimulationsMH)
     return(controlList)
 }
 
@@ -165,9 +165,10 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
                                   EAApproximationType, numberOfSimulations, suggestionPrior) {
 
     optimalCombination <- optimalUnkownProfileCombinationList[[optimalCombinationIndex]]
-    oneStep <- mclapply(seq_along(numberOfAlleles), function(m) {
+    oneStep <- lapply(seq_along(numberOfAlleles), function(m) {
+        cat("m:", m, "\n")
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        res <- .oneStepApproximationCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
+        res <- MPSMixtures:::.oneStepApproximationCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
                                         estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters, estimatedParameters$MixtureParameters,
                                         sampleTibble$Coverage[markerIndices], estimatedParameters$MarkerImbalanceParameters[m], potentialParentsList[m],
                                         as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
@@ -183,7 +184,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
         })
 
         return(res)
-    }, mc.cores = numberOfThreads)
+    })#, mc.cores = numberOfThreads)
 
     res <- oneStep
     if (returnSimplified) {
@@ -353,7 +354,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
     }
 
     numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(N = n()))$N
-    partialSumAlleles = MPSMixtures:::.partialSumEigen(numberOfAlleles)
+    partialSumAlleles = .partialSumEigen(numberOfAlleles)
     numberOfUnknownContributors = H$NumberOfContributors - H$NumberOfKnownProfiles
 
     res <- approximationMethod(optimalUnkownProfileCombinationList, sampleTibble, H, numberOfUnknownContributors, numberOfAlleles, partialSumAlleles,

@@ -93,6 +93,7 @@ Rcpp::List runningParallelEvolutionaryAlgorithm(const std::size_t & numberOfMark
 
     Rcpp::List RL = EA.CurrentPopulation.ReturnCompressedRcppList();
     Rcpp::List FL = FittestIndividuals.ReturnRcppList(ES);
+
     return Rcpp::List::create(Rcpp::Named("LastPopulation") = RL,
                               Rcpp::Named("FittestIndividuals") = FL);
 }

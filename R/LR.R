@@ -117,18 +117,9 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
     if (control$trace)
         cat("Running Hp-list.\n")
 
-    if ((length(Hp) != length(Hd)) & ((length(Hp) != 1) | (length(Hd) != 1)))  {
-        stop("'Hp' must have the same length as 'Hd', or either 'Hp' or 'Hd' must have length '1'.")
-    }
-
     optimalUnknownGenotypesHp <- vector("list", length(Hp))
     for (i in seq_along(Hp)) {
         optimalUnknownGenotypesHp[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)$U
-    }
-
-    if ((length(Hp) == 1) & (length(Hd) != 1)) {
-        Hp = rep(Hp[[i]], length(Hd))
-        optimalUnknownGenotypesHp = rep(optimalUnknownGenotypesHp[[1]], length(Hd))
     }
 
     if (control$trace)
@@ -139,17 +130,11 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
         optimalUnknownGenotypesHd[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)$U
     }
 
-    if ((length(Hd) == 1) & (length(Hp) != 1)) {
-        Hd = rep(Hd[[i]], length(Hp))
-        optimalUnknownGenotypesHd = rep(optimalUnknownGenotypesHd[[1]], length(Hp))
-    }
-
     if (control$trace)
         cat("Optimising parameters and calculating LR's.\n")
 
-
     pairwiseComparisons <- expand.grid("Hp" = seq_along(Hp), "Hd" = seq_along(Hd))
-    pairwiseComparisonResults <- vector("list", length(Hp))
+    pairwiseComparisonResults <- vector("list", dim(pairwiseComparisons)[1])
     for (i in 1:dim(pairwiseComparisons)[1]) {
         if (control$trace)
             cat("  Comparison:", i, "\n")
