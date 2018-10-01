@@ -8,7 +8,7 @@ Description: All necessary functions for DNA mixture deconvolution and the calcu
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: TRUE
-LinkingTo: 
+LinkingTo:
     Rcpp,
     RcppEigen,
     BH
@@ -26,5 +26,8 @@ Imports:
     IRanges,
     methods, 
     utils
-biocViews:
+biocViews: 
 RoxygenNote: 6.0.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
