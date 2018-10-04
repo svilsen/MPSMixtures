@@ -66,6 +66,13 @@ Assuming that the two parts are independent given the genotypic information, the
 \end{align}
 
 # Example
+```{r hidden, echo = FALSE}
+load_rdata <- function(fileName) {
+    load(fileName)
+    get(ls()[ls() != "fileName"])
+}
+```
+
 We will need the following `R` packages: 
 ```{r loadPackages, message = FALSE}
 library("Biostrings")
@@ -128,7 +135,7 @@ rho = 2
 ```
 
 The coverage can now be simulated using the `sampleCoverage` function, returning a `tibble` containing the sampled coverage:
-```{r sampledCoverage, cache = TRUE}
+```{r sampledCoverage}
 sampleTibble = sampleCoverage(
     trueProfiles = trueProfiles, markerImbalances = markerImbalances,
     populationLadder = examplePopulation, stutterRatioModel = stutterRatioModel,
@@ -146,7 +153,7 @@ We have written this package with two objectives in mind:
 \end{enumerate}
 
 Furthermore, we will build and store the list of potential parents. As the data does not change, we do not want to rebuild it every single time we initialise an algorithm:
-```{r pp, cache = TRUE}
+```{r potentialParentsList}
 potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel)
 ```
 
@@ -184,7 +191,7 @@ knownPerpetrator <- setHypothesis(sampleTibble, numberOfContributors, trueProfil
 ```
 
 We start with the single population algorithm:
-```{r singleMajor, cache = TRUE}
+```{r singleMajor, eval = FALSE}
 controlSinglePopulation <-  
     optimalUnknownProfileCombination.control(
         numberOfPopulations = 1, numberOfIterations = 350,
@@ -207,6 +214,24 @@ singlePopulationBenchmarkMajor <- microbenchmark(
     times = 1)
 ```
 
+```{r singleMajor2, echo = FALSE}
+controlSinglePopulation <-  
+    optimalUnknownProfileCombination.control(
+        numberOfPopulations = 1, numberOfIterations = 350,
+        populationSize = 2000, numberOfFittestIndividuals = 1,
+        mutationDecayRate = 1, hillClimbingIterations = 0, 
+        parentSelectionWindowSize = 15,
+        allowParentSurvival = TRUE, trace = F, 
+        levelsOfStutterRecursion = 1, 
+        numberOfIterationsEqualMinMax = 10, 
+        tolerance = rep(1e-8, 4)
+    )
+
+optimalSingleMajor <- load_rdata(system.file('extdata', "singleMajor.RData", package = 'MPSMixtures'))
+singlePopulationBenchmarkMajor <- load_rdata(system.file('extdata', "singleMajorBench.RData", package = 'MPSMixtures'))
+```
+
+
 The single population algorithm terminated in `r round(singlePopulationBenchmarkMajor$time / 1e9, 2)` seconds.
 
 The fittest found individual is always listed as the first entry in the returned list. In this case, the log-likelihood in the fittest found individual is `r round(optimalSingleMajor$U[[1]]$Fitness, 4)`, with the log-likelihoods of the allele, noise, and genotype probabilities at `r round(optimalSingleMajor$U[[1]]$LogLikelihoods[1], 4)`, `r round(optimalSingleMajor$U[[1]]$LogLikelihoods[2], 4)`, and `r round(optimalSingleMajor$U[[1]]$LogLikelihoods[3], 4)`. That is, the found major contributor is the same as the true major contributor and the increase in fitness is solely due to the added uncertainty represented by the genotype probability. The corresponding estimated parameters are (the same as seen above):
@@ -219,7 +244,7 @@ The relative difference for the parameters $\nu$, $\gamma$, $\psi$, $\rho$, and 
 
 We will use 32 sub-populations spread on four cores. Furthermore, we set the size of each population to 75, i.e. a total population size of 2,400.
 
-```{r multipleMajor, cache = TRUE}
+```{r multipleMajor, eval = FALSE}
 controlMultiplePopulation <- 
     optimalUnknownProfileCombination.control(
         numberOfPopulations = 32, numberOfIterations = 100,
@@ -240,6 +265,26 @@ multiplePopulationBenchmarkMajor <- microbenchmark(
                                          potentialParentsList = potentialParentsList, 
                                          control = controlMultiplePopulation),
     times = 1)
+
+save(optimalMultipleMajor, file = "../inst/extdata/multipleMajor.RData")
+save(multiplePopulationBenchmarkMajor, file = "../inst/extdata/multipleMajorBench.RData")
+```
+
+```{r multipleMajor2, echo = FALSE}
+controlMultiplePopulation <- 
+    optimalUnknownProfileCombination.control(
+        numberOfPopulations = 32, numberOfIterations = 100,
+        populationSize = 75, numberOfFittestIndividuals = 1,
+        numberOfIterationsEqualMinMax = 10,
+        mutationDecayRate = 1, hillClimbingIterations = 0, 
+        parentSelectionWindowSize = 6,
+        allowParentSurvival = TRUE, trace = F, 
+        levelsOfStutterRecursion = 1, 
+        tolerance = rep(1e-8, 4)
+    )
+
+optimalMultipleMajor <- load_rdata(system.file('extdata', "multipleMajor.RData", package = 'MPSMixtures'))
+multiplePopulationBenchmarkMajor <- load_rdata(system.file('extdata', "multipleMajorBench.RData", package = 'MPSMixtures'))
 ```
 
 The parallel EA terminated in `r round(multiplePopulationBenchmarkMajor$time / 1e9, 2)` seconds, i.e. close to ten times faster than the single population algorithm. Thus, we see both an increased performance from the parallelisation and the reduction in population size. Furthermore, the fittest found individual had a fitness of `r round(optimalMultipleMajor$U[[1]]$Fitness, 4)`. That is, the two approaches have terminated with the same individual as the fittest individual.
@@ -258,13 +303,18 @@ knownVictim <- setHypothesis(sampleTibble, numberOfContributors, trueProfiles["V
 ```
 
 We will use the same control settings, `controlMultiplePopulation`, as in the previous section. 
-```{r multipleMinor, cache = TRUE}
+```{r multipleMinor, eval = FALSE}
 optimalMultipleMinor <- optimalUnknownProfileCombination(sampleTibble = sampleTibble,
                                                          markerImbalances = markerImbalances, 
                                                          H = knownVictim[[1]], 
                                                          potentialParentsList = potentialParentsList, 
                                                          control = controlMultiplePopulation)
 ```
+
+```{r multipleMinor2, echo = FALSE}
+optimalMultipleMinor <- load_rdata(system.file('extdata', "multipleMinor.RData", package = 'MPSMixtures'))
+```
+
 
 The parameters, log-likelihoods, and fitness are:
 ```{r multipleMinorParameters}
@@ -281,13 +331,13 @@ optimalVSTruePerpetratorProfile <-
                             optimalMinor, TRUE, c("True", "Optimal"))
 ```
 
-```{r figDifference, echo = FALSE, fig.align = "center", fig.cap = "\\label{fig:minor}The coverage against allele, for both profiles, shown in coloumns, and each marker, shown in rows, where the two profiles differ. Profiles one and two correspond to the optimal profiles under the model and the true profiles, respectively. The red and blue colouring corresonds to the major and minor contributors, respectively. Lastely, the black bars are regions attributed to the noise distribution.", fig.width = 8, fig.height = 4, fig.pos="ht!"}
+```{r figDifference, echo = FALSE, fig.align = "center", fig.cap = "\\label{fig:minor}The coverage against allele, for both profiles, shown in coloumns, and each marker, shown in rows, where the two profiles differ. Profiles one and two correspond to the optimal profiles under the model and the true profiles, respectively. The red and blue colouring corresonds to the major and minor contributors, respectively. Lastely, the black bars are regions attributed to the noise distribution.", fig.width = 8, fig.height = 6, fig.pos="ht!"}
 show(optimalVSTruePerpetratorProfile)
 ```
 
 ### Both profiles unknown
 Lastly, we assumed that both the profiles were unknown. This is indicated by supplying an empty list (or just `NULL`) to the knownProfiles argument. Furthermore, we have increased the number of sub-populations, the population size, allowed for more outer itertations, and increased the termination counter `numberOfIterationsEqualMinMax`, giving the algorithm more times to search the space. 
-```{r multipleUnknown, cache = TRUE}
+```{r multipleUnknown, eval = FALSE}
 bothUnknown <- setHypothesis(sampleTibble, numberOfContributors, list(), theta)
 
 controlMultiplePopulation <- 
@@ -314,6 +364,27 @@ multiplePopulationBenchmarkUnknown <- microbenchmark(
     times = 1)
 ```
 
+```{r , echo = FALSE}
+bothUnknown <- setHypothesis(sampleTibble, numberOfContributors, list(), theta)
+
+controlMultiplePopulation <- 
+    optimalUnknownProfileCombination.control(
+        numberOfPopulations = 64, 
+        numberOfIterations = 100,
+        populationSize = 300,
+        numberOfFittestIndividuals = 1,
+        numberOfIterationsEqualMinMax = 50,
+        hillClimbingIterations = 0,
+        mutationDecayRate = 1,
+        parentSelectionWindowSize = 12,
+        trace = FALSE, 
+        tolerance = rep(1e-8, 4)
+    )
+
+optimalMultipleUnknown <- load_rdata(system.file('extdata', "multipleUnknown.RData", package = 'MPSMixtures'))
+multiplePopulationBenchmarkUnknown <- load_rdata(system.file('extdata', "multipleUnknownBench.RData", package = 'MPSMixtures'))
+```
+
 The algorithm terminated in 
 seconds. The parameters, log-likelihoods, and fitness of the optimal unknown genotype combination is:
 
@@ -331,7 +402,7 @@ In our case of ficticious murder, we will assume that the victim is known and it
 \end{itemize}
 
 In `R` we define a hypothesis by the `setHypothesis` function. It takes the arguments: `sampleTibble`, the total number of contributors to the mixture, `numberOfContributors`, a list of the known profiles to the mixture, `knownProfilesList`, and the inbreeding coefficient, `theta`.
-```{r hypothees}
+```{r hypotheses}
 theta = 0
 knownProfilesHp <- trueProfiles
 knownProfilesHd <- trueProfiles["V"]
@@ -344,7 +415,7 @@ An object of class `hypothesis` holds the total number of contributors, the numb
 
 Given the `sampleTibble` and the two competing hypotheses, we can initialise the EA for obtaining an approximate likelihood ratio by calling the `LR` function. As before we run the parallel algorithm with twelve sub-populations.
 
-```{r multipleLRMinor, cache = TRUE}
+```{r multipleLRMinor, eval = FALSE}
 LRParallelPopulations <-
     LR(sampleTibble = sampleTibble, Hp = Hp, Hd = Hd, markerImbalances = markerImbalances,
        potentialParentsList = potentialParentsList, stutterRatioModel = NULL,
@@ -355,6 +426,10 @@ LRParallelPopulations <-
            parentSelectionWindowSize = 6, simplifiedReturn = FALSE,
            allowParentSurvival = TRUE, trace = FALSE, 
            tolerance = rep(1e-8, 4)))
+```
+
+```{r multipleLRMinor2}
+LRParallelPopulations <- load_rdata(system.file('extdata', "multipleLRMinor.RData", package = 'MPSMixtures'))
 ```
 
 The `hypothesis` class can take more than a single prosecutors or defence hypothesis (and, therefore, so can the `LR` function), and the `LR` function returns the likelihood ratios of every pairwise comparison of these hypotheses. The comparison table is accessed in the returned list as:
