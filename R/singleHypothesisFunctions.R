@@ -63,7 +63,7 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, kn
 #' @param hillClimbingIterations The number of iterations each child or parent is hill climbed.
 #' @param convexMarkerImbalanceInterpolation A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.
 #' @param tolerance Tolerance of internal log-likelihood maximisation (can be vector of upto size '4').
-#' @param seed A seed for the c++ implementaion.
+#' @param seed A seed for the c++ implementaion (deprecate).
 #' @param trace Show trace (TRUE/FALSE)?
 #' @param traceLimit Limits the trace of the parallel implementation.
 #' @param simplifiedReturn Should the returned list be simplified (TRUE/FALSE)?
@@ -112,6 +112,10 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
 
     if (length(tolerance) != 4) {
         tolerance = c(1e-8, -rep(1e-4, 3))
+    }
+
+    if (is.null(mutationDecayRate)) {
+        mutationDecayRate = 0
     }
 
     controlList <- list(numberOfPopulations = numberOfPopulations, populationSize = populationSize, numberOfIterations = numberOfIterations,
