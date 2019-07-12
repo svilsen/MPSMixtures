@@ -4,12 +4,15 @@
 \alias{ggplotQQPlotProfiles}
 \title{Q-Q plots for profile list}
 \usage{
-ggplotQQPlotProfiles(sampleTibble, profileList)
+ggplotQQPlotProfiles(sampleTibble, profileList, component = "allele",
+  residualEnvelopes = NULL)
 }
 \arguments{
 \item{sampleTibble}{A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.}
 
 \item{profileList}{A list containing the expected contribution matrix and paramters of the fitted profile.}
+
+\item{component}{Which of the two model components should be constructed? 'Allele', 'Noise', or 'both'?}
 }
 \value{
 ggplot2-object.

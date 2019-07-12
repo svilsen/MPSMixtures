@@ -12,8 +12,16 @@
 
 double logPoissonGammaDistribution(const double & x, const double & mean, const double & dispersion)
 {
-    double logProbability = boost::math::lgamma(x + dispersion) - boost::math::lgamma(x + 1) - boost::math::lgamma(dispersion) +
-        x * (std::log(mean) - std::log(mean + dispersion)) + dispersion * (std::log(dispersion) - std::log(mean + dispersion));
+    double eta = dispersion;
+    if (!(dispersion > 0))
+    {
+        eta = 2e-16;
+    }
+
+    const double logProbability = boost::math::lgamma(x + eta) - boost::math::lgamma(eta) -
+        boost::math::lgamma(x + 1) + x * (std::log(mean) - std::log(mean + eta)) + eta * (std::log(eta) -
+        std::log(mean + eta));
+
     return logProbability;
 }
 
@@ -39,12 +47,18 @@ double logInflatedTruncatedPoissonGammaDistribution(const double & x, const doub
 //[[Rcpp::export(.devianceResidualPoissonGammaDistribution)]]
 double devianceResidualPoissonGammaDistribution(const double & x, const double & mean, const double & dispersion)
 {
-	if (std::abs(x - mean) < 2e-8)
+	// if (std::abs(x - mean) < 2e-8)
+	// {
+	// 	return 0.0;
+	// }
+
+	double eta = dispersion;
+	if (!(dispersion > 0))
 	{
-		return 0.0;
+	    eta = 2e-16;
 	}
 
-    double deviance_ma = (x + dispersion) * (std::log(mean + dispersion) - std::log(x + dispersion));
+	double deviance_ma = (x + eta) * (std::log(mean + eta) - std::log(x + eta));
     if (x > 0)
     {
         deviance_ma += x * (std::log(x) - std::log(mean));
@@ -55,11 +69,19 @@ double devianceResidualPoissonGammaDistribution(const double & x, const double &
 
 double devianceResidualPG1(const double & x, const double & mean, const double & dispersion)
 {
-    double deviance_ma = (x - mean) * std::log(dispersion + 1) / dispersion - boost::math::lgamma((dispersion * x + mean) / dispersion) +
-        boost::math::lgamma(x * (dispersion + 1) / dispersion);
+    double eta = dispersion;
+    if (!(dispersion > 0))
+    {
+        eta = 2e-16;
+    }
+
+    double deviance_ma = (x - mean) * std::log(eta + 1) / eta -
+        boost::math::lgamma((eta * x + mean) / eta) +
+        boost::math::lgamma(x * (eta + 1) / eta);
+
     if (x > 0)
     {
-        deviance_ma += boost::math::lgamma(x / dispersion) - boost::math::lgamma(mean / dispersion);
+        deviance_ma += boost::math::lgamma(x / eta) - boost::math::lgamma(mean / eta);
     }
 
     return boost::math::sign(x - mean) * std::pow(2.0 * deviance_ma, 0.5);

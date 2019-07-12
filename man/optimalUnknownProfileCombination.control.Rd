@@ -60,7 +60,7 @@ optimalUnknownProfileCombination.control(numberOfPopulations = 4,
 
 \item{tolerance}{Tolerance of internal log-likelihood maximisation (can be vector of upto size '4').}
 
-\item{seed}{A seed for the c++ implementaion.}
+\item{seed}{A seed for the c++ implementaion (deprecate).}
 
 \item{trace}{Show trace (TRUE/FALSE)?}
 

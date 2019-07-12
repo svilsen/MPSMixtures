@@ -67,8 +67,6 @@ Eigen::Vector2i nonZeroElementsOfMarker(const Eigen::VectorXd & decodedProfile_m
     return res;
 }
 
-
-
 std::vector<int> sortedIndex(const Eigen::VectorXd & x)
 {
     std::vector<int> x_sorted(x.size());

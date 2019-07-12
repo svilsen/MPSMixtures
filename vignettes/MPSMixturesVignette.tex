@@ -123,7 +123,7 @@ likelihood ratio}
   \postauthor{\par}
       \predate{\centering\large\emph}
   \postdate{\par}
-    \date{2018-10-04}
+    \date{2018-12-08}
 
 \usepackage{graphicx}
 \usepackage{amssymb}
@@ -528,21 +528,21 @@ assuming that both profiles are known, by calling the
 \begin{verbatim}
 ## $Parameters
 ## $Parameters$SampleParameters
-## [1] 1418.513393    6.263339
+## [1] 1418.518192    6.263302
 ## 
 ## $Parameters$MixtureParameters
-## [1] 0.7102449 0.2897551
+## [1] 0.7102443 0.2897557
 ## 
 ## $Parameters$MarkerImbalanceParameters
 ##  [1] 1.0513142 0.6421768 0.6513663 1.5831327 1.0362363 1.1807894 1.5272318
 ##  [8] 1.1458317 0.7175719 0.4643490
 ## 
 ## $Parameters$NoiseParameters
-## [1] 2.589359e+00 5.205581e+00 2.000000e-16
+## [1] 2.589391e+00 5.206065e+00 2.000000e-16
 ## 
 ## 
 ## $LogLikelihoods
-## [1] -276.80215  -36.70394    0.00000
+## [1] -276.80214  -36.70394    0.00000
 ## 
 ## $Fitness
 ## [1] -313.5061
@@ -802,33 +802,6 @@ does not change, while the log-likelihood of the allele coverage is
 smaller for the optimal minor than for the true minor. However, we see
 that the decrease in the log-likehood allele coverage is outweighed by
 an increase in the genotype probability.
-
-We can plot the visual differences by calling the
-\texttt{ggplotComparingProfiles} function (reguires the \texttt{ggplot2}
-package), setting the argument \texttt{plotDifferencesOnly} to
-\texttt{TRUE}. The resulting plot can be seen in Figure \ref{fig:minor}.
-We see that the two profile combinations only differ on a single marker
-and that the two are equivalent, which is why change in fitness is down
-to the genotype probabilities (i.e.~the allele frequencies; the
-population database).
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{optimalMinor <-}\StringTok{ }\NormalTok{optimalMultipleMinor}\OperatorTok{$}\NormalTok{U[[}\DecValTok{1}\NormalTok{]]}
-\NormalTok{optimalVSTruePerpetratorProfile <-}\StringTok{ }
-\StringTok{    }\KeywordTok{ggplotComparingProfiles}\NormalTok{(sampleTibble, knownProfilesIndividual, }
-\NormalTok{                            optimalMinor, }\OtherTok{TRUE}\NormalTok{, }\KeywordTok{c}\NormalTok{(}\StringTok{"True"}\NormalTok{, }\StringTok{"Optimal"}\NormalTok{))}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{figure}[ht!]
-
-{\centering \includegraphics{MPSMixturesVignette_files/figure-latex/figDifference-1} 
-
-}
-
-\caption{\label{fig:minor}The coverage against allele, for both profiles, shown in coloumns, and each marker, shown in rows, where the two profiles differ. Profiles one and two correspond to the optimal profiles under the model and the true profiles, respectively. The red and blue colouring corresonds to the major and minor contributors, respectively. Lastely, the black bars are regions attributed to the noise distribution.}\label{fig:figDifference}
-\end{figure}
 
 \subsubsection{Both profiles unknown}\label{both-profiles-unknown}
 

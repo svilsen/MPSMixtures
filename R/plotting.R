@@ -1,119 +1,13 @@
-#' Compare profile combinations
-#'
-#' @details Function used for visually comparing two profiles.
-#'
-#' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
-#' @param profileList1 A list containing the expected contribution matrix and the mixture paramters of profile 1.
-#' @param profileList2 A list containing the expected contribution matrix and the mixture paramters of profile 2.
-#' @param plotDifferencesOnly Restrict the returned \link{ggplot}-object to markers where the two profiles mismatch.
-#' @param profileNames Vector of profile names; should have length '2' or be 'NULL'.
-#' @param contributorNames Vector of contributor names; should have the same length as the number of contributors or be 'NULL'.
-#'
-#' @return ggplot2-object.
-ggplotComparingProfiles <- function(sampleTibble, profileList1, profileList2, plotDifferencesOnly = FALSE,
-                                    profileNames = NULL, contributorNames = NULL) {
-    if (is.null(profileNames)) {
-        profileNames <- c(1, 2)
-    }
-    else if (length(profileNames) == 1) {
-        profileNames <- paste(profileNames, 1:2, sep = "_")
-    }
-    else if (length(profileNames) > 2) {
-        stop("'profileNames' must have length 1 or 2, or set to 'NULL'.")
-    }
-
-    numberOfProfiles1 <- dim(profileList1$ExpectedContributionMatrix)[2]
-    numberOfProfiles2 <- dim(profileList2$ExpectedContributionMatrix)[2]
-
-    matching <- match(data.frame(profileList1$ExpectedContributionMatrix), data.frame(profileList2$ExpectedContributionMatrix))
-    matchingProfiles <- cbind(which(matching != 0), matching[which(matching != 0)])
-
-    restructuringList1 <- profileList1[c("ExpectedContributionMatrix", "Parameters")]
-    restructuringList2 <- profileList2[c("ExpectedContributionMatrix", "Parameters")]
-
-    if (dim(matchingProfiles)[1] != 0) {
-        for (i in 1:dim(matchingProfiles)[1]) {
-            switching <- 1:numberOfProfiles2
-            switching[matchingProfiles[i, 1]] <- matchingProfiles[i, 2]
-            switching[matchingProfiles[i, 2]] <- matchingProfiles[i, 1]
-
-            restructuringList2$ExpectedContributionMatrix <- restructuringList2$ExpectedContributionMatrix[, switching]
-            restructuringList2$MixtureParameters <- restructuringList2$Parameters$MixtureParameters[switching]
-        }
-    }
-
-    profile1ECMReweighted <- t(apply((t(restructuringList1$ExpectedContributionMatrix) * restructuringList1$Parameters$MixtureParameters), 2, function(ii) {
-        res <- if (sum(ii) != 0) ii / sum(ii) else rep(0, length(ii))
-        return(res)
-    }))
-
-    profile2ECMReweighted <- t(apply((t(restructuringList2$ExpectedContributionMatrix) * restructuringList2$Parameters$MixtureParameters), 2, function(ii) {
-        res <- if (sum(ii) != 0) ii / sum(ii) else rep(0, length(ii))
-        return(res)
-    }))
-
-    profiles <- list(profile1ECMReweighted, profile2ECMReweighted)
-    numberOfProfiles <- c(numberOfProfiles1, numberOfProfiles2)
-    partialSumProfiles <- .partialSumEigen(numberOfProfiles)
-
-    plotTibble <- vector("list", sum(numberOfProfiles) + 2)
-    for (i in 1:2) {
-        for (j in 1:numberOfProfiles[i]) {
-            k = partialSumProfiles[i] + j
-            plotTibble[[k]] <- sampleTibble %>%
-                mutate_(ProfileCoverage = ~Coverage * profiles[[i]][, j],
-                       Profile = ~paste("Profile:", profileNames[i]),
-                       Contributor = ~paste0("C", j)) %>%
-                filter_(~ProfileCoverage != 0)
-        }
-
-        plotTibble[[sum(numberOfProfiles) + i]] <- sampleTibble %>%
-            mutate_(ProfileCoverage = ~Coverage * as.numeric(rowSums(profiles[[i]]) == 0),
-                    Profile = ~paste("Profile:", profileNames[i]),
-                    Contributor = ~paste0("N")) %>%
-            filter_(~ProfileCoverage != 0)
-    }
-
-    plotTibble <- bind_rows(plotTibble)
-    gg_color_hue <- function(n) {
-        hues = seq(15, 375, length = n + 1)
-        hcl(h = hues, l = 65, c = 100)[1:n]
-    }
-
-    colours <- gg_color_hue(2)
-    if (plotDifferencesOnly) {
-        P1 <- P2 <- NULL
-        profileFrame <- tibble(P1 = apply(profileList1$ExpectedContributionMatrix, 1, sum),
-                               P2 = apply(profileList2$ExpectedContributionMatrix, 1, sum),
-                               Difference = P1 - P2)
-        splitMarker <- split(profileFrame, sampleTibble$Marker)
-        differenceMarker <- sapply(splitMarker, function(xx) sum(abs(xx[, 3])) != 0)
-
-        plotTibble <- plotTibble %>% filter_(~Marker %in% names(differenceMarker)[differenceMarker])
-    }
-
-    if (dim(plotTibble)[1] > 0) {
-        p.Profile <- ggplot(plotTibble, aes_(x = ~Allele, y = ~ProfileCoverage, fill = ~Contributor)) + geom_bar(stat = "identity") +
-            facet_grid(Marker ~ Profile, scales = "free_y") + scale_fill_manual(values = c(colours[1], colours[2], "#000000")) +
-            theme_bw() + theme(legend.position = "top") + ylab("Coverage") + xlab("Allele length") +
-            scale_x_continuous(breaks = seq(min(plotTibble$Allele), max(plotTibble$Allele)))
-    }
-    else {
-        p.Profile <- ggplot()
-    }
-
-    return(p.Profile)
-}
-
 #' Q-Q plots for profile list
 #'
 #' @description Q-Q plots for the allele coverage and noise Poisson-gamma coverage models.
 #'
 #' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
 #' @param profileList A list containing the expected contribution matrix and paramters of the fitted profile.
+#' @param component Which of the two model components should be constructed? 'Allele', 'Noise', or 'both'?
 #'
 #' @return ggplot2-object.
-ggplotQQPlotProfiles <- function(sampleTibble, profileList){
+ggplotQQPlotProfiles <- function(sampleTibble, profileList, component = "allele", residualEnvelopes = NULL){
     Type = NULL
 
     SP <- profileList$Parameters$SampleParameters
@@ -135,17 +29,263 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList){
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
+        mutate("DR" = MPSMixtures:::.devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
                "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
         filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
 
+    noise_ones_inflation = NULL
+    if (NP[3] > 2e-8) {
+        noise_ones <- which(DRTibble$C == 1 & DRTibble$NV == 1)
+        noise_ones_inflation <- sample(noise_ones, floor(length(noise_ones) * NP[3]))
+
+        if (length(noise_ones_inflation) > 0) {
+            DRTibble <- DRTibble[-noise_ones_inflation, ]
+        }
+    }
+
     qq_allele <- qqnorm((DRTibble %>% filter(Type == "Allele coverage"))$DR, plot.it = FALSE)
     qq_noise <- qqnorm((DRTibble %>% filter(Type == "Noise coverage"))$DR, plot.it = FALSE)
-    p <- ggplot(DRTibble %>% mutate(X = c(qq_allele$x, qq_noise$x), Y = c(qq_allele$y, qq_noise$y)),
-           aes_(x = ~X, y = ~Y)) +
-        geom_point() + facet_wrap(~Type) + theme_bw() +
-        xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
-        geom_smooth(method = "lm", se = FALSE)
+
+    DRTibble <- DRTibble %>% mutate(X = c(qq_allele$x, qq_noise$x), Y = c(qq_allele$y, qq_noise$y))
+    if (tolower(component) == "allele") {
+        p <- ggplot(DRTibbleAllele, aes_(x = ~X, y = ~Y)) +
+            geom_point() + facet_wrap(~Type) + theme_bw() +
+            xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
+            geom_smooth(method = "lm", se = FALSE)
+    }
+    else if (tolower(component) == "noise") {
+        p <- ggplot(DRTibble %>% filter(Type == "Noise coverage"), aes_(x = ~X, y = ~Y)) +
+            geom_point() + facet_wrap(~Type) + theme_bw() +
+            xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
+            geom_smooth(method = "lm", se = FALSE)
+    }
+    else if (tolower(component) == "both") {
+        p <- ggplot(DRTibble, aes_(x = ~X, y = ~Y)) +
+            geom_point() + facet_wrap(~Type) + theme_bw() +
+            xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
+            geom_smooth(method = "lm", se = FALSE)
+    }
+    else {
+        p <- ggplot()
+    }
+
+    return(p)
+}
+
+#' Q-Q plot and envelope of a DNA profile
+#'
+#' @description Q-Q plot and envelopes for the allele coverage component of a DNA profile.
+#'
+#' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
+#' @param profileList A list containing the expected contribution matrix and paramters of the fitted profile.
+#' @param markerImbalances A vector of prior marker imbalances.
+#' @param knownProfilesList A list of tibbles containing the alleles of the known contributors.
+#' @param potentialParentsList A list containing a list of potential parents for each allele in the sample. If NULL then a stutterRatioModel should be provided.
+#' @param stutterRatioModel A linear model of class \link{lm} modelling the relationship between coverage and stutter. Only needed if the potential parents list is not provided.
+#' @param levelsOfStutterRecursion The number of layers used in the stutter recursion.
+#' @param convexMarkerImbalanceInterpolation A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.
+#' @param tolerance The tolerance used for termination in parameter estimation.
+#' @param numberOfThreads The number of threads passed to the \link{potentialParentsMultiCore}-function if applicable.
+#' @param numberOfSimulations The number of simulations used to create the envelopes.
+#' @param envelopes The envelope quantiles.
+#' @param trace Show trace (TRUE/FALSE)?
+#' @param traceLimit Limits the trace of the parallel implementation.
+#'
+#' @return ggplot2-object.
+ggplotQQPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbalances, knownProfilesList, potentialParentsList,
+                                          stutterRatioModel = NULL, levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8,
+                                          tolerance = rep(1e-8, 4), numberOfThreads = 4, numberOfSimulations = 1000, envelopes = c(0.005, 0.995),
+                                          trace = FALSE, traceLimit = 100) {
+    Type = NULL
+
+    SP <- profileList$Parameters$SampleParameters
+    NP <- profileList$Parameters$NoiseParameters
+    MP <- profileList$Parameters$MixtureParameters
+    MIP <- profileList$Parameters$MarkerImbalanceParameters
+
+    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+
+    C <- sampleTibble$Coverage
+    MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
+
+    ECM <- profileList$ExpectedContributionMatrix
+    NV <- profileList$NoiseVector
+
+    MU <- c(SP[1] * MI * (ECM %*% MP) + NP[1] * NV)
+    D <- SP[2] * (1.0 - NV) + NP[2] * NV
+
+    DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
+        mutate("EC" = apply(ECM, 1, sum)) %>%
+        rowwise() %>%
+        mutate("DR" = MPSMixtures:::.devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
+               "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
+        filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
+
+    noise_ones_inflation = NULL
+    if (NP[3] > 2e-8) {
+        noise_ones <- which(DRTibble$C == 1 & DRTibble$NV == 1)
+        noise_ones_inflation <- sample(noise_ones, floor(length(noise_ones) * NP[3]))
+
+        if (length(noise_ones_inflation) > 0) {
+            DRTibble <- DRTibble[-noise_ones_inflation, ]
+        }
+    }
+
+    qq_allele <- qqnorm((DRTibble %>% filter(Type == "Allele coverage"))$DR, plot.it = FALSE)
+    qq_noise <- qqnorm((DRTibble %>% filter(Type == "Noise coverage"))$DR, plot.it = FALSE)
+
+    DRTibble <- DRTibble %>% mutate(X = c(qq_allele$x, qq_noise$x), Y = c(qq_allele$y, qq_noise$y))
+
+    allele_coverage_indices <- (sampleTibble %>% mutate(NV = NV, Index = 1:n()) %>% filter(NV == 0))$Index
+    DRTibbleAllele <- DRTibble %>% filter(Type == "Allele coverage")
+
+    sampleTibble_i = sampleTibble
+    resMatrix = matrix(0, nrow = dim(DRTibbleAllele)[1], ncol = numberOfSimulations)
+    for (i in 1:numberOfSimulations) {
+        if (trace & ((i == 1) | (i == numberOfSimulations) | ((i %% traceLimit) == 0)))
+            cat(i, " ")
+
+        sample_coverage_i = rnbinom(dim(DRTibbleAllele)[1], mu = DRTibbleAllele$MU, size = DRTibbleAllele$MU / DRTibbleAllele$D)
+        sampleTibble_i$Coverage[allele_coverage_indices] <- sample_coverage_i
+
+        known_i <- MPSMixtures:::estimateParametersOfKnownProfiles(sampleTibble_i, markerImbalances, knownProfilesList,
+                                                                   potentialParentsList, stutterRatioModel,
+                                                                   levelsOfStutterRecursion, convexMarkerImbalanceInterpolation,
+                                                                   tolerance, numberOfThreads)
+
+        SP_i <- known_i$Parameters$SampleParameters
+        MP_i <- known_i$Parameters$MixtureParameters
+        MI_i <- rep(known_i$Parameters$MarkerImbalanceParameters, (sampleTibble[allele_coverage_indices, ] %>% group_by(Marker) %>% summarise(Count = n()))$Count)
+
+        ECM_i <- known_i$ExpectedContributionMatrix
+
+        MU_i <- c(SP_i[1] * MI_i * (ECM_i %*% MP_i)[allele_coverage_indices, ])
+        R_i <- sapply(seq_along(MU_i), function(j) MPSMixtures:::.devianceResidualPoissonGammaDistribution(sample_coverage_i[j], MU_i[j], MU_i[j] / SP_i[2]))
+
+        resMatrix[, i] <- sort(R_i)
+    }
+
+    CI = apply(resMatrix, 1, quantile, prob = envelopes)
+    reverse_order <- order((tibble("X" = qq_allele$x) %>% mutate("Count" = 1:n()) %>% arrange_(~X))$Count)
+
+    DRTibbleAllele <- DRTibbleAllele %>% mutate("LowerEnvelope" = CI[1, reverse_order], "UpperEnvelope" = CI[2, reverse_order])
+    p <- ggplot(DRTibbleAllele, aes_(x = ~X, y = ~DR)) +
+        facet_wrap(~Type) +
+        geom_ribbon(aes_(ymin = ~LowerEnvelope, ymax = ~UpperEnvelope),
+                    alpha = 0.3, colour = "dodgerblue2", fill = "dodgerblue2") +
+        geom_point() +
+        theme_bw() + xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
+        geom_abline(intercept = 0, slope = 1, colour = "black", alpha = 0.9, size = 0.8)
+
+    return(p)
+}
+
+#' P-P plot and envelope of a DNA profile
+#'
+#' @description P-P plot and envelopes for the allele coverage component of a DNA profile.
+#'
+#' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
+#' @param profileList A list containing the expected contribution matrix and paramters of the fitted profile.
+#' @param markerImbalances A vector of prior marker imbalances.
+#' @param knownProfilesList A list of tibbles containing the alleles of the known contributors.
+#' @param potentialParentsList A list containing a list of potential parents for each allele in the sample. If NULL then a stutterRatioModel should be provided.
+#' @param stutterRatioModel A linear model of class \link{lm} modelling the relationship between coverage and stutter. Only needed if the potential parents list is not provided.
+#' @param levelsOfStutterRecursion The number of layers used in the stutter recursion.
+#' @param convexMarkerImbalanceInterpolation A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.
+#' @param tolerance The tolerance used for termination in parameter estimation.
+#' @param numberOfThreads The number of threads passed to the \link{potentialParentsMultiCore}-function if applicable.
+#' @param numberOfSimulations The number of simulations used to create the envelopes.
+#' @param envelopes The envelope quantiles.
+#' @param trace Show trace (TRUE/FALSE)?
+#' @param traceLimit Limits the trace of the parallel implementation.
+#'
+#' @return ggplot2-object.
+ggplotPPPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbalances, knownProfilesList, potentialParentsList,
+                                          stutterRatioModel = NULL, levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8,
+                                          tolerance = rep(1e-8, 4), numberOfThreads = 4, numberOfSimulations = 1000, envelopes = c(0.005, 0.995),
+                                          trace = FALSE, traceLimit = 100) {
+    Type = NULL
+
+    SP <- profileList$Parameters$SampleParameters
+    NP <- profileList$Parameters$NoiseParameters
+    MP <- profileList$Parameters$MixtureParameters
+    MIP <- profileList$Parameters$MarkerImbalanceParameters
+
+    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+
+    C <- sampleTibble$Coverage
+    MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
+
+    ECM <- profileList$ExpectedContributionMatrix
+    NV <- profileList$NoiseVector
+
+    MU <- c(SP[1] * MI * (ECM %*% MP) + NP[1] * NV)
+    D <- SP[2] * (1.0 - NV) + NP[2] * NV
+
+    DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
+        mutate("EC" = apply(ECM, 1, sum)) %>%
+        rowwise() %>%
+        mutate("DR" = MPSMixtures:::.devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
+               "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
+        filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
+
+    noise_ones_inflation = NULL
+    if (NP[3] > 2e-8) {
+        noise_ones <- which(DRTibble$C == 1 & DRTibble$NV == 1)
+        noise_ones_inflation <- sample(noise_ones, floor(length(noise_ones) * NP[3]))
+
+        if (length(noise_ones_inflation) > 0) {
+            DRTibble <- DRTibble[-noise_ones_inflation, ]
+        }
+    }
+
+    allele_coverage_indices <- (sampleTibble %>% mutate(NV = NV, Index = 1:n()) %>% filter(NV == 0))$Index
+    DRTibbleAllele <- DRTibble %>%
+        filter(Type == "Allele coverage")
+
+    sampleTibble_i = sampleTibble
+    resMatrix = matrix(0, nrow = dim(DRTibbleAllele)[1], ncol = numberOfSimulations)
+    for (i in 1:numberOfSimulations) {
+        if (trace & ((i == 1) | (i == numberOfSimulations) | ((i %% traceLimit) == 0)))
+            cat(i, " ")
+
+        sample_coverage_i = rnbinom(dim(DRTibbleAllele)[1], mu = DRTibbleAllele$MU, size = DRTibbleAllele$MU / DRTibbleAllele$D)
+        sampleTibble_i$Coverage[allele_coverage_indices] <- sample_coverage_i
+
+        known_i <- MPSMixtures:::estimateParametersOfKnownProfiles(sampleTibble_i, markerImbalances, knownProfilesList,
+                                                                   potentialParentsList, stutterRatioModel,
+                                                                   levelsOfStutterRecursion, convexMarkerImbalanceInterpolation,
+                                                                   tolerance, numberOfThreads)
+
+        SP_i <- known_i$Parameters$SampleParameters
+        MP_i <- known_i$Parameters$MixtureParameters
+        MI_i <- rep(known_i$Parameters$MarkerImbalanceParameters, (sampleTibble[allele_coverage_indices, ] %>% group_by(Marker) %>% summarise(Count = n()))$Count)
+
+        ECM_i <- known_i$ExpectedContributionMatrix
+
+        MU_i <- c(SP_i[1] * MI_i * (ECM_i %*% MP_i)[allele_coverage_indices, ])
+        P_i <- pnbinom(sample_coverage_i, mu = MU_i, size = MU_i / SP_i[2])
+
+        resMatrix[, i] <- sort(P_i)
+    }
+
+    CI = apply(resMatrix, 1, quantile, prob = envelopes)
+
+    DRTibbleAllele <- DRTibbleAllele %>%
+        mutate(Y = pnbinom(C, mu = MU, size = MU / D)) %>%
+        ungroup() %>%
+        arrange_(~Y) %>%
+        mutate(X = (1 : n()) / n() - 0.5 / n(),
+               "LowerEnvelope" = CI[1, ],
+               "UpperEnvelope" = CI[2, ])
+
+    p <- ggplot(DRTibbleAllele, aes_(x = ~X, y = ~Y)) +
+        facet_wrap(~Type) +
+        geom_ribbon(aes_(ymin = ~LowerEnvelope, ymax = ~UpperEnvelope),
+                    alpha = 0.3, colour = "dodgerblue2", fill = "dodgerblue2") +
+        geom_point() + theme_bw() +
+        xlab("Uniform CDF") + ylab("Sample CDF") + ggtitle("P-P plot") +
+        geom_abline(intercept = 0, slope = 1, colour = "black", alpha = 0.9, size = 0.8)
 
     return(p)
 }
@@ -162,7 +302,7 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList){
 #'
 #' @return ggplot2-object.
 ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInterval = c(0.005, 0.995),
-                                             numberOfSimulations = 10000, contributorNames = NULL) {
+                                      numberOfSimulations = 10000, contributorNames = NULL) {
     SP <- profileList$Parameters$SampleParameters
     NP <- profileList$Parameters$NoiseParameters
     MP <- profileList$Parameters$MixtureParameters
@@ -209,17 +349,17 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
     for (j in 1:numberOfProfiles) {
         plotTibbleList[[j]] <- plotTibbleCollected %>%
             mutate_(ProfileCoverage = ~Coverage * profileECMReweighted[, j],
-                   Contributor = ~contributorNames[j]) %>%
+                    Contributor = ~contributorNames[j]) %>%
             filter_(~ProfileCoverage != 0)
     }
 
     plotTibble <- bind_rows(plotTibbleList) %>%
         group_by_(~Marker, ~Allele, ~Region) %>%
         summarise_(ProfileCoverage = ~sum(ProfileCoverage),
-                  ExpectedCoverage = ~unique(ExpectedCoverage),
-                  LowerPI = ~unique(LowerPI),
-                  UpperPI = ~unique(UpperPI),
-                  Contributor = ~paste(Contributor, collapse = "/")) %>%
+                   ExpectedCoverage = ~unique(ExpectedCoverage),
+                   LowerPI = ~unique(LowerPI),
+                   UpperPI = ~unique(UpperPI),
+                   Contributor = ~paste(Contributor, collapse = "/")) %>%
         ungroup() %>%
         mutate_(Contributor = ~paste("Contributor:", Contributor))
 

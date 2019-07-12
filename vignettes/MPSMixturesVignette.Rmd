@@ -169,8 +169,16 @@ knownProfilesIndividual[c("Parameters", "LogLikelihoods", "Fitness")]
 
 The `MPSMixtures` offers two simple fit evaluation plots: Q-Q plots of the deviance residuals and prediction intervals for the expected coverage. They are created by calling the `ggplotQQPlotProfiles` and `ggplotPredictionIntervals` functions, respectively. The resulting figures can be seen in Figure \ref{fig:qqtrue} and \ref{fig:ectrue}.
 
-```{r figQQ, echo = FALSE, fig.align = "center", fig.cap = "\\label{fig:qqtrue}Q-Q plot of the fitted model for both the allele and noise coverage models.", fig.width = 8, fig.height = 4, fig.pos="ht!"}
-ggplotQQPlotProfiles(sampleTibble, knownProfilesIndividual)
+```{r figQQcache, echo=FALSE, cache=TRUE}
+figQQcache <- ggplotQQPlotProfilesEnvelopes(sampleTibble = sampleTibble, profileList = knownProfilesIndividual, markerImbalances = knownProfilesIndividual$Parameters$MarkerImbalanceParameters, trueProfiles = trueProfiles, potentialParentsList = potentialParentsList)
+
+figPPcache <- ggplotPPPlotProfilesEnvelopes(sampleTibble = sampleTibble, profileList = knownProfilesIndividual, markerImbalances = knownProfilesIndividual$Parameters$MarkerImbalanceParameters, trueProfiles = trueProfiles, potentialParentsList = potentialParentsList)
+```
+
+
+```{r figQQ, echo = FALSE, fig.align = "center", fig.cap = "\\label{fig:qqtrue}Q-Q plot of the fitted model for both the allele and noise coverage models.", fig.width = 4, fig.height = 4, fig.pos="ht!", out.width='.49\\linewidth', fig.show='hold'}
+show(figQQcache)
+show(figPPcache)
 ```
 
 ```{r figEC, echo = FALSE, fig.align = "center", fig.cap = "\\label{fig:ectrue}Bar-plot of the coverage against the allele length for the each marker and profile, shown in coloumns and rows, respectively. Furthermore, the prediction interval for each observation is seen as the black bars, with the expected coverage at their center.", fig.width = 17, fig.height = 7, fig.pos="ht!"}
@@ -195,10 +203,10 @@ We start with the single population algorithm:
 controlSinglePopulation <-  
     optimalUnknownProfileCombination.control(
         numberOfPopulations = 1, numberOfIterations = 350,
-        populationSize = 2000, numberOfFittestIndividuals = 1,
+        populationSize = 100, numberOfFittestIndividuals = 1,
         mutationDecayRate = 1, hillClimbingIterations = 0, 
         parentSelectionWindowSize = 15,
-        allowParentSurvival = TRUE, trace = F, 
+        allowParentSurvival = TRUE, trace = F, #trace = T, traceLimit = 5, 
         levelsOfStutterRecursion = 1, 
         numberOfIterationsEqualMinMax = 10, 
         tolerance = rep(1e-8, 4)
@@ -247,12 +255,12 @@ We will use 32 sub-populations spread on four cores. Furthermore, we set the siz
 ```{r multipleMajor, eval = FALSE}
 controlMultiplePopulation <- 
     optimalUnknownProfileCombination.control(
-        numberOfPopulations = 32, numberOfIterations = 100,
-        populationSize = 75, numberOfFittestIndividuals = 1,
+        numberOfPopulations = 16, numberOfIterations = 100,
+        populationSize = 25, numberOfFittestIndividuals = 1,
         numberOfIterationsEqualMinMax = 10,
         mutationDecayRate = 1, hillClimbingIterations = 0, 
         parentSelectionWindowSize = 6,
-        allowParentSurvival = TRUE, trace = F, 
+        allowParentSurvival = TRUE, trace = T, traceLimit = 5, #trace = F, 
         levelsOfStutterRecursion = 1, 
         tolerance = rep(1e-8, 4)
     )
@@ -322,18 +330,6 @@ optimalMultipleMinor$U[[1]][c("Parameters", "LogLikelihoods", "Fitness")]
 ```
 
 Comparing the log-likelihoods of the optimal minor contributor to those of the true profile, we see that the log-likelihood of the noise model does not change, while the log-likelihood of the allele coverage is smaller for the optimal minor than for the true minor. However, we see that the decrease in the log-likehood allele coverage is outweighed by an increase in the genotype probability.
-
-We can plot the visual differences by calling the `ggplotComparingProfiles` function (reguires the `ggplot2` package), setting the argument `plotDifferencesOnly` to `TRUE`. The resulting plot can be seen in Figure \ref{fig:minor}. We see that the two profile combinations only differ on a single marker and that the two are equivalent, which is why change in fitness is down to the genotype probabilities (i.e. the allele frequencies; the population database).
-```{r plottingDifferences}
-optimalMinor <- optimalMultipleMinor$U[[1]]
-optimalVSTruePerpetratorProfile <- 
-    ggplotComparingProfiles(sampleTibble, knownProfilesIndividual, 
-                            optimalMinor, TRUE, c("True", "Optimal"))
-```
-
-```{r figDifference, echo = FALSE, fig.align = "center", fig.cap = "\\label{fig:minor}The coverage against allele, for both profiles, shown in coloumns, and each marker, shown in rows, where the two profiles differ. Profiles one and two correspond to the optimal profiles under the model and the true profiles, respectively. The red and blue colouring corresonds to the major and minor contributors, respectively. Lastely, the black bars are regions attributed to the noise distribution.", fig.width = 8, fig.height = 6, fig.pos="ht!"}
-show(optimalVSTruePerpetratorProfile)
-```
 
 ### Both profiles unknown
 Lastly, we assumed that both the profiles were unknown. This is indicated by supplying an empty list (or just `NULL`) to the knownProfiles argument. Furthermore, we have increased the number of sub-populations, the population size, allowed for more outer itertations, and increased the termination counter `numberOfIterationsEqualMinMax`, giving the algorithm more times to search the space. 

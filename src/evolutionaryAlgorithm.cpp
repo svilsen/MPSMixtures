@@ -147,7 +147,9 @@ Population EvolutionaryAlgorithm::InitialisePopulation(ExperimentalSetup & ES, I
     for (std::size_t n = 0; n < PopulationSize; n++)
     {
         Eigen::VectorXd U = ES.GenerateUnknownGenotype(RV);
+
         Individual I_n = Individual(U, ES);
+
         RestructingIndividual(I_n, ES);
         I[n] = I_n;
     }

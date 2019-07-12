@@ -124,10 +124,15 @@ void EstimatePoissonGammaAlleleParameters::initialiseParameters()
     {
         const Eigen::MatrixXd & ExpectedContributionMatrix_m = ExpectedContributionMatrix[m];
         Eigen::VectorXd EC = ExpectedContributionMatrix_m * MixtureParameters;
-        double ECSum = EC.sum();
+        const double & ECSum = EC.sum();
+        double markerImbalancesMoM_m = markerImbalancesMoM[m];
+        if (!(markerImbalancesMoM_m > 0))
+        {
+            markerImbalancesMoM_m = 1e-6;
+        }
 
         averageCoverageDenominator += ECSum;
-        markerImbalancesMoM[m] = markerImbalancesMoM[m] / ECSum;
+        markerImbalancesMoM[m] = markerImbalancesMoM_m / ECSum;
     }
 
     SampleParameters = 2.0 * Eigen::VectorXd::Ones(2);
@@ -139,7 +144,7 @@ void EstimatePoissonGammaAlleleParameters::initialiseParameters()
     MarkerImbalancesParameters = ConvexMarkerImbalanceInterpolation * markerImbalancesMoM + (1 - ConvexMarkerImbalanceInterpolation) * MarkerImbalances;
 }
 
-double logLikelihoodAlleleCoverageNLopt(const std::vector<double> &x, std::vector<double> &grad, void *data)
+double logLikelihoodAlleleCoverageNLopt(const std::vector<double> & x, std::vector<double> & grad, void *data)
 {
     // Unpacking data
     EstimatePoissonGammaAlleleParameters *EPGA = reinterpret_cast<EstimatePoissonGammaAlleleParameters*>(data);
@@ -228,7 +233,7 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
     }
 
     // Optimiser
-    // nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, S + M - 1);
+    // nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, S + C - 1);
     // nlopt::opt individualOptimisation(nlopt::LD_LBFGS, S + C - 1);
     nlopt::opt individualOptimisation(nlopt::LD_SLSQP, S + C - 1);
 
@@ -351,7 +356,15 @@ void EstimatePoissonGammaNoiseParameters::initialiseParameters()
 
     parameters[0] = averageNoiseCoverage * (1 - std::exp(logPoissonGammaDistribution(0, averageNoiseCoverage, averageNoiseCoverage)));
     parameters[1] = std::abs((noiseCoverageSquaredSum / noiseCoverageSize - std::pow(parameters[0], 2.0)) / parameters[0] - 1.0);
-    parameters[2] = noiseCoverageInflation / noiseCoverageSize;
+    parameters[2] = noiseCoverageInflation / (2.0 * noiseCoverageSize);
+
+    if (parameters[0] < 1.0) {
+        parameters[0] = 1.0;
+    }
+
+    if (parameters[1] < 1.0) {
+        parameters[1] = 1.0;
+    }
 
     NoiseParameters = parameters;
 }
@@ -391,12 +404,12 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     std::vector<double> parameters = EigenSTD(EPGN.NoiseParameters);
 
     // Optimiser
-    nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, N);
-    // nlopt::opt individualOptimisation(nlopt::LN_SBPLX, N);
+    // nlopt::opt individualOptimisation(nlopt::LN_BOBYQA, N);
+    nlopt::opt individualOptimisation(nlopt::LN_SBPLX, N);
 
     // Box-constraints
     std::vector<double> lowerBound(N), upperBound(N);
-    lowerBound[0] = 2e-8;
+    lowerBound[0] = 1.0;
     lowerBound[1] = 1.0;
     lowerBound[2] = 2e-16;
 
