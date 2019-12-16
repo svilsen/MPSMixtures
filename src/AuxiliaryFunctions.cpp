@@ -1,5 +1,6 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
+#include <boost/math/special_functions/binomial.hpp>
 
 //[[Rcpp::export(.partialSumEigen)]]
 Eigen::VectorXd partialSumEigen(const Eigen::VectorXd & x)
@@ -76,4 +77,49 @@ std::vector<int> sortedIndex(const Eigen::VectorXd & x)
     std::sort(x_sorted.begin(), x_sorted.end(), comparator);
 
     return x_sorted;
+}
+
+//[[Rcpp::export()]]
+Eigen::MatrixXd generatePossibleGenotypes(const std::size_t & N)
+{
+    if (N == 1)
+    {
+        Eigen::MatrixXd possibleSingleprofilesMatrix = 2*Eigen::MatrixXd::Ones(N, N);
+        return possibleSingleprofilesMatrix;
+    }
+
+    const std::size_t possibleSingles = N;
+    const std::size_t possiblePairs = boost::math::binomial_coefficient<double>(N, 2);
+
+    const std::size_t totalPossibleOutcomes = possibleSingles + possiblePairs;
+    const std::size_t totalRuns = std::floor(possiblePairs / N);
+
+    Eigen::MatrixXd possibleSingleprofilesMatrix = Eigen::MatrixXd::Zero(N, totalPossibleOutcomes);
+    for (std::size_t i = 0; i < N; i++)
+    {
+        // Single Values
+        Eigen::VectorXd singleVector = Eigen::VectorXd::Zero(N);
+        singleVector(i) = 2;
+        possibleSingleprofilesMatrix.col(i) = singleVector;
+
+        // Paired Values
+        for (std::size_t j = 1; j <= totalRuns; j++)
+        {
+            Eigen::VectorXd pairsVector = Eigen::VectorXd::Zero(N);
+            pairsVector(i) = 1;
+            pairsVector((i + j) % N) = 1;
+            possibleSingleprofilesMatrix.col(j*N + i) = pairsVector;
+        }
+    }
+
+    // Remaining Paired Values
+    for (std::size_t k = (totalRuns + 1)*N; k < totalPossibleOutcomes; k++)
+    {
+        Eigen::VectorXd pairsVector = Eigen::VectorXd::Zero(N);
+        pairsVector(k % N) = 1;
+        pairsVector(((k % N) + (totalRuns + 1)) % N) = 1;
+        possibleSingleprofilesMatrix.col(k) = pairsVector;
+    }
+
+    return possibleSingleprofilesMatrix;
 }

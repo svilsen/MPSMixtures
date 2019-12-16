@@ -228,19 +228,21 @@ void Individual::CreateReducedElements(const ExperimentalSetup & ES, const Eigen
 
 void Individual::EstimateParameters(const ExperimentalSetup & ES)
 {
-    // Estimating paramters
+    //// Estimating paramters
+    //
     EstimatePoissonGammaAlleleParameters EPGA(ES.Coverage, ReducedExpectedContributionMatrix, ReducedAlleleIndex,
                                               ES.MarkerImbalances, ES.PartialSumAlleles,
                                               ES.ConvexMarkerImbalanceInterpolation, ES.Tolerance);
 
-    EstimatePoissonGammaNoiseParameters EPGN(ES.Coverage, ReducedNoiseIndex, ES.PartialSumAlleles, ES.Tolerance);
-
     estimateParametersAlleleCoverage(EPGA);
-    estimateParametersNoiseCoverage(EPGN);
-
     SampleParameters = EPGA.SampleParameters;
     MixtureParameters = EPGA.MixtureParameters;
     MarkerImbalanceParameters = EPGA.MarkerImbalancesParameters;
+
+    //
+    const double varianceUpperLimit = SampleParameters[1];
+    EstimatePoissonGammaNoiseParameters EPGN(ES.Coverage, ReducedNoiseIndex, ES.PartialSumAlleles, ES.Tolerance, varianceUpperLimit);
+    estimateParametersNoiseCoverage(EPGN);
 
     NoiseParameters = EPGN.NoiseParameters;
 }

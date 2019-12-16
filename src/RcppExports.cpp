@@ -17,6 +17,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// generatePossibleGenotypes
+Eigen::MatrixXd generatePossibleGenotypes(const std::size_t& N);
+RcppExport SEXP _MPSMixtures_generatePossibleGenotypes(SEXP NSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::size_t& >::type N(NSEXP);
+    rcpp_result_gen = Rcpp::wrap(generatePossibleGenotypes(N));
+    return rcpp_result_gen;
+END_RCPP
+}
 // testing_rv_struct
 Eigen::MatrixXd testing_rv_struct(const Eigen::VectorXd& numberOfAlleles, const std::size_t& numberOfUnknownContributors, const std::size_t& seed, const std::size_t& numberOfSimulations);
 RcppExport SEXP _MPSMixtures_testing_rv_struct(SEXP numberOfAllelesSEXP, SEXP numberOfUnknownContributorsSEXP, SEXP seedSEXP, SEXP numberOfSimulationsSEXP) {
@@ -257,6 +268,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_MPSMixtures_partialSumEigen", (DL_FUNC) &_MPSMixtures_partialSumEigen, 1},
+    {"_MPSMixtures_generatePossibleGenotypes", (DL_FUNC) &_MPSMixtures_generatePossibleGenotypes, 1},
     {"_MPSMixtures_testing_rv_struct", (DL_FUNC) &_MPSMixtures_testing_rv_struct, 4},
     {"_MPSMixtures_setupIndividual", (DL_FUNC) &_MPSMixtures_setupIndividual, 13},
     {"_MPSMixtures_devianceResidualPoissonGammaDistribution", (DL_FUNC) &_MPSMixtures_devianceResidualPoissonGammaDistribution, 3},

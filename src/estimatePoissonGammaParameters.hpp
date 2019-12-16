@@ -57,6 +57,7 @@ class EstimatePoissonGammaNoiseParameters
         Eigen::VectorXd PartialSumAlleles;
 
         Eigen::VectorXd NoiseParameters;
+        double VarianceUpperLimit;
 
         double LogLikelihood;
         Eigen::VectorXd Tolerance;
@@ -65,7 +66,8 @@ class EstimatePoissonGammaNoiseParameters
         std::size_t Counter;
 
         EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
-                                            const Eigen::VectorXd & partialSumAlleles, const Eigen::VectorXd & tolerance);
+                                            const Eigen::VectorXd & partialSumAlleles, const Eigen::VectorXd & tolerance,
+                                            const double & varianceUpperLimit);
         void initialiseParameters();
 };
 

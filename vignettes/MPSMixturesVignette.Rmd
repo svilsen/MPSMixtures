@@ -170,9 +170,13 @@ knownProfilesIndividual[c("Parameters", "LogLikelihoods", "Fitness")]
 The `MPSMixtures` offers two simple fit evaluation plots: Q-Q plots of the deviance residuals and prediction intervals for the expected coverage. They are created by calling the `ggplotQQPlotProfiles` and `ggplotPredictionIntervals` functions, respectively. The resulting figures can be seen in Figure \ref{fig:qqtrue} and \ref{fig:ectrue}.
 
 ```{r figQQcache, echo=FALSE, cache=TRUE}
-figQQcache <- ggplotQQPlotProfilesEnvelopes(sampleTibble = sampleTibble, profileList = knownProfilesIndividual, markerImbalances = knownProfilesIndividual$Parameters$MarkerImbalanceParameters, trueProfiles = trueProfiles, potentialParentsList = potentialParentsList)
+figQQcache <- ggplotQQPlotProfilesEnvelopes(sampleTibble = sampleTibble, profileList = knownProfilesIndividual, 
+                                            markerImbalances = knownProfilesIndividual$Parameters$MarkerImbalanceParameters,
+                                            knownProfilesList = trueProfiles, potentialParentsList = potentialParentsList)
 
-figPPcache <- ggplotPPPlotProfilesEnvelopes(sampleTibble = sampleTibble, profileList = knownProfilesIndividual, markerImbalances = knownProfilesIndividual$Parameters$MarkerImbalanceParameters, trueProfiles = trueProfiles, potentialParentsList = potentialParentsList)
+figPPcache <- ggplotPPPlotProfilesEnvelopes(sampleTibble = sampleTibble, profileList = knownProfilesIndividual, 
+                                            markerImbalances = knownProfilesIndividual$Parameters$MarkerImbalanceParameters,
+                                            knownProfilesList = trueProfiles, potentialParentsList = potentialParentsList)
 ```
 
 

@@ -5,6 +5,10 @@
     .Call('_MPSMixtures_partialSumEigen', PACKAGE = 'MPSMixtures', x)
 }
 
+generatePossibleGenotypes <- function(N) {
+    .Call('_MPSMixtures_generatePossibleGenotypes', PACKAGE = 'MPSMixtures', N)
+}
+
 .testing_rv_struct <- function(numberOfAlleles, numberOfUnknownContributors, seed, numberOfSimulations) {
     .Call('_MPSMixtures_testing_rv_struct', PACKAGE = 'MPSMixtures', numberOfAlleles, numberOfUnknownContributors, seed, numberOfSimulations)
 }

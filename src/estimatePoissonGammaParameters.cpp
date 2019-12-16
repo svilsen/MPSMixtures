@@ -42,51 +42,6 @@ EstimatePoissonGammaAlleleParameters::EstimatePoissonGammaAlleleParameters(const
 
 void EstimatePoissonGammaAlleleParameters::initialiseParameters()
 {
-    // // Initialising mixture parameters
-    // double sumCoverage = Coverage.sum();
-    //
-    // Eigen::VectorXd mixtureParameters = Eigen::VectorXd::Ones(NumberOfContributors) / NumberOfContributors;
-    // for (std::size_t m = 0; m < NumberOfMarkers; m++)
-    // {
-    //     const Eigen::VectorXd & AlleleIndex_m = AlleleIndex[m];
-    //     const Eigen::MatrixXd & ExpectedContributionMatrix_m = ExpectedContributionMatrix[m];
-    //     for (std::size_t a = 0; a < AlleleIndex_m.size(); a++)
-    //     {
-    //         std::size_t n = PartialSumAlleles[m] + AlleleIndex_m[a];
-    //         for (std::size_t c = 0; c < NumberOfContributors; c++)
-    //         {
-    //             Eigen::VectorXd contributor_c = ExpectedContributionMatrix_m.col(c);
-    //             if (contributor_c[a] >= 1)
-    //             {
-    //                 mixtureParameters[c] += Coverage[n] / contributor_c[a];
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // MixtureParameters = mixtureParameters / mixtureParameters.sum();
-    //
-    // // Initialising average heterozygote parameter
-    // Eigen::VectorXd markerCoverage = Eigen::VectorXd::Zero(NumberOfMarkers);
-    // for (std::size_t m = 0; m < NumberOfMarkers; m++)
-    // {
-    //     const Eigen::VectorXd & AlleleIndex_m = AlleleIndex[m];
-    //     for (std::size_t a = 0; a < AlleleIndex_m.size(); a++)
-    //     {
-    //         std::size_t n = PartialSumAlleles[m] + AlleleIndex_m[a];
-    //         markerCoverage[m] += Coverage[n] / (2 * NumberOfContributors);
-    //     }
-    // }
-    //
-    // SampleParameters = 2.0 * Eigen::VectorXd::Ones(2);
-    // SampleParameters[0] = markerCoverage.sum() / markerCoverage.size();
-    //
-    // // Creating moment estimates of the marker imbalances
-    // Eigen::VectorXd markerImbalancesMoM = markerCoverage / SampleParameters[0];
-    // markerImbalancesMoM = markerImbalancesMoM / markerImbalancesMoM.mean();
-    //
-    // MarkerImbalancesParameters = ConvexMarkerImbalanceInterpolation * markerImbalancesMoM + (1 - ConvexMarkerImbalanceInterpolation) * MarkerImbalances;
-
     // Initialising mixture parameters
     Eigen::VectorXd phiCurrent = Eigen::VectorXd::Ones(NumberOfContributors) / NumberOfContributors;
     double sumCoverage = 0.0;
@@ -312,8 +267,11 @@ void estimateParametersAlleleCoverage(EstimatePoissonGammaAlleleParameters &EPGA
 
 
 // Noise coverage
-EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
-                                                                         const Eigen::VectorXd & partialSumAlleles, const Eigen::VectorXd & tolerance)
+EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage,
+                                                                         const std::vector<Eigen::VectorXd> & noiseIndex,
+                                                                         const Eigen::VectorXd & partialSumAlleles,
+                                                                         const Eigen::VectorXd & tolerance,
+                                                                         const double & varianceUpperLimit)
 {
     Coverage = coverage;
     NoiseIndex = noiseIndex;
@@ -323,6 +281,7 @@ EstimatePoissonGammaNoiseParameters::EstimatePoissonGammaNoiseParameters(const E
     NumberOfMarkers = NoiseIndex.size();
     Tolerance = tolerance;
     MaximumNumberOfIterations = 2000;
+    VarianceUpperLimit = varianceUpperLimit;
 
     Counter = 0;
 
@@ -366,6 +325,10 @@ void EstimatePoissonGammaNoiseParameters::initialiseParameters()
         parameters[1] = 1.0;
     }
 
+    if (parameters[1] > VarianceUpperLimit) {
+        parameters[1] = VarianceUpperLimit;
+    }
+
     NoiseParameters = parameters;
 }
 
@@ -389,7 +352,7 @@ double logLikelihoodNoiseCoverageNLopt(const std::vector<double> &x, std::vector
         for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
         {
             std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
-            logLikelihood += logInflatedTruncatedPoissonGammaDistribution(Coverage[n], mu_ma, dispersion, p, 1.0, 0.0);
+            logLikelihood += logInflatedTruncatedPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion, p, 1.0, 0.0);
                 //- std::log(1 - std::exp(dispersion * logeta)); // std::log(1.0 - std::exp(gamma * zero_truncation)); //
         }
     }
@@ -414,7 +377,7 @@ void estimateParametersNoiseCoverage(EstimatePoissonGammaNoiseParameters &EPGN)
     lowerBound[2] = 2e-16;
 
     upperBound[0] = EPGN.Coverage.maxCoeff();
-    upperBound[1] = (EPGN.Coverage.size() / (EPGN.Coverage.size() - 1.0)) * std::pow(EPGN.Coverage.maxCoeff(), 2.0);
+    upperBound[1] = EPGN.VarianceUpperLimit; // (EPGN.Coverage.size() / (EPGN.Coverage.size() - 1.0)) * std::pow(EPGN.Coverage.maxCoeff(), 2.0);
     upperBound[2] = 1.0 - 2e-16;
 
     individualOptimisation.set_lower_bounds(lowerBound);
