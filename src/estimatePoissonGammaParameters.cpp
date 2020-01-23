@@ -314,7 +314,7 @@ void EstimatePoissonGammaNoiseParameters::initialiseParameters()
     double averageNoiseCoverage = std::ceil(0.5 * noiseCoverageSum) / noiseCoverageSize;
 
     parameters[0] = averageNoiseCoverage * (1 - std::exp(logPoissonGammaDistribution(0, averageNoiseCoverage, averageNoiseCoverage)));
-    parameters[1] = std::abs((noiseCoverageSquaredSum / noiseCoverageSize - std::pow(parameters[0], 2.0)) / parameters[0] - 1.0);
+    parameters[1] = 1.0; // std::abs((noiseCoverageSquaredSum / noiseCoverageSize - std::pow(parameters[0], 2.0)) / parameters[0] - 1.0);
     parameters[2] = noiseCoverageInflation / (2.0 * noiseCoverageSize);
 
     if (parameters[0] < 1.0) {
@@ -352,7 +352,7 @@ double logLikelihoodNoiseCoverageNLopt(const std::vector<double> &x, std::vector
         for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
         {
             std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
-            logLikelihood += logInflatedTruncatedPoissonGammaDistribution(Coverage[n], mu_ma, mu_ma / dispersion, p, 1.0, 0.0);
+            logLikelihood += logInflatedTruncatedPoissonGammaDistribution(Coverage[n], mu_ma, dispersion, p, 1.0, 0.0);
                 //- std::log(1 - std::exp(dispersion * logeta)); // std::log(1.0 - std::exp(gamma * zero_truncation)); //
         }
     }
