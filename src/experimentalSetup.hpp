@@ -64,6 +64,7 @@ class ExperimentalSetup
         Eigen::VectorXd Coverage;
         std::vector< std::vector< Eigen::MatrixXd > > PotentialParents;
         Eigen::VectorXd MarkerImbalances;
+        Eigen::VectorXd NoiseParameters;
 
         // Reference population data
         double Theta;
@@ -73,12 +74,24 @@ class ExperimentalSetup
         Eigen::VectorXd Tolerance;
         double ConvexMarkerImbalanceInterpolation;
         std::size_t LevelsOfStutterRecursion;
+        bool DualEstimation;
 
-        ExperimentalSetup(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
-                          const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
-                          const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents,
-                          const Eigen::VectorXd & markerImbalances, const double & convexMarkerImbalanceInterpolation, const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies,
-                          const std::size_t & levelsOfStutterRecursion);
+        ExperimentalSetup(const std::size_t & numberOfMarkers,
+                          const Eigen::VectorXd & numberOfAlleles,
+                          const std::size_t & numberOfContributors,
+                          const std::size_t & numberOfKnownContributors,
+                          const Eigen::MatrixXd & knownProfiles,
+                          const Eigen::MatrixXd & allKnownProfiles,
+                          const Eigen::VectorXd & coverage,
+                          const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents,
+                          const Eigen::VectorXd & markerImbalances,
+                          const double & convexMarkerImbalanceInterpolation,
+                          const Eigen::VectorXd & noiseParameters,
+                          const Eigen::VectorXd & tolerance,
+                          const double & theta,
+                          const Eigen::VectorXd & alleleFrequencies,
+                          const std::size_t & levelsOfStutterRecursion,
+                          const bool & dualEstimation);
 
         Eigen::VectorXd GenerateUnknownGenotype(InitialPopulationRandomVariates & RV);
 };

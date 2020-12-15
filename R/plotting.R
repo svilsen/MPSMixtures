@@ -15,7 +15,9 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList, component = "allele"
     MP <- profileList$Parameters$MixtureParameters
     MIP <- profileList$Parameters$MarkerImbalanceParameters
 
-    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+    MIPTibble <- sampleTibble %>%
+        distinct(Marker) %>%
+        mutate(MIP = MIP)
 
     C <- sampleTibble$Coverage
     MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
@@ -29,9 +31,11 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList, component = "allele"
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate("DR" = MPSMixtures:::.devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
+        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
                "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
-        filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
+        filter(!is.na(Type)) %>%
+        ungroup() %>%
+        arrange(Type)
 
     noise_ones_inflation = NULL
     if (NP[3] > 2e-8) {
@@ -48,19 +52,19 @@ ggplotQQPlotProfiles <- function(sampleTibble, profileList, component = "allele"
 
     DRTibble <- DRTibble %>% mutate(X = c(qq_allele$x, qq_noise$x), Y = c(qq_allele$y, qq_noise$y))
     if (tolower(component) == "allele") {
-        p <- ggplot(DRTibbleAllele, aes_(x = ~X, y = ~Y)) +
+        p <- ggplot(DRTibbleAllele, aes(x = X, y = Y)) +
             geom_point() + facet_wrap(~Type) + theme_bw() +
             xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
             geom_smooth(method = "lm", se = FALSE)
     }
     else if (tolower(component) == "noise") {
-        p <- ggplot(DRTibble %>% filter(Type == "Noise coverage"), aes_(x = ~X, y = ~Y)) +
+        p <- ggplot(DRTibble %>% filter(Type == "Noise coverage"), aes(x = X, y = Y)) +
             geom_point() + facet_wrap(~Type) + theme_bw() +
             xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
             geom_smooth(method = "lm", se = FALSE)
     }
     else if (tolower(component) == "both") {
-        p <- ggplot(DRTibble, aes_(x = ~X, y = ~Y)) +
+        p <- ggplot(DRTibble, aes(x = X, y = Y)) +
             geom_point() + facet_wrap(~Type) + theme_bw() +
             xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
             geom_smooth(method = "lm", se = FALSE)
@@ -103,7 +107,9 @@ ggplotQQPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
     MP <- profileList$Parameters$MixtureParameters
     MIP <- profileList$Parameters$MarkerImbalanceParameters
 
-    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+    MIPTibble <- sampleTibble %>%
+        distinct(Marker) %>%
+        mutate(MIP = MIP)
 
     C <- sampleTibble$Coverage
     MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
@@ -117,9 +123,11 @@ ggplotQQPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate("DR" = MPSMixtures:::.devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
+        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
                "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
-        filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
+        filter(!is.na(Type)) %>%
+        ungroup() %>%
+        arrange(Type)
 
     noise_ones_inflation = NULL
     if (NP[3] > 2e-8) {
@@ -148,30 +156,30 @@ ggplotQQPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
         sample_coverage_i = rnbinom(dim(DRTibbleAllele)[1], mu = DRTibbleAllele$MU, size = DRTibbleAllele$MU / DRTibbleAllele$D)
         sampleTibble_i$Coverage[allele_coverage_indices] <- sample_coverage_i
 
-        known_i <- MPSMixtures:::estimateParametersOfKnownProfiles(sampleTibble_i, markerImbalances, knownProfilesList,
-                                                                   potentialParentsList, stutterRatioModel,
+        known_i <- estimateParametersOfKnownProfiles(sampleTibble_i, markerImbalances, knownProfilesList,
+                                                                   potentialParentsList, NP, stutterRatioModel,
                                                                    levelsOfStutterRecursion, convexMarkerImbalanceInterpolation,
                                                                    tolerance, numberOfThreads)
 
         SP_i <- known_i$Parameters$SampleParameters
         MP_i <- known_i$Parameters$MixtureParameters
-        MI_i <- rep(known_i$Parameters$MarkerImbalanceParameters, (sampleTibble[allele_coverage_indices, ] %>% group_by(Marker) %>% summarise(Count = n()))$Count)
+        MI_i <- rep(known_i$Parameters$MarkerImbalanceParameters, (sampleTibble[allele_coverage_indices, ] %>% group_by(Marker) %>% summarise(Count = n(), .groups = "drop"))$Count)
 
         ECM_i <- known_i$ExpectedContributionMatrix
 
         MU_i <- c(SP_i[1] * MI_i * (ECM_i %*% MP_i)[allele_coverage_indices, ])
-        R_i <- sapply(seq_along(MU_i), function(j) MPSMixtures:::.devianceResidualPoissonGammaDistribution(sample_coverage_i[j], MU_i[j], MU_i[j] / SP_i[2]))
+        R_i <- sapply(seq_along(MU_i), function(j) .devianceResidualPoissonGammaDistribution(sample_coverage_i[j], MU_i[j], MU_i[j] / SP_i[2]))
 
         resMatrix[, i] <- sort(R_i)
     }
 
     CI = apply(resMatrix, 1, quantile, prob = envelopes)
-    reverse_order <- order((tibble("X" = qq_allele$x) %>% mutate("Count" = 1:n()) %>% arrange_(~X))$Count)
+    reverse_order <- order((tibble("X" = qq_allele$x) %>% mutate("Count" = 1:n()) %>% arrange(X))$Count)
 
     DRTibbleAllele <- DRTibbleAllele %>% mutate("LowerEnvelope" = CI[1, reverse_order], "UpperEnvelope" = CI[2, reverse_order])
-    p <- ggplot(DRTibbleAllele, aes_(x = ~X, y = ~DR)) +
+    p <- ggplot(DRTibbleAllele, aes(x = X, y = DR)) +
         facet_wrap(~Type) +
-        geom_ribbon(aes_(ymin = ~LowerEnvelope, ymax = ~UpperEnvelope),
+        geom_ribbon(aes(ymin = LowerEnvelope, ymax = UpperEnvelope),
                     alpha = 0.3, colour = "dodgerblue2", fill = "dodgerblue2") +
         geom_point() +
         theme_bw() + xlab("Theoretical quantiles") + ylab("Sample quantiles") + ggtitle("Q-Q plot") +
@@ -211,7 +219,9 @@ ggplotPPPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
     MP <- profileList$Parameters$MixtureParameters
     MIP <- profileList$Parameters$MarkerImbalanceParameters
 
-    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+    MIPTibble <- sampleTibble %>%
+        distinct(Marker) %>%
+        mutate(MIP = MIP)
 
     C <- sampleTibble$Coverage
     MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
@@ -225,9 +235,11 @@ ggplotPPPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
     DRTibble <- tibble(C = C, NV = NV, MU = MU, D = D) %>%
         mutate("EC" = apply(ECM, 1, sum)) %>%
         rowwise() %>%
-        mutate("DR" = MPSMixtures:::.devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
+        mutate("DR" = .devianceResidualPoissonGammaDistribution(C, MU, ifelse(NV != 1, MU / D, D)),
                "Type" = if (NV == 1) "Noise coverage" else if (EC > 0) "Allele coverage" else NA) %>%
-        filter(!is.na(Type)) %>% ungroup() %>% arrange(Type)
+        filter(!is.na(Type)) %>%
+        ungroup() %>%
+        arrange(Type)
 
     noise_ones_inflation = NULL
     if (NP[3] > 2e-8) {
@@ -252,14 +264,14 @@ ggplotPPPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
         sample_coverage_i = rnbinom(dim(DRTibbleAllele)[1], mu = DRTibbleAllele$MU, size = DRTibbleAllele$MU / DRTibbleAllele$D)
         sampleTibble_i$Coverage[allele_coverage_indices] <- sample_coverage_i
 
-        known_i <- MPSMixtures:::estimateParametersOfKnownProfiles(sampleTibble_i, markerImbalances, knownProfilesList,
-                                                                   potentialParentsList, stutterRatioModel,
+        known_i <- estimateParametersOfKnownProfiles(sampleTibble_i, markerImbalances, knownProfilesList,
+                                                                   potentialParentsList, NP, stutterRatioModel,
                                                                    levelsOfStutterRecursion, convexMarkerImbalanceInterpolation,
                                                                    tolerance, numberOfThreads)
 
         SP_i <- known_i$Parameters$SampleParameters
         MP_i <- known_i$Parameters$MixtureParameters
-        MI_i <- rep(known_i$Parameters$MarkerImbalanceParameters, (sampleTibble[allele_coverage_indices, ] %>% group_by(Marker) %>% summarise(Count = n()))$Count)
+        MI_i <- rep(known_i$Parameters$MarkerImbalanceParameters, (sampleTibble[allele_coverage_indices, ] %>% group_by(Marker) %>% summarise(Count = n(), .groups = "drop"))$Count)
 
         ECM_i <- known_i$ExpectedContributionMatrix
 
@@ -274,18 +286,19 @@ ggplotPPPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
     DRTibbleAllele <- DRTibbleAllele %>%
         mutate(Y = pnbinom(C, mu = MU, size = MU / D)) %>%
         ungroup() %>%
-        arrange_(~Y) %>%
+        arrange(Y) %>%
         mutate(X = (1 : n()) / n() - 0.5 / n(),
                "LowerEnvelope" = CI[1, ],
                "UpperEnvelope" = CI[2, ])
 
-    p <- ggplot(DRTibbleAllele, aes_(x = ~X, y = ~Y)) +
+    p <- ggplot(DRTibbleAllele, aes(x = X, y = Y)) +
         facet_wrap(~Type) +
-        geom_ribbon(aes_(ymin = ~LowerEnvelope, ymax = ~UpperEnvelope),
+        geom_ribbon(aes(ymin = LowerEnvelope, ymax = UpperEnvelope),
                     alpha = 0.3, colour = "dodgerblue2", fill = "dodgerblue2") +
-        geom_point() + theme_bw() +
+        geom_point() +
+        geom_abline(intercept = 0, slope = 1, colour = "black", alpha = 0.9, size = 0.8) +
         xlab("Uniform CDF") + ylab("Sample CDF") + ggtitle("P-P plot") +
-        geom_abline(intercept = 0, slope = 1, colour = "black", alpha = 0.9, size = 0.8)
+        theme_bw()
 
     return(p)
 }
@@ -295,7 +308,7 @@ ggplotPPPlotProfilesEnvelopes <- function(sampleTibble, profileList, markerImbal
 #' @description Prediction intervals of the Poisson-gamma model.
 #'
 #' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
-#' @param profileList A list containing the expected contribution matrix and paramters of the fitted profile.
+#' @param profileList A list containing the expected contribution matrix and parameters of the fitted profile.
 #' @param predictionInterval The upper and lower quantiles of the prediction interval.
 #' @param numberOfSimulations The number of simulations used to create the prediction interval.
 #' @param contributorNames The names of the contributors; must be 'NULL', or a vector of length '1' or the number of contributors.
@@ -308,7 +321,7 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
     MP <- profileList$Parameters$MixtureParameters
 
     MIP <- profileList$Parameters$MarkerImbalanceParameters
-    MIPTibble <- sampleTibble %>% distinct_(~Marker) %>% mutate_(MIP = ~MIP)
+    MIPTibble <- sampleTibble %>% distinct(Marker) %>% mutate(MIP = MIP)
     MI <- (sampleTibble %>% left_join(MIPTibble, by = "Marker"))$MIP
 
     numberOfProfiles <- length(MP)
@@ -348,29 +361,31 @@ ggplotPredictionIntervals <- function(sampleTibble, profileList, predictionInter
     plotTibbleList <- vector("list", numberOfProfiles)
     for (j in 1:numberOfProfiles) {
         plotTibbleList[[j]] <- plotTibbleCollected %>%
-            mutate_(ProfileCoverage = ~Coverage * profileECMReweighted[, j],
-                    Contributor = ~contributorNames[j]) %>%
-            filter_(~ProfileCoverage != 0)
+            mutate(ProfileCoverage = Coverage * profileECMReweighted[, j],
+                    Contributor = contributorNames[j]) %>%
+            filter(ProfileCoverage != 0)
     }
 
     plotTibble <- bind_rows(plotTibbleList) %>%
-        group_by_(~Marker, ~Allele, ~Region) %>%
-        summarise_(ProfileCoverage = ~sum(ProfileCoverage),
-                   ExpectedCoverage = ~unique(ExpectedCoverage),
-                   LowerPI = ~unique(LowerPI),
-                   UpperPI = ~unique(UpperPI),
-                   Contributor = ~paste(Contributor, collapse = "/")) %>%
+        group_by(Marker, Allele, Region) %>%
+        summarise(ProfileCoverage = sum(ProfileCoverage),
+                   ExpectedCoverage = unique(ExpectedCoverage),
+                   LowerPI = unique(LowerPI),
+                   UpperPI = unique(UpperPI),
+                   Contributor = paste(Contributor, collapse = "/")) %>%
         ungroup() %>%
-        mutate_(Contributor = ~paste("Contributor:", Contributor))
+        mutate(Contributor = paste("Contributor:", Contributor))
 
-    p <- ggplot(plotTibble, aes_(x = ~Allele)) +
-        geom_bar(aes_(y = ~ProfileCoverage, fill = ~Contributor), stat = "identity") +
-        geom_point(aes_(y = ~ExpectedCoverage)) +
-        geom_errorbar(aes_(ymin = ~LowerPI, ymax = ~UpperPI), width = 0.3) +
-        facet_grid(Contributor~Marker, scales = "free_x", space = "free_x") +
+    p <- ggplot(plotTibble, aes(x = Allele)) +
+        geom_bar(aes(y = ProfileCoverage, fill = Contributor), stat = "identity") +
+        geom_point(aes(y = ExpectedCoverage)) +
+        geom_errorbar(aes(ymin = LowerPI, ymax = UpperPI), width = 0.3) +
+        facet_grid(Contributor ~ Marker, scales = "free_x", space = "free_x") +
         scale_x_continuous(breaks = seq(min(plotTibble$Allele), max(plotTibble$Allele)),
                            labels = seq(min(plotTibble$Allele), max(plotTibble$Allele))) +
-        theme_bw() + xlab("Allele length") + ylab("Coverage") +
+        xlab("Allele length") +
+        ylab("Coverage") +
+        theme_bw() +
         theme(legend.position = "none")
 
     return(p)

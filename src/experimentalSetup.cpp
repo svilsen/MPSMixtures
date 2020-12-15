@@ -70,8 +70,9 @@ Eigen::MatrixXd testing_rv_struct(const Eigen::VectorXd & numberOfAlleles, const
 ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const Eigen::VectorXd & numberOfAlleles, const std::size_t & numberOfContributors,
                                      const std::size_t & numberOfKnownContributors, const Eigen::MatrixXd & knownProfiles, const Eigen::MatrixXd & allKnownProfiles,
                                      const Eigen::VectorXd & coverage, const std::vector< std::vector < Eigen::MatrixXd > > & potentialParents, const Eigen::VectorXd & markerImbalances,
-                                     const double & convexMarkerImbalanceInterpolation,
-                                     const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies, const std::size_t & levelsOfStutterRecursion)
+                                     const double & convexMarkerImbalanceInterpolation, const Eigen::VectorXd & noiseParameters,
+                                     const Eigen::VectorXd & tolerance, const double & theta, const Eigen::VectorXd & alleleFrequencies, const std::size_t & levelsOfStutterRecursion,
+                                     const bool & dualEstimation)
 {
     NumberOfMarkers = numberOfMarkers;
     NumberOfAlleles = numberOfAlleles;
@@ -86,10 +87,12 @@ ExperimentalSetup::ExperimentalSetup(const std::size_t & numberOfMarkers, const 
     Coverage = coverage;
     PotentialParents = potentialParents;
     MarkerImbalances = markerImbalances;
+    NoiseParameters = noiseParameters;
 
     ConvexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation;
     Tolerance = tolerance;
     LevelsOfStutterRecursion = levelsOfStutterRecursion;
+    DualEstimation = dualEstimation;
 
     Theta = theta;
     AlleleFrequencies = alleleFrequencies;

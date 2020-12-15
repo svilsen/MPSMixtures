@@ -1,11 +1,12 @@
 #' Estimate parameters
 #'
-#' @details Estimates the allele and noise parameters in cases where all contirbutors are assumed known.
+#' @details Estimates the allele and noise parameters in cases where all contributors are assumed known.
 #'
 #' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
 #' @param markerImbalances A vector of the prior marker imbalances.
 #' @param knownProfilesList A list of tibbles containing the alleles of the known contributors.
 #' @param potentialParentsList A list containing a list of potential parents for each allele in the sample.
+#' @param noiseParameters A vector of the prior noise parameters.
 #' @param stutterRatioModel An \link{lm}-object modelling the stutter ratio given the BLMM. Note: this is only used if 'potentialParentsList' is NULL, but even then it can be NULL itself, implying no stuttering in the sample.
 #' @param levelsOfStutterRecursion The number of layers used in the stutter recursion.
 #' @param convexMarkerImbalanceInterpolation A fraction used to create a convex combination of the of MoM and the prior estimates of the marker imbalances.
@@ -14,17 +15,23 @@
 #'
 #' @return A list of estimated parameters.
 #' @export
-estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, knownProfilesList, potentialParentsList,
+estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, knownProfilesList, potentialParentsList, noiseParameters = NULL,
                                               stutterRatioModel = NULL, levelsOfStutterRecursion = 2, convexMarkerImbalanceInterpolation = 0.8,
                                               tolerance = 1e-6, numberOfThreads = 4) {
     if (is.null(potentialParentsList)) {
         potentialParentsList <- potentialParentsMultiCore(sampleTibble, stutterRatioModel, numberOfThreads)
     }
 
+    dualEstimation <- FALSE
+    if (is.null(noiseParameters)) {
+        dualEstimation <- TRUE
+        noiseParameters <- c()
+    }
+
     H <- setHypothesis(sampleTibble, length(knownProfilesList), knownProfilesList, 0)[[1]]
 
-    numberOfMarkers = dim(sampleTibble %>% distinct_(~Marker))[1]
-    numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(Count = n()))$Count
+    numberOfMarkers = dim(sampleTibble %>% distinct(Marker))[1]
+    numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(Count = n(), .groups = "drop"))$Count
 
     numberOfContributors = H$NumberOfContributors
     numberOfKnownContributors = H$NumberOfKnownProfiles
@@ -32,8 +39,9 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, kn
     creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
                                                  numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
                                                  sampleTibble$Coverage, potentialParentsList, markerImbalances,
-                                                 convexMarkerImbalanceInterpolation,
-                                                 tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, levelsOfStutterRecursion)
+                                                 convexMarkerImbalanceInterpolation, noiseParameters,
+                                                 tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                 levelsOfStutterRecursion, dualEstimation)
 
     return(creatingIndividualObject)
 }
@@ -136,8 +144,9 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
 #'
 #' @param sampleTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
 #' @param markerImbalances The prior marker imbalances.
-#' @param H A hypothesis.
+#' @param H An hypothesis.
 #' @param potentialParentsList A list containing a list of potential parents for each allele in the sample.
+#' @param noiseParameters A vector of the prior noise parameters.
 #' @param stutterRatioModel An \link{lm}-object modelling the stutter ratio given the BLMM. Note: this is only used if 'potentialParentsList' is NULL, but even then it can be NULL itself, implying no stuttering in the sample.
 #' @param HArguments If 'H' is 'NULL' a list of arguments passed to the 'setHypothesis' function. It must contain 'numberOfContributors', 'knownProfilesList', and 'theta'.
 #' @param control An \link{optimalUnknownProfileCombination.control} object.
@@ -145,7 +154,7 @@ optimalUnknownProfileCombination.control <- function(numberOfPopulations = 4, po
 #' @return A list of the unknown profile combinations contributing the most to the probability of the evidence under the provided hypothesis. The size of the list is controlled by 'control$numberOfFittestIndividuals'.
 #' @export
 optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, potentialParentsList,
-                                             stutterRatioModel = NULL, HArguments = NULL,
+                                             noiseParameters = NULL, stutterRatioModel = NULL, HArguments = NULL,
                                              control = optimalUnknownProfileCombination.control()) {
     if (is.null(potentialParentsList)) {
         if (control$trace)
@@ -158,7 +167,14 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
         H <- do.call(setHypothesis, c(list(sampleTibble = sampleTibble), HArguments))[[1]]
     }
 
-    optimalUnknownProfiles <- .optimalUnknownProfilesHi(sampleTibble, H, markerImbalances, potentialParentsList, H$KnownProfiles, control)
+    dualEstimation <- FALSE
+    if (is.null(noiseParameters)) {
+        dualEstimation <- TRUE
+        noiseParameters <- c()
+    }
+
+    optimalUnknownProfiles <- .optimalUnknownProfilesHi(sampleTibble, H, markerImbalances, noiseParameters, potentialParentsList,
+                                                        H$KnownProfiles, dualEstimation, control)
     return(optimalUnknownProfiles)
 }
 
@@ -172,7 +188,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     oneStep <- lapply(seq_along(numberOfAlleles), function(m) {
         cat("m:", m, "\n")
         markerIndices <- (partialSumAlleles[m] + 1):(partialSumAlleles[m] + numberOfAlleles[m])
-        res <- MPSMixtures:::.oneStepApproximationCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
+        res <- .oneStepApproximationCpp(optimalCombination$EncodedUnknownProfiles[((2 * (m - 1) * numberOfUnknownContributors) + 1):(2 * m * numberOfUnknownContributors)],
                                         estimatedParameters$SampleParameters, estimatedParameters$NoiseParameters, estimatedParameters$MixtureParameters,
                                         sampleTibble$Coverage[markerIndices], estimatedParameters$MarkerImbalanceParameters[m], potentialParentsList[m],
                                         as.matrix(H$KnownProfiles[markerIndices, ]), as.matrix(H$KnownProfiles[markerIndices, ]),
@@ -188,7 +204,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
         })
 
         return(res)
-    })#, mc.cores = numberOfThreads)
+    })
 
     res <- oneStep
     if (returnSimplified) {
@@ -243,7 +259,6 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
 }
 
 
-# levelsOfStutterRecursion = control$levelsOfStutterRecursion; numberOfThreads = 1; simplifiedReturn = control$simplifiedReturn; numberOfSimulationsMH = control$numberOfSimulationsMH; suggestionMH = control$suggestionMH
 .samplePosteriorGenotypes <- function(optimalUnkownProfileCombinationList, sampleTibble, H,
                                       numberOfUnknownContributors, numberOfAlleles, partialSumAlleles, estimatedParameters,
                                       optimalCombinationIndex, levelsOfStutterRecursion, numberOfThreads, simplifiedReturn, potentialParentsList,

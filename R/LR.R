@@ -7,7 +7,7 @@
 #' @param knownProfilesList A list of tibbles containing the alleles of the known contributors.
 #' @param theta The inbreeding coefficient (Fst).
 #'
-#' @return A list containing the information relavent to the hypothesis.
+#' @return A list containing the information relevant to the hypothesis.
 #' @export
 setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList, theta) {
     knownGenotypeMatrix <- genotypeMatrix(sampleTibble, knownProfilesList)
@@ -21,12 +21,10 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
     return(res)
 }
 
-# allKnownProfiles = H$KnownProfiles; coverage = sampleTibble$Coverage; convexMarkerImbalanceInterpolation = control$convexMarkerImbalanceInterpolation; tolerance = control$tolerance; theta = H$ThetaCorrection; alleleFrequencies = sampleTibble$AlleleFrequencies; numberOfPopulations = control$numberOfPopulations; populationSize = control$populationSize; numberOfIterations = control$numberOfIterations; numberOfIterationsEqualMinMax = control$numberOfIterationsEqualMinMax; numberOfFittestIndividuals = control$numberOfFittestIndividuals; parentSelectionWindowSize = control$parentSelectionWindowSize; allowParentSurvival = control$allowParentSurvival; mutationDegreesOfFreedom = control$mutationDegreesOfFreedom; mutationDecay = control$mutationDecay; fractionFittestIndividuals = control$fractionFittestIndividuals; hillClimbingDirections = control$hillClimbingDirections; hillClimbingIterations = control$hillClimbingIterations; simplifiedReturn = FALSE; seed = control$seed; trace = control$trace
-# H = Hd[[i]]
-
-.optimalUnknownProfilesHi <- function(sampleTibble, H, markerImbalances, potentialParentsList, allKnownProfiles, control) {
-    numberOfMarkers = dim(sampleTibble %>% distinct_(~Marker))[1]
-    numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(Count = n()))$Count
+.optimalUnknownProfilesHi <- function(sampleTibble, H, markerImbalances, noiseParameters, potentialParentsList,
+                                      allKnownProfiles, dualEstimation, control) {
+    numberOfMarkers = dim(sampleTibble %>% distinct(Marker))[1]
+    numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(Count = n(), .groups = "drop"))$Count
 
     numberOfContributors = H$NumberOfContributors
     numberOfKnownContributors = H$NumberOfKnownProfiles
@@ -35,7 +33,9 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
         creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
                                                      numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
-                                                     control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion)
+                                                     noiseParameters, control$tolerance, H$ThetaCorrection,
+                                                     sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion,
+                                                     dualEstimation)
 
         optimalUnknownProfiles <- list(U = list(creatingIndividualObject))
     }
@@ -51,12 +51,13 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
             }
 
             optimalUnknownProfiles <- .runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, noiseParameters,
+                                                                                    control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                     control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
                                                                                     control$parentSelectionWindowSize, control$allowParentSurvival, control$fractionFittestIndividuals,
                                                                                     crossoverProbability, mutationProbabilityLowerLimit, control$mutationIterations,
                                                                                     control$mutationDegreesOfFreedom, mutationDecay, control$hillClimbingIterations,
-                                                                                    control$seed, control$trace, control$levelsOfStutterRecursion)
+                                                                                    control$seed, control$trace, control$levelsOfStutterRecursion, dualEstimation)
 
             optimalUnknownProfiles$U <- optimalUnknownProfiles$U[order(sapply(optimalUnknownProfiles$U, function(oup) oup$Fitness), decreasing = TRUE)]
         }
@@ -66,21 +67,20 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
             }
 
             optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                                                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
+                                                                                      noiseParameters, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
                                                                                       control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
                                                                                       control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
                                                                                       control$parentSelectionWindowSize, control$allowParentSurvival, control$fractionFittestIndividuals,
-                                                                                      crossoverProbability, mutationProbabilityLowerLimit,
-                                                                                      control$mutationIterations, control$mutationDegreesOfFreedom, mutationDecay, control$hillClimbingIterations,
-                                                                                      control$seed, control$trace, control$numberOfThreads, control$levelsOfStutterRecursion, control$traceLimit)
+                                                                                      crossoverProbability, mutationProbabilityLowerLimit, control$mutationIterations, control$mutationDegreesOfFreedom,
+                                                                                      mutationDecay, control$hillClimbingIterations, control$seed, control$trace, control$numberOfThreads,
+                                                                                      control$levelsOfStutterRecursion, dualEstimation, control$traceLimit)
         }
     }
 
     return(optimalUnknownProfiles)
 }
 
-
-# control = optimalUnknownProfileCombination.control(numberOfPopulations = 12, numberOfIterations = 25, populationSize = 10, numberOfFittestIndividuals = 100, hillClimbingIterations = 2, parentSelectionWindowSize = 2, simplifiedReturn = F, allowParentSurvival = T, trace = T)
 
 #' @title Likelihood ratio
 #'
@@ -90,13 +90,14 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
 #' @param Hp The prosecutor hypothesis (see \link{setHypothesis}).
 #' @param Hd The defence hypothesis.
 #' @param markerImbalances A vector of prior marker imbalances.
-#' @param potentialParentsList A list containing a list of potential parents for each allele in the sample. If NULL then a stutterRatioModel should be provided.
+#' @param potentialParentsList A list containing a list of potential parents for each allele in the sample. If NULL then a 'stutterRatioModel' should be provided.
+#' @param noiseParameters A vector of the prior noise parameters.
 #' @param stutterRatioModel A linear model of class \link{lm} modelling the relationship between coverage and stutter. Only needed if the potential parents list is not provided.
 #' @param control An \link{optimalUnknownProfileCombination.control} object.
 #'
 #' @return A list of likelihood ratios comparing the two hypotheses (always calculated as Hp / Hd).
 #' @export
-LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsList = NULL, stutterRatioModel = NULL, control = optimalUnknownProfileCombination.control()) {
+LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsList = NULL, noiseParameters = NULL, stutterRatioModel = NULL, control = optimalUnknownProfileCombination.control()) {
     ## Set-up
     if (is.null(potentialParentsList)) {
         if (control$trace)
@@ -112,6 +113,12 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
         stop("The length of 'markerImbalances' is not equal to the number of unique markers in 'sampleTibble'.")
     }
 
+    dualEstimation <- FALSE
+    if (is.null(noiseParameters)) {
+        dualEstimation <- TRUE
+        noiseParameters <- c()
+    }
+
     allKnownProfiles = unique(do.call("cbind", lapply(append(Hp, Hd), function(H) H$KnownProfiles)), MARGIN = 2)
 
     if (control$trace)
@@ -119,7 +126,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     optimalUnknownGenotypesHp <- vector("list", length(Hp))
     for (i in seq_along(Hp)) {
-        optimalUnknownGenotypesHp[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)$U
+        optimalUnknownGenotypesHp[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, noiseParameters, potentialParentsList, allKnownProfiles, dualEstimation, control)$U
     }
 
     if (control$trace)
@@ -127,7 +134,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     optimalUnknownGenotypesHd <- vector("list", length(Hd))
     for (i in seq_along(Hd)) {
-        optimalUnknownGenotypesHd[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, potentialParentsList, allKnownProfiles, control)$U
+        optimalUnknownGenotypesHd[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, noiseParameters, potentialParentsList, allKnownProfiles, dualEstimation, control)$U
     }
 
     if (control$trace)

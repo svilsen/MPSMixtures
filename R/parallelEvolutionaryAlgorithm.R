@@ -1,4 +1,4 @@
-# P1 = currentPopulationList[[1]]; P2 = currentPopulationList[[migrationForward[1]]]; migrant = migrant_i
+
 .migration <- function(P1, P2, migrant, randomReplacement = FALSE) {
     if (randomReplacement) {
         replacedIndividual = sample(1:length(P2$Fitness), 1)
@@ -32,19 +32,14 @@
     return(migratedPopulation)
 }
 
-# control <- optimalUnknownProfileCombination.control( numberOfPopulations = 12, numberOfIterations = 100, populationSize = 10, numberOfFittestIndividuals = 100, hillClimbingIterations = 5, parentSelectionWindowSize = 2, allowParentSurvival = TRUE, trace = TRUE); knownProfilesList <- knownMajor # knownPerpetrator;
-# H <- setHypothesis(sampleTibble, numberOfContributors, knownProfilesList, theta)[[1]]; numberOfMaxThreads = control$numberOfThreads; numberOfInnerIterations = control$numberOfInnerIterations; numberOfIterationsEqualMax = control$numberOfIterationsEqualMinMax; fractionOfPopulationsMax = control$fractionOfPopulationsMax; allKnownProfiles = H$KnownProfiles; coverage = sampleTibble$Coverage; tolerance = control$tolerance; theta = H$ThetaCorrection; alleleFrequencies = sampleTibble$AlleleFrequencies; numberOfPopulations = control$numberOfPopulations; populationSize = control$populationSize; numberOfIterations = control$numberOfIterations; numberOfIterationsEqualMinMax = control$numberOfIterationsEqualMinMax; numberOfFittestIndividuals = control$numberOfFittestIndividuals; parentSelectionWindowSize = control$parentSelectionWindowSize; allowParentSurvival = control$allowParentSurvival; mutationDegreesOfFreedom = control$mutationDegreesOfFreedom; fractionFittestIndividuals = control$fractionFittestIndividuals; hillClimbingDirections = control$hillClimbingDirections; hillClimbingIterations = control$hillClimbingIterations; simplifiedReturn = FALSE; seed = control$seed; trace = control$trace; numberOfMarkers = dim(sampleTibble %>% distinct(Marker))[1]; numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(Count = n()))$Count; numberOfContributors = H$NumberOfContributors; numberOfKnownContributors = H$NumberOfKnownProfiles; crossoverProbability <- ifelse(is.null(control$crossoverProbability), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$crossoverProbability); mutationProbabilityLowerLimit <- ifelse(is.null(control$mutationProbabilityLowerLimit), 1 / (2 * (numberOfContributors - numberOfKnownContributors) * numberOfMarkers), control$mutationProbabilityLowerLimit); knownProfiles <- H$KnownProfiles; # markerImbalances = sampleTibble$MarkerImbalance; mutationDecay = control$mutationDecay;
-# knownProfiles = H$KnownProfiles; numberOfMaxThreads = 4; numberOfInnerIterations = 10; fractionOfPopulationsMax = control$fractionOfPopulationsMax; numberOfIterationsEqualMax = control$numberOfIterationsEqualMinMax; numberOfIterations = control$numberOfIterations
-# convexMarkerImbalanceInterpolation = control$convexMarkerImbalanceInterpolation; levelsOfStutterRecursion = control$levelsOfStutterRecursion
-
 .runningParallelPopulationEvolutionaryAlgorithm <- function(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
-                                                            coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
+                                                            coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, noiseParameters, tolerance, theta, alleleFrequencies,
                                                             numberOfPopulations, populationSize, numberOfIterations, numberOfInnerIterations,
                                                             numberOfIterationsEqualMax, fractionOfPopulationsMax, numberOfFittestIndividuals,
                                                             parentSelectionWindowSize, allowParentSurvival, fractionFittestIndividuals, crossoverProbability,
                                                             mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom,
-                                                            mutationDecay, hillClimbingIterations,
-                                                            seed, trace, numberOfMaxThreads, levelsOfStutterRecursion, traceLimit) {
+                                                            mutationDecay, hillClimbingIterations, seed, trace, numberOfMaxThreads,
+                                                            levelsOfStutterRecursion, dualEstimation, traceLimit) {
     if (length(seed) == 1) {
         seed = sample(1:1e6, numberOfPopulations)
     }
@@ -56,13 +51,25 @@
     numberOfThreads <- min(numberOfPopulations, numberOfMaxThreads)
     mutationDecaySplit <- split(mutationDecay, rep(1:numberOfIterations, each = numberOfInnerIterations))
     currentPopulationList <- mclapply(1:numberOfPopulations, function(i) {
-        MPSMixtures:::.initialisingParallelEvolutionaryAlgorithm(
-            numberOfMarkers = numberOfMarkers, numberOfAlleles = numberOfAlleles, numberOfContributors = numberOfContributors,
-            numberOfKnownContributors = numberOfKnownContributors, knownProfiles = knownProfiles,
-            allKnownProfiles = allKnownProfiles, coverage = coverage, potentialParents = potentialParentsList,
-            markerImbalances = markerImbalances, convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation,
-            tolerance = tolerance, theta = theta, alleleFrequencies = alleleFrequencies, populationSize = populationSize,
-            seed = seed[i], levelsOfStutterRecursion = levelsOfStutterRecursion)
+        .initialisingParallelEvolutionaryAlgorithm(
+            numberOfMarkers = numberOfMarkers,
+            numberOfAlleles = numberOfAlleles,
+            numberOfContributors = numberOfContributors,
+            numberOfKnownContributors = numberOfKnownContributors,
+            knownProfiles = knownProfiles,
+            allKnownProfiles = allKnownProfiles,
+            coverage = coverage,
+            potentialParents = potentialParentsList,
+            markerImbalances = markerImbalances,
+            convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation,
+            noiseParameters = noiseParameters,
+            tolerance = tolerance,
+            theta = theta,
+            alleleFrequencies = alleleFrequencies,
+            populationSize = populationSize,
+            seed = seed[i],
+            levelsOfStutterRecursion = levelsOfStutterRecursion,
+            dualEstimation = dualEstimation)
     }, mc.cores = numberOfThreads)
 
     j = 0
@@ -70,23 +77,49 @@
     converged = FALSE
     topFittestIndividuals <- list()
     while (!converged) {
-        ## Migration between subpopulations
-        currentPopulationMigratedList <- MPSMixtures:::.parallelPopulationEvolutionaryAlgorithmMigration(currentPopulationList)
+        ## Migration between sub-populations
+        currentPopulationMigratedList <- .parallelPopulationEvolutionaryAlgorithmMigration(currentPopulationList)
 
-        ## Updating subpopulations
+        ## Updating sub-populations
         newPopulation <- mclapply(1:numberOfPopulations, function(i) {
-            PEA_i <- MPSMixtures:::.runningParallelEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, knownProfiles, allKnownProfiles,
-                                                           coverage, potentialParentsList, markerImbalances, convexMarkerImbalanceInterpolation, tolerance, theta, alleleFrequencies,
-                                                           numberOfInnerIterations, numberOfInnerIterations, populationSize,
-                                                           parentSelectionWindowSize, allowParentSurvival, fractionFittestIndividuals, crossoverProbability,
-                                                           mutationProbabilityLowerLimit, mutationIterations, mutationDegreesOfFreedom,
-                                                           mutationDecaySplit[[j + 1]], hillClimbingIterations,
-                                                           sample(1:1e6, 1), FALSE,
-                                                           currentPopulationMigratedList[[i]]$EncodedProfiles, currentPopulationMigratedList[[i]]$SampleParameters,
-                                                           currentPopulationMigratedList[[i]]$NoiseParameters, currentPopulationMigratedList[[i]]$MixtureParameters,
-                                                           currentPopulationMigratedList[[i]]$MarkerImbalanceParameters,
-                                                           currentPopulationMigratedList[[i]]$Fitness,
-                                                           levelsOfStutterRecursion)
+            PEA_i <- .runningParallelEvolutionaryAlgorithm(
+                numberOfMarkers = numberOfMarkers,
+                numberOfAlleles = numberOfAlleles,
+                numberOfContributors = numberOfContributors,
+                numberOfKnownContributors = numberOfKnownContributors,
+                knownProfiles = knownProfiles,
+                allKnownProfiles = allKnownProfiles,
+                coverage = coverage,
+                potentialParents = potentialParentsList,
+                markerImbalances = markerImbalances,
+                convexMarkerImbalanceInterpolation = convexMarkerImbalanceInterpolation,
+                noiseParameters = noiseParameters,
+                tolerance = tolerance,
+                theta = theta,
+                alleleFrequencies = alleleFrequencies,
+                numberOfIterations = numberOfInnerIterations,
+                numberOfIterationsEqualMinMax = numberOfInnerIterations,
+                numberOfFittestIndividuals = populationSize,
+                parentSelectionWindowSize = parentSelectionWindowSize,
+                allowParentSurvival = allowParentSurvival,
+                fractionEnsuredSurvival = fractionFittestIndividuals,
+                crossoverProbability = crossoverProbability,
+                mutationProbabilityLowerLimit = mutationProbabilityLowerLimit,
+                mutationIterations = mutationIterations,
+                mutationDegreesOfFreedom = mutationDegreesOfFreedom,
+                mutationDecay = mutationDecaySplit[[j + 1]],
+                hillClimbingIterations = hillClimbingIterations,
+                seed = sample(1:1e6, 1),
+                trace = FALSE,
+                encodedPopulationList = currentPopulationMigratedList[[i]]$EncodedProfiles,
+                sampleParametersList = currentPopulationMigratedList[[i]]$SampleParameters,
+                noiseParametersList = currentPopulationMigratedList[[i]]$NoiseParameters,
+                mixtureParametersList = currentPopulationMigratedList[[i]]$MixtureParameters,
+                markerParametersList = currentPopulationMigratedList[[i]]$MarkerImbalanceParameters,
+                fitnessList = currentPopulationMigratedList[[i]]$Fitness,
+                levelsOfStutterRecursion = levelsOfStutterRecursion,
+                dualEstimation = dualEstimation
+            )
             return(PEA_i)
         }, mc.cores = numberOfThreads)
 
@@ -112,10 +145,6 @@
         populationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) cpl$Fitness))
         maxPopulationFitness <- do.call("c", lapply(currentPopulationList, function(cpl) max(cpl$Fitness)))
 
-        # uniqueSubpopulationMaxima <- unique.matrix(do.call("cbind", lapply(currentPopulationList, function(cpl) cpl$EncodedProfiles[, which.max(cpl$Fitness)])), MARGIN = 2)
-        # fractionOfUniqueSubpopulationMaxima = dim(uniqueSubpopulationMaxima)[2] / numberOfPopulations
-
-        # if (fractionOfUniqueSubpopulationMaxima <= fractionOfPopulationsMax) {
         if ((max(maxPopulationFitness) - min(maxPopulationFitness)) < tolerance[1]) {
             k = k + 1
         } else {
