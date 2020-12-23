@@ -189,16 +189,21 @@ potentialParents <- function(coverageTibble, stutterRatioModel = NULL, trace = F
 #' @param coverageTibble A \link{tibble} containing the coverage, the marker, and marker imbalance scalar of each allele in the sample.
 #' @param stutterRatioModel A linear model fit; created by the \link{lm}-function.
 #' @param numberOfThreads The maximum number of threads allowed.
+#' @param trace TRUE/FALSE: Should a trace be shown?
 #'
 #' @return A list of the potential parents.
-potentialParentsMultiCore <- function(coverageTibble, stutterRatioModel, numberOfThreads = 4) {
+potentialParentsMultiCore <- function(coverageTibble, stutterRatioModel, numberOfThreads = 4, trace = FALSE) {
     markersInProfiles <- sort(as.character(unique(coverageTibble$Marker)))
 
     potentialParentsAll <- mclapply(markersInProfiles, function(mm) {
+        if (trace) {
+            cat(mm, "\n")
+        }
+
         coverageTibble_m <- coverageTibble %>% filter(Marker == mm)
 
         potentialParentsAll_m <- structure(vector("list", dim(coverageTibble_m)[1]), .Names = coverageTibble_m$Region)
-        for (i in 1:dim(coverageTibble_m)[1]) {
+        for (i in seq_len(dim(coverageTibble_m)[1])) {
             coverageTibble_mi <- coverageTibble_m[i, ]
 
             whichPotentialParents <- which(coverageTibble_m$Allele == coverageTibble_mi$Allele + 1)

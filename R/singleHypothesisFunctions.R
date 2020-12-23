@@ -25,7 +25,7 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, kn
     dualEstimation <- FALSE
     if (is.null(noiseParameters)) {
         dualEstimation <- TRUE
-        noiseParameters <- c()
+        noiseParameters <- c(1, 1, 0.5)
     }
 
     H <- setHypothesis(sampleTibble, length(knownProfilesList), knownProfilesList, 0)[[1]]
@@ -36,12 +36,23 @@ estimateParametersOfKnownProfiles <- function(sampleTibble, markerImbalances, kn
     numberOfContributors = H$NumberOfContributors
     numberOfKnownContributors = H$NumberOfKnownProfiles
 
-    creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
-                                                 numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                 sampleTibble$Coverage, potentialParentsList, markerImbalances,
-                                                 convexMarkerImbalanceInterpolation, noiseParameters,
-                                                 tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
-                                                 levelsOfStutterRecursion, dualEstimation)
+    creatingIndividualObject <- .setupIndividual(
+        numberOfMarkers,
+        numberOfAlleles,
+        numberOfContributors,
+        numberOfKnownContributors,
+        H$KnownProfiles,
+        sampleTibble$Coverage,
+        potentialParentsList,
+        markerImbalances,
+        convexMarkerImbalanceInterpolation,
+        noiseParameters,
+        tolerance,
+        H$ThetaCorrection,
+        sampleTibble$AlleleFrequencies,
+        levelsOfStutterRecursion,
+        dualEstimation
+    )
 
     return(creatingIndividualObject)
 }
@@ -170,7 +181,7 @@ optimalUnknownProfileCombination <- function(sampleTibble, markerImbalances, H, 
     dualEstimation <- FALSE
     if (is.null(noiseParameters)) {
         dualEstimation <- TRUE
-        noiseParameters <- c()
+        noiseParameters <- c(1, 1, 0.5)
     }
 
     optimalUnknownProfiles <- .optimalUnknownProfilesHi(sampleTibble, H, markerImbalances, noiseParameters, potentialParentsList,
@@ -339,7 +350,7 @@ approximationSetUnknownGenotypeCombinations.control <- function(simplifiedReturn
 #' @param HArguments If 'H' is 'NULL' a list of arguments passed to the 'setHypothesis' function. It must contain 'numberOfContributors', 'knownProfilesList', and 'theta'.
 #' @param control An \link{optimalUnknownProfileCombination.control} object.
 #'
-#' @return A list containing the unnormalised probabilitis for every marker, the corresponding genotypes, and approximations to the posterior probabilities for every unknown genotype combination for every marker.
+#' @return A list containing the unnormalised probabilities for every marker, the corresponding genotypes, and approximations to the posterior probabilities for every unknown genotype combination for every marker.
 #' @export
 approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileCombinationList, method = 'EA', sampleTibble,
                                                         H = NULL, potentialParentsList, stutterRatioModel = NULL, HArguments = NULL,
@@ -372,7 +383,7 @@ approximationSetUnknownGenotypeCombinations <- function(optimalUnkownProfileComb
                                                                                    H$NumberOfContributors, normalisingConstant))
     }
 
-    numberOfAlleles = (sampleTibble %>% group_by_(~Marker) %>% summarise(N = n()))$N
+    numberOfAlleles = (sampleTibble %>% group_by(Marker) %>% summarise(N = n()))$N
     partialSumAlleles = .partialSumEigen(numberOfAlleles)
     numberOfUnknownContributors = H$NumberOfContributors - H$NumberOfKnownProfiles
 

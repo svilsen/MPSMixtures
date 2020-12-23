@@ -116,7 +116,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
     dualEstimation <- FALSE
     if (is.null(noiseParameters)) {
         dualEstimation <- TRUE
-        noiseParameters <- c()
+        noiseParameters <- c(1, 1, 0.5)
     }
 
     allKnownProfiles = unique(do.call("cbind", lapply(append(Hp, Hd), function(H) H$KnownProfiles)), MARGIN = 2)
@@ -126,7 +126,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     optimalUnknownGenotypesHp <- vector("list", length(Hp))
     for (i in seq_along(Hp)) {
-        optimalUnknownGenotypesHp[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, noiseParameters, potentialParentsList, allKnownProfiles, dualEstimation, control)$U
+        optimalUnknownGenotypesHp[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hp[[i]], markerImbalances, noiseParameters, potentialParentsList, allKnownProfiles, dualEstimation, control)$U
     }
 
     if (control$trace)
@@ -134,7 +134,7 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
 
     optimalUnknownGenotypesHd <- vector("list", length(Hd))
     for (i in seq_along(Hd)) {
-        optimalUnknownGenotypesHd[[i]] <- .optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, noiseParameters, potentialParentsList, allKnownProfiles, dualEstimation, control)$U
+        optimalUnknownGenotypesHd[[i]] <- MPSMixtures:::.optimalUnknownProfilesHi(sampleTibble, Hd[[i]], markerImbalances, noiseParameters, potentialParentsList, allKnownProfiles, dualEstimation, control)$U
     }
 
     if (control$trace)
@@ -153,30 +153,36 @@ LR <- function(sampleTibble, Hp, Hd, markerImbalances = NULL, potentialParentsLi
         LHpNormaliser <- max(sapply(optimalUnknownGenotypesHp_i, function(hh) hh$Fitness))
         LHdNormaliser <- max(sapply(optimalUnknownGenotypesHd_i, function(hh) hh$Fitness))
 
-        parametersLRHp <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
-                                                             Hp[[pairwiseComparisons_i[1]]]$NumberOfContributors, LHpNormaliser)
-        parametersLRHd <- .optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
-                                                             Hd[[pairwiseComparisons_i[2]]]$NumberOfContributors, LHdNormaliser)
+        parametersLRHp <- MPSMixtures:::.optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHp_i,
+                                                                           Hp[[pairwiseComparisons_i[1]]]$NumberOfContributors, LHpNormaliser)
+        parametersLRHd <- MPSMixtures:::.optimiseParametersLargeLikelihood(sampleTibble, optimalUnknownGenotypesHd_i,
+                                                                           Hd[[pairwiseComparisons_i[2]]]$NumberOfContributors, LHdNormaliser)
 
         logLR = log(parametersLRHp$Likelihood) + LHpNormaliser - log(parametersLRHd$Likelihood) - LHdNormaliser
 
         resultsList <- list(LR = exp(logLR), Log10LR = logLR * log10(exp(1L)), Hp = Hp[[pairwiseComparisons_i[1]]], Hd = Hd[[pairwiseComparisons_i[2]]])
         if (!control$simplifiedReturn) {
-            resultsList$HpOptimalUnknownGenotypes = approximationSetUnknownGenotypeCombinations(optimalUnknownGenotypesHp[[pairwiseComparisons_i[1]]], method = "mh",
-                                                                                                sampleTibble, Hp[[pairwiseComparisons_i[1]]],
-                                                                                                potentialParentsList, stutterRatioModel,
-                                                                                                control = approximationSetUnknownGenotypeCombinations.control(
-                                                                                                    levelsOfStutterRecursion = control$levelsOfStutterRecursion,
-                                                                                                    numberOfThreads = control$numberOfThreads, trace = control$trace,
-                                                                                                    numberOfSimulationsMH = control$numberOfSimulationsMH))
+            resultsList$HpOptimalUnknownGenotypes = approximationSetUnknownGenotypeCombinations(
+                optimalUnknownGenotypesHp[[pairwiseComparisons_i[1]]], method = "mh",
+                sampleTibble, Hp[[pairwiseComparisons_i[1]]],
+                potentialParentsList, stutterRatioModel,
+                control = approximationSetUnknownGenotypeCombinations.control(
+                    levelsOfStutterRecursion = control$levelsOfStutterRecursion,
+                    numberOfThreads = control$numberOfThreads, trace = control$trace,
+                    numberOfSimulationsMH = control$numberOfSimulationsMH
+                )
+            )
 
-            resultsList$HdOptimalUnknownGenotypes = approximationSetUnknownGenotypeCombinations(optimalUnknownGenotypesHd[[pairwiseComparisons_i[2]]], method = "mh",
-                                                                                                sampleTibble, Hd[[pairwiseComparisons_i[2]]],
-                                                                                                potentialParentsList, stutterRatioModel,
-                                                                                                control = approximationSetUnknownGenotypeCombinations.control(
-                                                                                                    levelsOfStutterRecursion = control$levelsOfStutterRecursion,
-                                                                                                    numberOfThreads = control$numberOfThreads, trace = control$trace,
-                                                                                                    numberOfSimulationsMH = control$numberOfSimulationsMH))
+            resultsList$HdOptimalUnknownGenotypes = approximationSetUnknownGenotypeCombinations(
+                optimalUnknownGenotypesHd[[pairwiseComparisons_i[2]]], method = "mh",
+                sampleTibble, Hd[[pairwiseComparisons_i[2]]],
+                potentialParentsList, stutterRatioModel,
+                control = approximationSetUnknownGenotypeCombinations.control(
+                    levelsOfStutterRecursion = control$levelsOfStutterRecursion,
+                    numberOfThreads = control$numberOfThreads, trace = control$trace,
+                    numberOfSimulationsMH = control$numberOfSimulationsMH
+                )
+            )
 
             resultsList$HpParameterEstimates <- parametersLRHp
             resultsList$HdParameterEstimates <- parametersLRHd

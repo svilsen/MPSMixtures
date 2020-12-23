@@ -27,6 +27,8 @@ Imports:
     methods, 
     utils
 biocViews: 
+    Biostrings, 
+    IRanges
 RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown

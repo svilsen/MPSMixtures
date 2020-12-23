@@ -64,7 +64,11 @@
     initialPars <- c(fittestParameters$SampleParameters, fittestParameters$NoiseParameters,
                      fittestParameters$MixtureParameters)
 
-    markerImbalances = (sampleTibble %>% left_join(sampleTibble %>% distinct_(~Marker) %>% mutate(MI = fittestParameters$MarkerImbalanceParameters), by = "Marker"))$MI
+    markerImbalances = (
+        sampleTibble %>% left_join(sampleTibble %>%
+                                       distinct(Marker) %>%
+                                       mutate(MI = fittestParameters$MarkerImbalanceParameters), by = "Marker")
+    )$MI
 
     pars = solnp(initialPars, fun = .LargeLikelihood,
                  LB = lowerBounds, UB = upperBounds, eqfun = eqBounds, eqB = 1,
