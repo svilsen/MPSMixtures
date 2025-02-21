@@ -1,7 +1,7 @@
 Package: MPSMixtures
 Type: Package
-Title: Functions for Handling MPS DNA Mixtures
-Version: 0.2.1
+Title: MPS DNA Mixtures
+Version: 0.3.1
 Author: Søren B. Vilsen
 Maintainer: Søren B. Vilsen <svilsen@math.aau.dk>
 Description: All necessary functions for DNA mixture deconvolution and the calculation of the weight-of-evidence under two competing hypotheses.
@@ -11,7 +11,8 @@ LazyData: TRUE
 LinkingTo:
     Rcpp,
     RcppEigen,
-    BH
+    BH,
+    nloptr
 Imports:
     Rcpp,
     RcppEigen,
@@ -29,7 +30,7 @@ Imports:
 biocViews: 
     Biostrings, 
     IRanges
-RoxygenNote: 6.0.1
+RoxygenNote: 7.3.1
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr

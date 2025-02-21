@@ -337,8 +337,13 @@ potentialParentsMultiCore <- function(coverageTibble, stutterRatioModel, numberO
 }
 
 .noiseParameters.control <- function(psi, rho, pi, maxElements) {
+    pi <- ifelse(is.null(pi), 0.5, pi)
+    if ((pi > (1 - 1e-8)) || (pi < 0)) {
+        stop("'pi' has to be in the interval [0; 1].")
+    }
+
     return(list(psi = ifelse(is.null(psi), 3, psi), rho = ifelse(is.null(rho), 2, rho),
-                pi = ifelse(is.null(pi), 0.5, pi), maxElements = ifelse(is.null(maxElements), 200, maxElements)))
+                pi = pi, maxElements = ifelse(is.null(maxElements), 200, maxElements)))
 }
 
 
@@ -511,8 +516,28 @@ sampleCoverage <- function(trueProfiles, markerImbalances, populationLadder, stu
     sampledNoise <- populationLadder %>%
         filter(!(Region %in% sampleTibble$Region)) %>%
         group_by(Marker) %>%
-        mutate(Coverage = .rtnbinom(n(), tau = 0, mu = noiseParameters$psi, theta = noiseParameters$rho)) %>%
-        ungroup()
+        mutate(Coverage = rnbinom(n(), mu = noiseParameters$psi, size = noiseParameters$rho)) %>%
+        ungroup() %>%
+        filter(Coverage > 0)
+
+    if (noiseParameters$pi > 0) {
+        amountNoise <- dim(sampledNoise)[1]
+        piOnes <- floor(amountNoise / (1 - noiseParameters$pi))
+
+        sampledNoiseInflation <- populationLadder %>% mutate(Region = str_replace(Region, "A", "C"), Coverage = 1) %>%
+            bind_rows(
+                populationLadder %>%mutate(Region = str_replace(Region, "A", "T"), Coverage = 1)
+            ) %>%
+            bind_rows(
+                populationLadder %>%mutate(Region = str_replace(Region, "A", "G"), Coverage = 1)
+            ) %>%
+            .[sample(seq_len(dim(.)[1]), piOnes), ]
+
+        sampledNoise <- sampledNoise %>% bind_rows(sampledNoiseInflation)
+    }
+    else if (noiseParameters$pi == 1) {
+        sampledNoise <- sampledNoise %>% mutate(Coverage = 1)
+    }
 
     if (dim(sampledNoise)[1] > noiseParameters$maxElements) {
         sampledNoise <- sampledNoise[sample(1:dim(sampledNoise)[1], noiseParameters$maxElements), ]

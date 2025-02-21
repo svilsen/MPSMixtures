@@ -15,4 +15,9 @@ Eigen::Vector2i nonZeroElementsOfMarker(const Eigen::VectorXd & decodedProfile_m
 
 std::vector<int> sortedIndex(const Eigen::VectorXd & x);
 
+Eigen::VectorXd noiseQuantiles(const Eigen::VectorXd & Coverage,
+                               const Eigen::VectorXd & PartialSumAlleles,
+                               const std::vector<Eigen::VectorXd> & NoiseIndex,
+                               const int & NoiseSize, const double & q);
+
 #endif

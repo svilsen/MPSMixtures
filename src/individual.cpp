@@ -241,7 +241,7 @@ void Individual::EstimateParameters(const ExperimentalSetup & ES)
     // Noise parameters
     if (ES.DualEstimation) {
         const double varianceUpperLimit = SampleParameters[1];
-        EstimatePoissonGammaNoiseParameters EPGN(ES.Coverage, ReducedNoiseIndex, ES.PartialSumAlleles, ES.Tolerance, varianceUpperLimit);
+        EstimatePoissonGammaNoiseParameters EPGN(ES.Coverage, ReducedNoiseIndex, ES.PartialSumAlleles, ES.Tolerance, varianceUpperLimit, 0.95);
         estimateParametersNoiseCoverage(EPGN);
 
         NoiseParameters = EPGN.NoiseParameters;

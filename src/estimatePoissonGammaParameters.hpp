@@ -54,6 +54,7 @@ class EstimatePoissonGammaNoiseParameters
 
         Eigen::VectorXd Coverage;
         std::vector<Eigen::VectorXd> NoiseIndex;
+        Eigen::VectorXd OutlierQuantiles;
         Eigen::VectorXd PartialSumAlleles;
 
         Eigen::VectorXd NoiseParameters;
@@ -67,8 +68,8 @@ class EstimatePoissonGammaNoiseParameters
 
         EstimatePoissonGammaNoiseParameters(const Eigen::VectorXd & coverage, const std::vector<Eigen::VectorXd> & noiseIndex,
                                             const Eigen::VectorXd & partialSumAlleles, const Eigen::VectorXd & tolerance,
-                                            const double & varianceUpperLimit);
-        void initialiseParameters();
+                                            const double & varianceUpperLimit, const double & q);
+        void initialiseParameters(const double & q);
 };
 
 double logLikelihoodNoiseCoverageNLopt(const std::vector<double> &x, std::vector<double> &grad, void *data);

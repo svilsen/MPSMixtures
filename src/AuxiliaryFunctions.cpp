@@ -79,6 +79,44 @@ std::vector<int> sortedIndex(const Eigen::VectorXd & x)
     return x_sorted;
 }
 
+Eigen::VectorXd noiseQuantiles(const Eigen::VectorXd & Coverage,
+                               const Eigen::VectorXd & PartialSumAlleles,
+                               const std::vector<Eigen::VectorXd> & NoiseIndex,
+                               const int & NoiseSize, const double & q)
+{
+    int k = 0;
+    Eigen::VectorXd noiseSorted(NoiseSize);
+    for (std::size_t m = 0; m < NoiseIndex.size(); m++)
+    {
+        const Eigen::VectorXd & NoiseIndex_m = NoiseIndex[m];
+        for (std::size_t a = 0; a < NoiseIndex_m.size(); a++)
+        {
+            std::size_t n = PartialSumAlleles[m] + NoiseIndex_m[a];
+
+            int h = k - 1;
+            while ((h >= 0) & (noiseSorted[h] > Coverage[n])) {
+                noiseSorted[h + 1] = noiseSorted[h];
+                h--;
+            }
+
+            noiseSorted[h + 1] = Coverage[n];
+            k++;
+        }
+    }
+
+    const double a = (1.0 - q) / 2.0;
+    int li = std::floor(a * NoiseSize);
+    int ui = std::ceil((1 - a) * NoiseSize);
+    if (ui > (NoiseSize - 1)) {
+        ui = NoiseSize - 1;
+    }
+
+    Eigen::VectorXd quantiles(2);
+    quantiles[0] = noiseSorted[li];
+    quantiles[1] = noiseSorted[ui];
+    return quantiles;
+}
+
 //[[Rcpp::export()]]
 Eigen::MatrixXd generatePossibleGenotypes(const std::size_t & N)
 {
