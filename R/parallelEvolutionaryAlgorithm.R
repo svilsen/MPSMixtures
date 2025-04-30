@@ -158,10 +158,10 @@
             if ((j == 1) | converged | ((j %% traceLimit) == 0))
                 cat("\tOuter iteration:", j, "\n",
                     "\t\tFitness:\n",
-                    "\t\t  Highest:", max(populationFitness), "\n",
-                    "\t\t  Average:", mean(populationFitness), "\n",
-                    "\t\t  Lowest:", min(populationFitness), "\n",
-                    "\t\tSubpopulations maxima difference:", (max(maxPopulationFitness) - min(maxPopulationFitness)), "\n", #fractionOfUniqueSubpopulationMaxima, "\n",
+                    "\t\tHighest:", max(populationFitness), "\n",
+                    "\t\tAverage:", mean(populationFitness), "\n",
+                    "\t\tLowest:", min(populationFitness), "\n",
+                    "\t\tSubpopulations maxima difference:", (max(maxPopulationFitness) - min(maxPopulationFitness)), "\n",
                     "\t\tTermination counter:", k, "/", numberOfIterationsEqualMax, "\n")
         }
     }

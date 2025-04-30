@@ -30,12 +30,14 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
     numberOfKnownContributors = H$NumberOfKnownProfiles
 
     if ((numberOfContributors - numberOfKnownContributors) == 0) {
-        creatingIndividualObject <- .setupIndividual(numberOfMarkers, numberOfAlleles,
-                                                     numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
-                                                     sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
-                                                     noiseParameters, control$tolerance, H$ThetaCorrection,
-                                                     sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion,
-                                                     dualEstimation)
+        creatingIndividualObject <- .setupIndividual(
+            numberOfMarkers, numberOfAlleles,
+            numberOfContributors, numberOfKnownContributors, H$KnownProfiles,
+            sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
+            noiseParameters, control$tolerance, H$ThetaCorrection,
+            sampleTibble$AlleleFrequencies, control$levelsOfStutterRecursion,
+            dualEstimation
+        )
 
         optimalUnknownProfiles <- list(U = list(creatingIndividualObject))
     }
@@ -50,14 +52,16 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
                 mutationDecay <- c(seq(mutationProbabilityUpperLimit, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / control$numberOfIterations)), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations - floor(control$mutationDecayRate / control$numberOfIterations)))
             }
 
-            optimalUnknownProfiles <- .runningSinglePopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                    sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, noiseParameters,
-                                                                                    control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
-                                                                                    control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
-                                                                                    control$parentSelectionWindowSize, control$allowParentSurvival, control$fractionFittestIndividuals,
-                                                                                    crossoverProbability, mutationProbabilityLowerLimit, control$mutationIterations,
-                                                                                    control$mutationDegreesOfFreedom, mutationDecay, control$hillClimbingIterations,
-                                                                                    control$seed, control$trace, control$levelsOfStutterRecursion, dualEstimation)
+            optimalUnknownProfiles <- .runningSinglePopulationEvolutionaryAlgorithm(
+                numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
+                sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation, noiseParameters,
+                control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                control$populationSize, control$numberOfIterations, control$numberOfIterationsEqualMinMax, control$numberOfFittestIndividuals,
+                control$parentSelectionWindowSize, control$allowParentSurvival, control$fractionFittestIndividuals,
+                crossoverProbability, mutationProbabilityLowerLimit, control$mutationIterations,
+                control$mutationDegreesOfFreedom, mutationDecay, control$hillClimbingIterations,
+                control$seed, control$trace, control$levelsOfStutterRecursion, dualEstimation
+            )
 
             optimalUnknownProfiles$U <- optimalUnknownProfiles$U[order(sapply(optimalUnknownProfiles$U, function(oup) oup$Fitness), decreasing = TRUE)]
         }
@@ -66,15 +70,17 @@ setHypothesis <- function(sampleTibble, numberOfContributors, knownProfilesList,
                 mutationDecay <- c(seq(mutationProbabilityUpperLimit, mutationProbabilityLowerLimit, length.out = floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))), rep(mutationProbabilityLowerLimit, times = control$numberOfIterations * control$numberOfInnerIterations - floor(control$mutationDecayRate / (control$numberOfIterations * control$numberOfInnerIterations))))
             }
 
-            optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
-                                                                                      sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
-                                                                                      noiseParameters, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
-                                                                                      control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
-                                                                                      control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
-                                                                                      control$parentSelectionWindowSize, control$allowParentSurvival, control$fractionFittestIndividuals,
-                                                                                      crossoverProbability, mutationProbabilityLowerLimit, control$mutationIterations, control$mutationDegreesOfFreedom,
-                                                                                      mutationDecay, control$hillClimbingIterations, control$seed, control$trace, control$numberOfThreads,
-                                                                                      control$levelsOfStutterRecursion, dualEstimation, control$traceLimit)
+            optimalUnknownProfiles <- .runningParallelPopulationEvolutionaryAlgorithm(
+                numberOfMarkers, numberOfAlleles, numberOfContributors, numberOfKnownContributors, H$KnownProfiles, allKnownProfiles,
+                sampleTibble$Coverage, potentialParentsList, markerImbalances, control$convexMarkerImbalanceInterpolation,
+                noiseParameters, control$tolerance, H$ThetaCorrection, sampleTibble$AlleleFrequencies,
+                control$numberOfPopulations, control$populationSize, control$numberOfIterations, control$numberOfInnerIterations,
+                control$numberOfIterationsEqualMinMax, control$fractionOfPopulationsMax, control$numberOfFittestIndividuals,
+                control$parentSelectionWindowSize, control$allowParentSurvival, control$fractionFittestIndividuals,
+                crossoverProbability, mutationProbabilityLowerLimit, control$mutationIterations, control$mutationDegreesOfFreedom,
+                mutationDecay, control$hillClimbingIterations, control$seed, control$trace, control$numberOfThreads,
+                control$levelsOfStutterRecursion, dualEstimation, control$traceLimit
+            )
         }
     }
 

@@ -12,7 +12,7 @@ LinkingTo:
     Rcpp,
     RcppEigen,
     BH,
-    nloptr
+    nloptr (>= 1.2.0)
 Imports:
     Rcpp,
     RcppEigen,
@@ -26,7 +26,8 @@ Imports:
     Biostrings,
     IRanges,
     methods, 
-    utils
+    utils,
+    nloptr (>= 1.2.0)
 biocViews: 
     Biostrings, 
     IRanges

@@ -1,9 +1,2 @@
-CC = gcc
-CXX = g++
-
-CXX_STD = CXX11
-CXX11_FLAGS = -std=c++0x
-
-PKG_CPPFLAGS = -I"$(NLOPT_HOME)$(R_ARCH)/include" -w -std=c++11 -I../inst/include/ -O3 -DHAVE_NAMESPACES
-PKG_CFLAGS = -I"$(NLOPT_HOME)$(R_ARCH)/include"
-PKG_LIBS = -L"$(NLOPT_HOME)$(R_ARCH)/lib" -lnlopt_cxx
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
